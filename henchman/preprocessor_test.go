@@ -67,7 +67,6 @@ tasks:
 	if len(plan.Tasks) != 3 {
 		t.Fatalf("Expected 3 tasks. Found %d instead\n", len(plan.Tasks))
 	}
-
 	task1 := plan.Tasks[0].Name
 	task2 := plan.Tasks[1].Name
 	if task1 != "task1" {
@@ -91,6 +90,7 @@ tasks:
 name: "Included"
 tasks:
     - name: "included_task1"
+      shell: "foo"
     - include: /tmp/nested.yaml
 `
 	plan_file := `

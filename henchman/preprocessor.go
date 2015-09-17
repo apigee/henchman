@@ -1,7 +1,7 @@
 package henchman
 
 import (
-	_ "errors"
+	"errors"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -10,13 +10,39 @@ import (
 type PlanProxy struct {
 	TaskProxies []*TaskProxy `yaml:"tasks"`
 }
+
 type TaskProxy struct {
 	Task    `yaml:",inline"`
 	Include string
 }
 
+func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var tmap map[string]interface{}
+	err := unmarshal(&tmap)
+	if err != nil {
+		return err
+	}
+	for field, val := range tmap {
+		switch field {
+		case "name":
+			tp.Name = val.(string)
+		case "ignore_errors":
+			tp.IgnoreErrors = val.(bool)
+		case "include":
+			tp.Include = val.(string)
+		default:
+			// We have a module
+			tp.Module = &Module{
+				Name: field,
+				// FIXME: Will break if we get a non-string value
+				Params: val.(string),
+			}
+		}
+	}
+	return nil
+}
+
 func PreprocessTasks(taskSection []*TaskProxy) ([]*Task, error) {
-	//var tasks []TaskProxy
 	var tasks []*Task
 	for _, tp := range taskSection {
 		task := Task{}
@@ -33,6 +59,11 @@ func PreprocessTasks(taskSection []*TaskProxy) ([]*Task, error) {
 			tasks = append(tasks, innerPlan.Tasks...)
 		} else {
 			task.Name = tp.Name
+			if tp.Module == nil {
+				return nil, errors.New("This task doesn't have a valid module")
+			}
+			task.Module = tp.Module
+			task.IgnoreErrors = tp.IgnoreErrors
 			tasks = append(tasks, &task)
 		}
 	}
