@@ -30,9 +30,6 @@ func PreprocessTasks(taskSection []*TaskProxy) ([]*Task, error) {
 			if err != nil {
 				return nil, err
 			}
-			log.Printf("Reading %s\n", tp.Include)
-			log.Printf("Got %d tasks\n", len(innerPlan.Tasks))
-			log.Printf(string(buf))
 			tasks = append(tasks, innerPlan.Tasks...)
 		} else {
 			task.Name = tp.Name
@@ -45,8 +42,10 @@ func PreprocessTasks(taskSection []*TaskProxy) ([]*Task, error) {
 func PreprocessPlan(buf []byte) (*Plan, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
+	if err != nil {
+		return nil, err
+	}
 	plan := Plan{}
-
 	tasks, err := PreprocessTasks(px.TaskProxies)
 	if err != nil {
 		log.Printf("Error processing tasks\n")
