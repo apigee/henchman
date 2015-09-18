@@ -130,18 +130,18 @@ func TestPreprocessIncludeTasksWithVars(t *testing.T) {
 name: "Nested Included"
 tasks:
     - name: "nested_task1"
-      action: "bar"
+      action: monkey="bar"
 `
 	include_file := `
 name: "To be include"
 tasks:
     - name: "included_task1"
-      action: "bar"
+      action: foo="bar"
     - include: /tmp/nested.yaml
       vars:
         foo: thumb 
     - name: "included_task2"
-      action: "spaz"
+      action: spiz="spaz"
 `
 	plan_file := `
 name: "Sample plan"
@@ -152,13 +152,13 @@ hosts:
   - 192.168.1.2  
 tasks:
   - name: task1
-    action: ls -al
+    action: ls=al
   - include: /tmp/included.yaml
     vars: 
       foo: nope
       bar: baz
   - name: task2
-    action: "yoooo"
+    action: hey="yoooo"
 `
 	fpath := writeTempFile([]byte(include_file), "included.yaml")
 	nested_path := writeTempFile([]byte(nested_include_file), "nested.yaml")
