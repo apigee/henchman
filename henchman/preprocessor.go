@@ -40,6 +40,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 	for field, val := range tmap {
+		// FIXME: Also do a type assertion later on.
 		switch field {
 		case "name":
 			tp.Name = val.(string)
