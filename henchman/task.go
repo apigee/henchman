@@ -6,10 +6,13 @@ var TaskFields = map[string]bool{
 	"name":          true,
 	"ignore_errors": true,
 	"local":         true,
+	"when":          true,
+	"register":      true,
 }
 
 type Task struct {
+	Id           string
 	Name         string
-	IgnoreErrors bool
 	Module       *Module
+	IgnoreErrors bool `yaml:"ignore_errors"`
 }

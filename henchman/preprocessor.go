@@ -32,11 +32,11 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			tp.Include = val.(string)
 		default:
 			// We have a module
-			tp.Module = &Module{
-				Name: field,
-				// FIXME: Will break if we get a non-string value
-				Params: val.(string),
+			module, err := NewModule(field, val.(string))
+			if err != nil {
+				return err
 			}
+			tp.Module = module
 		}
 	}
 	return nil

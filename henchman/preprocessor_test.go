@@ -25,14 +25,14 @@ hosts:
   - 192.168.1.2  
 tasks:
   - name: Sample task that does nothing
-    action: ls -al
+    action: cmd="ls"
   - name: Second task
-    action: echo 'foo'
+    action: cmd="echo"
     ignore_errors: true
 `
 	plan, err := PreprocessPlan([]byte(plan_string))
 	if err != nil {
-		t.Errorf("This plan couldn't be processed - %s\n", err.Error())
+		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
 	}
 	if len(plan.Tasks) != 2 {
 		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
@@ -44,9 +44,9 @@ func TestPreprocessIncludeTasks(t *testing.T) {
 name: "To be include"
 tasks:
     - name: "included_task1"
-      action: "bar"
+      action: bar=baz
     - name: "included_task2"
-      action: "baz"
+      action: foo=bar
 `
 	plan_file := `
 name: "Sample plan"
@@ -55,7 +55,7 @@ hosts:
   - 192.168.1.2  
 tasks:
   - name: task1
-    action: ls -al
+    action: cmd="ls-al"
   - include: /tmp/included.yaml
 `
 	fpath := writeTempFile([]byte(include_file), "included.yaml")
@@ -82,15 +82,15 @@ func TestPreprocessNestedIncludeTasks(t *testing.T) {
 name: "Nested Included"	
 tasks:
     - name: "nested_task1"
-      action: "bar"
+      yum: "pkg=bar"
     - name: "nested_task2"
-      action: "baz"	
+      action: foo=baz
 `
 	include_file := `
 name: "Included"
 tasks:
     - name: "included_task1"
-      shell: "foo"
+      shell: cmd=foo user=root
     - include: /tmp/nested.yaml
 `
 	plan_file := `
@@ -100,7 +100,7 @@ hosts:
   - 192.168.1.2  
 tasks:
   - name: task1
-    action: ls -al
+    action: cmd=ls user=foo
   - include: /tmp/included.yaml
 `
 	fpath := writeTempFile([]byte(include_file), "included.yaml")
