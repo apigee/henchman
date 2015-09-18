@@ -22,7 +22,7 @@ func TestPreprocessPlanValid(t *testing.T) {
 name: "Sample plan"
 hosts:
   - "127.0.0.1:22"
-  - 192.168.1.2  
+  - 192.168.1.2
 tasks:
   - name: Sample task that does nothing
     action: cmd="ls"
@@ -52,7 +52,7 @@ tasks:
 name: "Sample plan"
 hosts:
   - "127.0.0.1:22"
-  - 192.168.1.2  
+  - 192.168.1.2
 tasks:
   - name: task1
     action: cmd="ls-al"
@@ -79,7 +79,7 @@ tasks:
 
 func TestPreprocessNestedIncludeTasks(t *testing.T) {
 	nested_include_file := `
-name: "Nested Included"	
+name: "Nested Included"
 tasks:
     - name: "nested_task1"
       yum: "pkg=bar"
@@ -97,7 +97,7 @@ tasks:
 name: "Sample plan"
 hosts:
   - "127.0.0.1:22"
-  - 192.168.1.2  
+  - 192.168.1.2
 tasks:
   - name: task1
     action: cmd=ls user=foo
@@ -122,5 +122,68 @@ tasks:
 	}
 	if task2 != "included_task1" {
 		t.Errorf("Task name should have been included_task1. Got %s\n", task2)
+	}
+}
+
+func TestPreprocessIncludeTasksWithVars(t *testing.T) {
+	nested_include_file := `
+name: "Nested Included"
+tasks:
+    - name: "nested_task1"
+      action: "bar"
+`
+	include_file := `
+name: "To be include"
+tasks:
+    - name: "included_task1"
+      action: "bar"
+    - include: /tmp/nested.yaml
+      vars:
+        foo: thumb 
+    - name: "included_task2"
+      action: "spaz"
+`
+	plan_file := `
+name: "Sample plan"
+vars:
+  foo: bar
+hosts:
+  - "127.0.0.1:22"
+  - 192.168.1.2  
+tasks:
+  - name: task1
+    action: ls -al
+  - include: /tmp/included.yaml
+    vars: 
+      foo: nope
+      bar: baz
+  - name: task2
+    action: "yoooo"
+`
+	fpath := writeTempFile([]byte(include_file), "included.yaml")
+	nested_path := writeTempFile([]byte(nested_include_file), "nested.yaml")
+	defer rmTempFile(fpath)
+	defer rmTempFile(nested_path)
+	plan, err := PreprocessPlan([]byte(plan_file))
+	if err != nil {
+		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
+	}
+	if len(plan.Tasks) != 5 {
+		t.Fatalf("Expected 5 tasks. Found %d instead\n", len(plan.Tasks))
+	}
+	if plan.Tasks[0].Vars["foo"] != "bar" {
+		t.Fatalf("Expected bar. Found %v instead\n", plan.Tasks[0].Vars["foo"])
+	}
+	if plan.Tasks[1].Vars["foo"] != "nope" {
+		t.Fatalf("Expected nope. Found %v instead\n", plan.Tasks[1].Vars["foo"])
+	}
+	if plan.Tasks[2].Vars["foo"] != "thumb" {
+		t.Fatalf("Expected thumb. Found %v instead\n", plan.Tasks[2].Vars["foo"])
+	}
+	if plan.Tasks[3].Vars["foo"] != "nope" {
+		t.Fatalf("Expected nope. Found %v instead\n", plan.Tasks[3].Vars["foo"])
+	}
+	if plan.Tasks[4].Vars["foo"] != "bar" {
+		t.Fatalf("Expected bar. Found %v instead\n", plan.Tasks[4].Vars["foo"])
 	}
 }
