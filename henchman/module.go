@@ -7,6 +7,8 @@ import (
 	"text/scanner"
 )
 
+// FIXME: Have custom error types when parsing modules
+
 type Module struct {
 	Name   string
 	Params map[string]string
