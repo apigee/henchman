@@ -2,7 +2,9 @@ package henchman
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+	"text/scanner"
 )
 
 type Module struct {
@@ -15,16 +17,28 @@ type Module struct {
 // These plan arguments override the variables that may be defined
 // as part of the plan file.
 func parseModuleArgs(args string) (map[string]string, error) {
+	var s scanner.Scanner
+	s.Init(strings.NewReader(args))
+	var tok rune
 	extraArgs := make(map[string]string)
-	if args == "" {
-		return extraArgs, nil
-	}
-	for _, a := range strings.Split(args, " ") {
-		kv := strings.Split(a, "=")
-		if len(kv) != 2 {
-			return nil, errors.New("Invalid module parameters")
+	currentKey := ""
+	for tok != scanner.EOF {
+		tok = s.Scan()
+		tokText := s.TokenText()
+		if strings.TrimSpace(tokText) == "" {
+			continue
 		}
-		extraArgs[kv[0]] = kv[1]
+		if currentKey == "" {
+			if s.Peek() == 61 { // Peek for '='
+				tok = s.Scan()
+				currentKey = tokText
+			} else {
+				return nil, errors.New(fmt.Sprintf("Expected '=' at position %d", s.Pos()))
+			}
+		} else {
+			extraArgs[currentKey] = strings.Trim(tokText, "\"")
+			currentKey = ""
+		}
 	}
 	return extraArgs, nil
 }
