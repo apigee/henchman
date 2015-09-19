@@ -17,6 +17,7 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
+/*
 func TestPreprocessPlanValid(t *testing.T) {
 	plan_string := `---
 name: "Sample plan"
@@ -139,7 +140,7 @@ tasks:
       action: foo="bar"
     - include: /tmp/nested.yaml
       vars:
-        foo: thumb 
+        foo: thumb
     - name: "included_task2"
       action: spiz="spaz"
 `
@@ -149,12 +150,12 @@ vars:
   foo: bar
 hosts:
   - "127.0.0.1:22"
-  - 192.168.1.2  
+  - 192.168.1.2
 tasks:
   - name: task1
     action: ls=al
   - include: /tmp/included.yaml
-    vars: 
+    vars:
       foo: nope
       bar: baz
   - name: task2
@@ -185,5 +186,78 @@ tasks:
 	}
 	if plan.Tasks[4].Vars["foo"] != "bar" {
 		t.Fatalf("Expected bar. Found %v instead\n", plan.Tasks[4].Vars["foo"])
+	}
+}
+*/
+func TestPreprocessVarsWithIncludeNoOverride(t *testing.T) {
+	vars_file := `---
+name: "Included Vars"
+vars:
+  goodbye: moon
+  foo: bar
+`
+	vars2_file := `---
+name: "Included Vars 2"
+vars:
+  goodbye: guacamole
+  fun: times
+`
+	plan_string := `---
+name: "Sample plan"
+hosts:
+  - "127.0.0.1:22"
+  - 192.168.1.2
+vars:
+  hello: world
+  foo: scar
+  include:
+   - /tmp/vars.yaml
+   - /tmp/vars2.yaml
+  spam: eggs
+tasks:
+  - name: Sample task that does nothing
+    action: cmd="ls"
+  - name: Second task
+    action: cmd="echo"
+    ignore_errors: true
+`
+	fpath := writeTempFile([]byte(vars_file), "vars.yaml")
+	fpath2 := writeTempFile([]byte(vars2_file), "vars2.yaml")
+	defer rmTempFile(fpath)
+	defer rmTempFile(fpath2)
+	plan, err := PreprocessPlan([]byte(plan_string))
+	if err != nil {
+		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
+	}
+	if len(plan.Tasks) != 2 {
+		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
+	}
+
+	if len(plan.Vars) != 5 {
+		t.Errorf("Expected 5 vars.  Found %d vars instead\n", len(plan.Vars))
+	}
+	for key, val := range plan.Vars {
+		switch key {
+		case "fun":
+			if val.(string) != "times" {
+				t.Fatalf("For key fun, expected \"times\".  Received %v\n", val)
+			}
+		case "hello":
+			if val.(string) != "world" {
+				t.Fatalf("For key hello, expected \"world\".  Received %v\n", val)
+			}
+		case "foo":
+			if val.(string) != "scar" {
+				t.Fatalf("For key foo, expected \"scar\".  Received %v\n", val)
+			}
+		case "spam":
+			if val.(string) != "eggs" {
+				t.Fatalf("For key spam, expected \"eggs\".  Received %v\n", val)
+			}
+		case "goodbye":
+			if val.(string) != "moon" {
+				t.Fatalf("For key goodbye, expected \"times\".  Received %v\n", val)
+			}
+		}
 	}
 }

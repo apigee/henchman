@@ -10,6 +10,7 @@ import (
 type PlanProxy struct {
 	Plan        Plan
 	TaskProxies []*TaskProxy `yaml:"tasks"`
+	VarsProxy   TaskVars     `yaml:"vars"`
 }
 
 // Task is for the general Task format.  Refer to task.go
@@ -128,6 +129,45 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars) ([]*Task, err
 	return tasks, nil
 }
 
+// Processes plan level vars with includes
+// All plan level vars will be in the vars map
+// And any repeat vars in the includes will be a FCFS priority
+func PreprocessVars(vars TaskVars) (TaskVars, error) {
+	newVars := vars
+	if fileList, present := vars["include"]; present {
+		for _, fName := range fileList.([]interface{}) {
+			tempVars, err := preprocessVarsHelper(fName)
+			if err != nil {
+				return nil, err
+			}
+			mergeMap(tempVars, newVars, false)
+		}
+	}
+
+	delete(newVars, "include")
+	return newVars, nil
+}
+
+func preprocessVarsHelper(fName interface{}) (TaskVars, error) {
+	newFName, ok := fName.(string)
+	if !ok {
+		log.Println("In an include in vars is not a valid string")
+	}
+
+	buf, err := ioutil.ReadFile(newFName)
+	if err != nil {
+		return nil, err
+	}
+
+	var px PlanProxy
+	err = yaml.Unmarshal(buf, &px)
+	if err != nil {
+		return nil, err
+	}
+
+	return px.VarsProxy, nil
+}
+
 // For Plan
 func PreprocessPlan(buf []byte) (*Plan, error) {
 	var px PlanProxy
@@ -137,13 +177,26 @@ func PreprocessPlan(buf []byte) (*Plan, error) {
 	}
 
 	plan := Plan{}
-	m := make(TaskVars)
-	m["foo"] = "bar"
-	tasks, err := PreprocessTasks(px.TaskProxies, m)
+
+	plan.Name = px.Plan.Name
+	plan.Hosts = px.Plan.Hosts
+
+	vars := make(TaskVars)
+	if px.VarsProxy != nil {
+		vars, err = PreprocessVars(px.VarsProxy)
+		if err != nil {
+			log.Printf("Error processing vars\n")
+			return nil, err
+		}
+	}
+	plan.Vars = vars
+
+	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars)
 	if err != nil {
 		log.Printf("Error processing tasks\n")
 		return nil, err
 	}
 	plan.Tasks = tasks
+
 	return &plan, err
 }
