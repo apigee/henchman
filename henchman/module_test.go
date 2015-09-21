@@ -1,8 +1,25 @@
 package henchman
 
 import (
+	"os"
+	"path"
 	"testing"
 )
+
+func moduleTestSetup(modName string) (module *Module) {
+	moduleContent := `
+#!/usr/bin/env sh
+ls -al $1
+`
+	writeTempFile([]byte(moduleContent), modName)
+
+	mod, _ := NewModule(modName, "")
+	return mod
+}
+
+func moduleTestTeardown(mod *Module) {
+	os.Remove(path.Join("/tmp", mod.Name))
+}
 
 func TestValidModule(t *testing.T) {
 	name := "shell"
