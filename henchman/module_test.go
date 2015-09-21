@@ -5,7 +5,7 @@ import (
 )
 
 func TestValidModule(t *testing.T) {
-	name := "shell1"
+	name := "shell"
 	args := "cmd=\"ls -al\" foo=bar"
 	mod, err := NewModule(name, args)
 	if err != nil {
