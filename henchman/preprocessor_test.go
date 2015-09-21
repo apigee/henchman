@@ -17,7 +17,6 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
-/*
 func TestPreprocessPlanValid(t *testing.T) {
 	plan_string := `---
 name: "Sample plan"
@@ -56,7 +55,7 @@ hosts:
   - 192.168.1.2
 tasks:
   - name: task1
-    action: cmd="ls-al"
+    action: cmd="ls -al"
   - include: /tmp/included.yaml
 `
 	fpath := writeTempFile([]byte(include_file), "included.yaml")
@@ -188,7 +187,7 @@ tasks:
 		t.Fatalf("Expected bar. Found %v instead\n", plan.Tasks[4].Vars["foo"])
 	}
 }
-*/
+
 func TestPreprocessVarsWithIncludeNoOverride(t *testing.T) {
 	vars_file := `---
 name: "Included Vars"
