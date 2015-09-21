@@ -40,3 +40,47 @@ func TestInvalidArgsModule2(t *testing.T) {
 		t.Errorf("Module arg parsing should have failed")
 	}
 }
+
+func TestModuleResolve(t *testing.T) {
+	origSearchPath := ModuleSearchPath
+	ModuleSearchPath = append(ModuleSearchPath, "/tmp")
+	defer func() {
+		ModuleSearchPath = origSearchPath
+	}()
+	writeTempFile([]byte("ls -al"), "shell")
+	defer rmTempFile("/tmp/shell")
+	mod, err := NewModule("shell", "foo=bar")
+	if err != nil {
+		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
+	}
+	if mod == nil {
+		t.Errorf("Module shouldn't be nil")
+	}
+	fullPath, err := mod.Resolve()
+	if err != nil {
+		t.Fatalf("Error when resolving module path - %s\n", err.Error())
+	}
+	if fullPath != "/tmp/shell" {
+		t.Errorf("Got incorrect fullPath - %s\n", fullPath)
+	}
+}
+
+func TestNonexistentModuleResolve(t *testing.T) {
+	//ModuleSearchPath = append(ModuleSearchPath, "/tmp")
+	writeTempFile([]byte("ls -al"), "shell")
+	defer rmTempFile("/tmp/shell")
+	mod, err := NewModule("shell", "foo=bar")
+	if err != nil {
+		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
+	}
+	if mod == nil {
+		t.Errorf("Module shouldn't be nil")
+	}
+	fullPath, err := mod.Resolve()
+	if err == nil {
+		t.Error("Module path resolution should have failed")
+	}
+	if fullPath != "" {
+		t.Error("Fullpath should have been empty")
+	}
+}

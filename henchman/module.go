@@ -3,12 +3,17 @@ package henchman
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"strings"
 	"text/scanner"
 )
 
-// FIXME: Have custom error types when parsing modules
+var ModuleSearchPath = []string{
+	"modules",
+}
 
+// FIXME: Have custom error types when parsing modules
 type Module struct {
 	Name   string
 	Params map[string]string
@@ -54,4 +59,16 @@ func NewModule(name string, params string) (*Module, error) {
 	}
 	module.Params = paramTable
 	return &module, nil
+}
+
+// Module not found
+func (module *Module) Resolve() (modulePath string, err error) {
+	for _, dir := range ModuleSearchPath {
+		fullPath := path.Join(dir, module.Name)
+		finfo, err := os.Stat(fullPath)
+		if finfo != nil && !finfo.IsDir() {
+			return fullPath, err
+		}
+	}
+	return "", errors.New("Module couldn't be resolved")
 }
