@@ -92,7 +92,6 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 
 func (sshTransport *SSHTransport) getClientSession() (*ssh.Client, *ssh.Session, error) {
 	address := fmt.Sprintf("%s:%d", sshTransport.Host, sshTransport.Port)
-	log.Printf("---- %s\n", address)
 	client, err := ssh.Dial("tcp", address, sshTransport.Config)
 	if err != nil {
 		return nil, nil, err
@@ -140,11 +139,13 @@ func (sshTransport *SSHTransport) Put(source, destination string) error {
 		}
 		defer pipe.Close()
 		buf := string(sourceBuf)
-		fmt.Fprintln(pipe, "C0644", len(buf), sourcePath)
+		fmt.Fprintln(pipe, "C0700", len(buf), sourcePath)
 		fmt.Fprint(pipe, buf)
 		fmt.Fprint(pipe, "\x00")
 	}()
-	if err := session.Run("/usr/bin/scp -qrt  ./"); err != nil {
+
+	remoteCommand := fmt.Sprintf("mkdir -p %s && cd %s && /usr/bin/scp -qrt ./", destination, destination)
+	if err := session.Run(remoteCommand); err != nil {
 		log.Printf("Error doing scp - %s\n", err.Error())
 		return err
 	}
