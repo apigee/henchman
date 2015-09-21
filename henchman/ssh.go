@@ -48,7 +48,6 @@ type SSHTransport struct {
 func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 	_config := *config
 
-	log.Printf("%v\n", _config)
 	// Get hostname and port
 	sshTransport.Host = _config["hostname"]
 	port, parseErr := strconv.ParseUint(_config["port"], 10, 16)
@@ -128,9 +127,7 @@ func (sshTransport *SSHTransport) Put(source, destination string) error {
 		log.Printf("Error reading file - %s: %s\n", source, err.Error())
 		return err
 	}
-
 	_, sourcePath := path.Split(source)
-
 	go func() {
 		pipe, err := session.StdinPipe()
 		if err != nil {

@@ -29,7 +29,8 @@ func (task *Task) Run(machine *Machine) error {
 		return err
 	}
 	// Transfering the module
-	remoteModDir := path.Join("$HOME/.henchman", task.Id)
+	// FIXME: Find a way to override it
+	remoteModDir := "$HOME/.henchman"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 
 	// Create the remoteModDir
@@ -40,11 +41,13 @@ func (task *Task) Run(machine *Machine) error {
 	}
 
 	// Put the module on the remotePath
+	log.Printf("Transferring module from %s to %s\n", modPath, remoteModDir)
 	err = machine.Transport.Put(modPath, remoteModDir)
 	if err != nil {
 		return err
 	}
 	// Executing the module
+	log.Printf("Executing script - %s\n", remoteModPath)
 	buf, err := machine.Transport.Exec(remoteModPath)
 	if err != nil {
 		return err
