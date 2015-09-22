@@ -103,7 +103,22 @@ func (sshTransport *SSHTransport) getClientSession() (*ssh.Client, *ssh.Session,
 
 }
 
-func (sshTransport *SSHTransport) Exec(cmd string) (*bytes.Buffer, error) {
+func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*bytes.Buffer, error) {
+	var b bytes.Buffer
+	modes := ssh.TerminalModes{
+		ECHO:          0,
+		TTY_OP_ISPEED: 14400,
+		TTY_OP_OSPEED: 14400,
+	}
+	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+		log.Fatalf("request for pseudo terminal failed: " + err.Error())
+	}
+	session.Stdout = &b
+	session.Stderr = &b
+	return &b, session.Run(cmd)
+}
+
+func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte) (*bytes.Buffer, error) {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
 		log.Printf("Couldn't dial in to %s", sshTransport.Host)
@@ -111,6 +126,7 @@ func (sshTransport *SSHTransport) Exec(cmd string) (*bytes.Buffer, error) {
 	}
 	defer client.Close()
 	defer session.Close()
+	cmd = fmt.Sprintf("echo '%s' | %s", stdin, cmd)
 	return sshTransport.execCmd(session, cmd)
 }
 
@@ -147,21 +163,6 @@ func (sshTransport *SSHTransport) Put(source, destination string) error {
 		return err
 	}
 	return nil
-}
-
-func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*bytes.Buffer, error) {
-	var b bytes.Buffer
-	modes := ssh.TerminalModes{
-		ECHO:          0,
-		TTY_OP_ISPEED: 14400,
-		TTY_OP_OSPEED: 14400,
-	}
-	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
-		log.Fatalf("request for pseudo terminal failed: " + err.Error())
-	}
-	session.Stdout = &b
-	session.Stderr = &b
-	return &b, session.Run(cmd)
 }
 
 func NewSSH(config *TransportConfig) (*SSHTransport, error) {
