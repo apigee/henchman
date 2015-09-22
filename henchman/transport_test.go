@@ -12,7 +12,7 @@ func (tt *TestTransport) Initialize(config *TransportConfig) error {
 	return nil
 }
 
-func (tt *TestTransport) Exec(cmd string) (*bytes.Buffer, error) {
+func (tt *TestTransport) Exec(cmd string, stdin []byte) (*bytes.Buffer, error) {
 	return bytes.NewBuffer([]byte("cmd " + cmd + " executed")), nil
 }
 

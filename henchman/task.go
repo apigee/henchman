@@ -1,6 +1,7 @@
 package henchman
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"path"
@@ -34,7 +35,7 @@ func (task *Task) Run(machine *Machine) error {
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 
 	// Create the remoteModDir
-	_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir))
+	_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir), nil)
 	if err != nil {
 		log.Printf("Error while creating remote module path\n")
 		return err
@@ -48,7 +49,12 @@ func (task *Task) Run(machine *Machine) error {
 	}
 	// Executing the module
 	log.Printf("Executing script - %s\n", remoteModPath)
-	buf, err := machine.Transport.Exec(remoteModPath)
+
+	jsonParams, err := json.Marshal(task.Module.Params)
+	if err != nil {
+		return err
+	}
+	buf, err := machine.Transport.Exec(remoteModPath, jsonParams)
 	if err != nil {
 		return err
 	}
