@@ -1,0 +1,10 @@
+---
+name: "To be include"
+tasks:
+    - name: "included_task1"
+      action: foo="bar"
+    - include: test/tasksNoIncludes.yaml 
+      vars:
+        foo: thumb
+    - name: "included_task2"
+      action: spiz="spaz"

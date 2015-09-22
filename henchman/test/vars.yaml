@@ -1,0 +1,5 @@
+---
+name: "Included Vars"
+vars:
+  goodbye: moon
+  foo: bar

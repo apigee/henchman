@@ -1,0 +1,16 @@
+---
+name: "Plan With Tasks and Vars"
+vars:
+  foo: bar
+hosts:
+  - "127.0.0.1:22"
+  - 192.168.1.2
+tasks:
+  - name: task1
+    action: ls=al
+  - include: test/tasksWithIncludesAndVars.yaml
+    vars:
+      foo: nope
+      bar: baz
+  - name: task2
+    action: hey="yoooo"

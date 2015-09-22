@@ -1,0 +1,4 @@
+name: "Included Vars 2"
+vars:
+  goodbye: guacamole
+  fun: times

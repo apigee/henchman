@@ -1,0 +1,7 @@
+---
+name: "Tasks No Includes"
+tasks:
+  - name: "included_task1"
+    action: bar=baz
+  - name: "included_task2"
+    action: foo=bar

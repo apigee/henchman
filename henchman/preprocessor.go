@@ -11,6 +11,7 @@ type PlanProxy struct {
 	Plan        Plan
 	TaskProxies []*TaskProxy `yaml:"tasks"`
 	VarsProxy   TaskVars     `yaml:"vars"`
+	HostsProxy  []string     `yaml:"hosts"`
 }
 
 // Task is for the general Task format.  Refer to task.go
@@ -42,6 +43,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	for field, val := range tmap {
 		// FIXME: Also do a type assertion later on.
+		// FIXME: make sure to add a bool flag in default so people can't spam modules
 		switch field {
 		case "name":
 			tp.Name = val.(string)
@@ -168,8 +170,26 @@ func preprocessVarsHelper(fName interface{}) (TaskVars, error) {
 	return px.VarsProxy, nil
 }
 
+// Process hosts list.  Checks the host list to see if any of the
+// hosts entries are valid sections and will extract it based on
+// the inventory
+func PreprocessHosts(hosts []string, inv Inventory) ([]string, error) {
+	var newHosts []string
+	for _, host := range hosts {
+		if section, present := inv[host]; present {
+			newHosts = append(newHosts, section...)
+		} else {
+			newHosts = append(newHosts, host)
+		}
+	}
+
+	return newHosts, nil
+}
+
 // For Plan
-func PreprocessPlan(buf []byte) (*Plan, error) {
+// NOTE: inventory should always be initialized and passed in?
+//       or should we just check to see if it's nil?
+func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
@@ -178,8 +198,14 @@ func PreprocessPlan(buf []byte) (*Plan, error) {
 
 	plan := Plan{}
 
-	plan.Name = px.Plan.Name
-	plan.Hosts = px.Plan.Hosts
+	hosts := px.HostsProxy
+	if inv != nil {
+		hosts, err = PreprocessHosts(hosts, inv)
+		if err != nil {
+			return nil, err
+		}
+	}
+	plan.Hosts = hosts
 
 	vars := make(TaskVars)
 	if px.VarsProxy != nil {
