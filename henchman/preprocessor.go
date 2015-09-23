@@ -76,23 +76,31 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
 func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars) ([]*Task, error) {
-	return parseTaskProxies(taskSection, planVars)
+	return parseTaskProxies(taskSection, planVars, "")
 }
 
-func preprocessTasksHelper(buf []byte, prevVars TaskVars) ([]*Task, error) {
+func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string) ([]*Task, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseTaskProxies(px.TaskProxies, prevVars)
+	return parseTaskProxies(px.TaskProxies, prevVars, prevWhen)
 }
 
-func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars) ([]*Task, error) {
+func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen string) ([]*Task, error) {
 	var tasks []*Task
 	for _, tp := range taskProxies {
 		task := Task{}
+		// links when paramter
+		// put out here b/c every task can have a when
+		if tp.When != "" && prevWhen != "" {
+			tp.When = tp.When + " && " + prevWhen
+		} else if prevWhen != "" {
+			tp.When = prevWhen
+		}
+
 		if tp.Include != "" {
 			// FIXME: resolve if templating is found
 			// things need to be rendered when it's done
@@ -101,12 +109,13 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars) ([]*Task, err
 				return nil, err
 			}
 
+			// links previous vars
 			if tp.Vars == nil {
 				tp.Vars = make(TaskVars)
 			}
 			mergeMap(prevVars, tp.Vars, false)
 
-			includedTasks, err := preprocessTasksHelper(buf, tp.Vars)
+			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When)
 			if err != nil {
 				return nil, err
 			}
@@ -122,6 +131,7 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars) ([]*Task, err
 			task.Local = tp.Local
 			task.Register = tp.Register
 			task.When = tp.When
+			// NOTE: assigns to prevVars not tp.Vars
 			task.Vars = prevVars
 
 			tasks = append(tasks, &task)
@@ -193,6 +203,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
+		log.Printf("Error processing plan - %v\n", err.Error())
 		return nil, err
 	}
 
@@ -211,7 +222,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	if px.VarsProxy != nil {
 		vars, err = PreprocessVars(px.VarsProxy)
 		if err != nil {
-			log.Printf("Error processing vars\n")
+			log.Printf("Error processing vars - %v\n", err.Error())
 			return nil, err
 		}
 	}
@@ -219,7 +230,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 
 	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars)
 	if err != nil {
-		log.Printf("Error processing tasks\n")
+		log.Printf("Error processing tasks - %v\n", err.Error())
 		return nil, err
 	}
 	plan.Tasks = tasks

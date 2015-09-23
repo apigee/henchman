@@ -190,7 +190,7 @@ func TestPreprocessHosts(t *testing.T) {
 		t.Fatalf("Expected 123.456.789. Found %v\n", plan.Hosts[2])
 	}
 	if plan.Hosts[3] != "000.000.000" {
-		t.Fatalf("Expected 000.000.000.. Found %v\n", plan.Hosts[3])
+		t.Fatalf("Expected 000.000.000. Found %v\n", plan.Hosts[3])
 	}
 	if plan.Hosts[4] != "127.0.0.3" {
 		t.Fatalf("Expected 127.0.0.3. Found %v\n", plan.Hosts[4])
@@ -198,5 +198,25 @@ func TestPreprocessHosts(t *testing.T) {
 	if plan.Hosts[5] != "127.0.0.4" {
 		t.Fatalf("Expected 127.0.0.4. Found %v\n", plan.Hosts[5])
 	}
+}
 
+func TestPreprocessTasksWithIncludesAndWhen(t *testing.T) {
+	buf, err := ioutil.ReadFile("test/planWithTaskIncludesAndWhen.yaml")
+	if err != nil {
+		t.Errorf("Could not read planWithHosts.yaml")
+	}
+
+	plan, err := PreprocessPlan(buf, nil)
+	if plan.Tasks[0].When != "test == true" {
+		t.Fatalf("Expected \"test == true\".  Received \"%v\"\n", plan.Tasks[0].When)
+	}
+	if plan.Tasks[1].When != "hello == world && test == false" {
+		t.Fatalf("Expected \"hello == world && test == false\".  Received \"%v\"\n", plan.Tasks[1].When)
+	}
+	if plan.Tasks[2].When != "jolly == santa && goodbye == moon && test == false" {
+		t.Fatalf("Expected \"jolly == santa && goodbye == moon && test == false\".  Received \"%v\"\n", plan.Tasks[2].When)
+	}
+	if plan.Tasks[3].When != "goodbye == moon && test == false" {
+		t.Fatalf("Expected \"goodbye == moon && test == false\".  Received \"%v\"\n", plan.Tasks[3].When)
+	}
 }

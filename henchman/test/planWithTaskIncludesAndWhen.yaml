@@ -1,0 +1,8 @@
+---
+name: "Plan with Task Includes And When"
+tasks:
+  - name: "task 1"
+    shell: cmd=echo
+    when: test == true
+  - include: test/tasksWithIncludesAndWhen.yaml
+    when: test == false

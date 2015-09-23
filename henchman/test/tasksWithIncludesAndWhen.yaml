@@ -1,0 +1,8 @@
+---
+name: "Tasks with Include and When"
+tasks:
+  - name: "include when 1"
+    shell: cmd=echo
+    when: hello == world
+  - include: test/tasksNoIncludes.yaml
+    when: goodbye == moon 
