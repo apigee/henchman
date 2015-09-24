@@ -7,6 +7,8 @@ import (
 	"path"
 
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/flosch/pongo2"
+	"gopkg.in/yaml.v2"
 )
 
 type TaskVars map[interface{}]interface{}
@@ -20,6 +22,33 @@ type Task struct {
 	When         string
 	Register     string
 	Vars         TaskVars
+}
+
+// Renders any pongo2 formatting and converts it back to a task
+func (task *Task) Render(machine *Machine) error {
+	var renderedTask Task
+	taskBuf, err := yaml.Marshal(task)
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := pongo2.FromString(string(taskBuf))
+	if err != nil {
+		return err
+	}
+	ctxt := pongo2.Context{"vars": task.Vars, "machine": machine}
+	out, err := tmpl.Execute(ctxt)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal([]byte(out), &renderedTask)
+	if err != nil {
+		return err
+	}
+
+	*task = renderedTask
+	return nil
 }
 
 func (task *Task) Run(machine *Machine) error {
