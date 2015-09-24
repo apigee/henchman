@@ -8,9 +8,3 @@ params = json.loads(sys.stdin.read())
 print "Installing package ", params["package"]
 
 os.system("yum install %s" % params["package"])
-
-
-
-
-
-

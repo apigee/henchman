@@ -27,6 +27,8 @@ type Task struct {
 // Renders any pongo2 formatting and converts it back to a task
 func (task *Task) Render(machine *Machine) error {
 	var renderedTask Task
+	// changes Task struct back to a string so
+	// templating can be done
 	taskBuf, err := yaml.Marshal(task)
 	if err != nil {
 		return err
@@ -36,6 +38,8 @@ func (task *Task) Render(machine *Machine) error {
 	if err != nil {
 		return err
 	}
+
+	// NOTE: add an update context when regMap is passed in
 	ctxt := pongo2.Context{"vars": task.Vars, "machine": machine}
 	out, err := tmpl.Execute(ctxt)
 	if err != nil {

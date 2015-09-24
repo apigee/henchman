@@ -8,5 +8,5 @@ vars:
   key: abcd1234
 tasks:
   - name: "{{ vars.service }} at {{ machine.Hostname }}"
-    shell: cmd=echo key="{{ vars.key }}"
+    shell: cmd=echo key="{{ vars.service }}"
     local: true
