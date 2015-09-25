@@ -7,7 +7,8 @@ import (
 )
 
 type PlanProxy struct {
-	Plan        Plan
+	Name        string       `yaml:"name"`
+	Sudo        bool         `yaml:"sudo"`
 	TaskProxies []*TaskProxy `yaml:"tasks"`
 	VarsProxy   TaskVars     `yaml:"vars"`
 	HostsProxy  []string     `yaml:"hosts"`
@@ -51,6 +52,12 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			tp.Name, found = val.(string)
 			if !found {
 				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not a string", field, val)
+			}
+			tp.Name = val.(string)
+		case "sudo":
+			tp.Sudo = val.(bool)
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not a bool", field, val)
 			}
 		case "ignore_errors":
 			tp.IgnoreErrors, found = val.(bool)
@@ -109,8 +116,8 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // whether if it's an include value or a normal task.  If it's a normal task
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
-func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars) ([]*Task, error) {
-	tasksList, err := parseTaskProxies(taskSection, planVars, "")
+func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars, sudo bool) ([]*Task, error) {
+	tasksList, err := parseTaskProxies(taskSection, planVars, "", sudo)
 	if err != nil {
 		return nil, err
 	}
@@ -118,17 +125,17 @@ func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars) ([]*Task, erro
 	return tasksList, nil
 }
 
-func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string) ([]*Task, error) {
+func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string, sudo bool) ([]*Task, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseTaskProxies(px.TaskProxies, prevVars, prevWhen)
+	return parseTaskProxies(px.TaskProxies, prevVars, prevWhen, sudo)
 }
 
-func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen string) ([]*Task, error) {
+func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen string, sudo bool) ([]*Task, error) {
 	var tasks []*Task
 	for _, tp := range taskProxies {
 		task := Task{}
@@ -151,8 +158,7 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 				tp.Vars = make(TaskVars)
 			}
 			mergeMap(prevVars, tp.Vars, false)
-
-			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When)
+			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When, sudo)
 			if err != nil {
 				return nil, err
 			}
@@ -170,6 +176,10 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 			task.When = tp.When
 			// NOTE: assigns to prevVars not tp.Vars
 			task.Vars = prevVars
+			task.Sudo = sudo
+			if tp.Sudo {
+				task.Sudo = tp.Sudo
+			}
 
 			tasks = append(tasks, &task)
 		}
@@ -263,7 +273,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	}
 	plan.Vars = vars
 
-	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars)
+	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars, px.Sudo)
 	if err != nil {
 		return nil, fmt.Errorf("Error processing tasks - %s", err.Error())
 	}
