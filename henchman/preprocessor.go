@@ -2,13 +2,16 @@ package henchman
 
 import (
 	"errors"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+
+	"gopkg.in/yaml.v2"
 )
 
 type PlanProxy struct {
-	Plan        Plan
+	Name        string       `yaml:"name"`
+	Sudo        bool         `yaml:"sudo"`
+	Hosts       []string     `yaml:"hosts"`
 	TaskProxies []*TaskProxy `yaml:"tasks"`
 	VarsProxy   TaskVars     `yaml:"vars"`
 	HostsProxy  []string     `yaml:"hosts"`
@@ -47,6 +50,8 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		switch field {
 		case "name":
 			tp.Name = val.(string)
+		case "sudo":
+			tp.Sudo = val.(bool)
 		case "ignore_errors":
 			tp.IgnoreErrors = val.(bool)
 		case "local":
@@ -75,21 +80,21 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // whether if it's an include value or a normal task.  If it's a normal task
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
-func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars) ([]*Task, error) {
-	return parseTaskProxies(taskSection, planVars, "")
+func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars, sudo bool) ([]*Task, error) {
+	return parseTaskProxies(taskSection, planVars, sudo)
 }
 
-func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string) ([]*Task, error) {
+func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string, sudo bool) ([]*Task, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseTaskProxies(px.TaskProxies, prevVars, prevWhen)
+	return parseTaskProxies(px.TaskProxies, prevVars, prevWhen, sudo)
 }
 
-func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen string) ([]*Task, error) {
+func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen string, sudo bool) ([]*Task, error) {
 	var tasks []*Task
 	for _, tp := range taskProxies {
 		task := Task{}
@@ -114,8 +119,7 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 				tp.Vars = make(TaskVars)
 			}
 			mergeMap(prevVars, tp.Vars, false)
-
-			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When)
+			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When, sudo)
 			if err != nil {
 				return nil, err
 			}
@@ -133,6 +137,10 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 			task.When = tp.When
 			// NOTE: assigns to prevVars not tp.Vars
 			task.Vars = prevVars
+			task.Sudo = sudo
+			if tp.Sudo {
+				task.Sudo = tp.Sudo
+			}
 
 			tasks = append(tasks, &task)
 		}
@@ -228,7 +236,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	}
 	plan.Vars = vars
 
-	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars)
+	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars, px.Sudo)
 	if err != nil {
 		log.Printf("Error processing tasks - %v\n", err.Error())
 		return nil, err

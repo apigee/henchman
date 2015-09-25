@@ -15,6 +15,7 @@ type TaskVars map[interface{}]interface{}
 
 type Task struct {
 	Id           string
+	Sudo         bool
 	Name         string
 	Module       *Module
 	IgnoreErrors bool `yaml:"ignore_errors"`

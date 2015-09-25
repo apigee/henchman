@@ -1,11 +1,12 @@
 package henchman
 
 import (
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
+
+	"gopkg.in/yaml.v2"
 )
 
 func writeTempFile(buf []byte, fname string) string {
@@ -218,5 +219,103 @@ func TestPreprocessTasksWithIncludesAndWhen(t *testing.T) {
 	}
 	if plan.Tasks[3].When != "goodbye == moon && test == false" {
 		t.Fatalf("Expected \"goodbye == moon && test == false\".  Received \"%v\"\n", plan.Tasks[3].When)
+	}
+}
+
+func TestPreprocessWithSudoAtThePlanLevel(t *testing.T) {
+	plan_string := `---
+name: "Sample plan"
+sudo: true
+hosts:
+  - "127.0.0.1:22"
+  - 192.168.1.2
+tasks:
+  - name: Sample task that does nothing
+    action: cmd="ls"
+  - name: Another task
+    action: cmd="test"
+`
+	plan, err := PreprocessPlan([]byte(plan_string))
+	if err != nil {
+		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
+	}
+	if len(plan.Tasks) != 2 {
+		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
+	}
+	for _, task := range plan.Tasks {
+		if !task.Sudo {
+			t.Errorf("This task should have sudo privilege")
+		}
+	}
+}
+
+func TestPreprocessWithSudoAtTheTaskLevel(t *testing.T) {
+	plan_string := `---
+name: "Sample plan"
+hosts:
+  - "127.0.0.1:22"
+  - 192.168.1.2
+tasks:
+  - name: First task
+    action: cmd="ls"
+    sudo: true
+  - name: Second task
+    action: cmd="echo"
+`
+	plan, err := PreprocessPlan([]byte(plan_string))
+	if err != nil {
+		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
+	}
+	if len(plan.Tasks) != 2 {
+		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
+	}
+	for _, task := range plan.Tasks {
+		if task.Name == "First task" && !task.Sudo {
+			t.Errorf("The task %s should have sudo privilege", task.Name)
+
+		}
+		if task.Name == "Second task" && task.Sudo {
+			t.Errorf("The task %s should have sudo privilege", task.Name)
+
+		}
+	}
+}
+
+func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
+	include_file := `
+name: "To be include"
+tasks:
+    - name: "included_task1"
+      action: bar=baz
+      sudo: true
+    - name: "included_task2"
+      action: foo=bar
+`
+	plan_file := `
+name: "Sample plan"
+hosts:
+  - "127.0.0.1:22"
+  - 192.168.1.2
+tasks:
+  - name: task1
+    action: cmd="ls -al"
+  - include: /tmp/included.yaml
+`
+	fpath := writeTempFile([]byte(include_file), "included.yaml")
+	defer rmTempFile(fpath)
+	plan, err := PreprocessPlan([]byte(plan_file))
+	if err != nil {
+		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
+	}
+	if len(plan.Tasks) != 3 {
+		t.Fatalf("Expected 3 tasks. Found %d instead\n", len(plan.Tasks))
+	}
+	for _, task := range plan.Tasks {
+		if task.Name == "included_task1" && !task.Sudo {
+			t.Errorf("Expected nested_task1 task to have Sudo privileges")
+		}
+		if task.Name != "included_task1" && task.Sudo {
+			t.Errorf("Expected task %s to not have Sudo privileges", task.Name)
+		}
 	}
 }
