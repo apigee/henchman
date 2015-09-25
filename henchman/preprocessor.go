@@ -11,7 +11,6 @@ import (
 type PlanProxy struct {
 	Name        string       `yaml:"name"`
 	Sudo        bool         `yaml:"sudo"`
-	Hosts       []string     `yaml:"hosts"`
 	TaskProxies []*TaskProxy `yaml:"tasks"`
 	VarsProxy   TaskVars     `yaml:"vars"`
 	HostsProxy  []string     `yaml:"hosts"`
@@ -81,7 +80,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
 func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars, sudo bool) ([]*Task, error) {
-	return parseTaskProxies(taskSection, planVars, sudo)
+	return parseTaskProxies(taskSection, planVars, "", sudo)
 }
 
 func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string, sudo bool) ([]*Task, error) {

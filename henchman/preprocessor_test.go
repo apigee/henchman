@@ -235,7 +235,7 @@ tasks:
   - name: Another task
     action: cmd="test"
 `
-	plan, err := PreprocessPlan([]byte(plan_string))
+	plan, err := PreprocessPlan([]byte(plan_string), nil)
 	if err != nil {
 		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
 	}
@@ -262,7 +262,7 @@ tasks:
   - name: Second task
     action: cmd="echo"
 `
-	plan, err := PreprocessPlan([]byte(plan_string))
+	plan, err := PreprocessPlan([]byte(plan_string), nil)
 	if err != nil {
 		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
 	}
@@ -303,7 +303,7 @@ tasks:
 `
 	fpath := writeTempFile([]byte(include_file), "included.yaml")
 	defer rmTempFile(fpath)
-	plan, err := PreprocessPlan([]byte(plan_file))
+	plan, err := PreprocessPlan([]byte(plan_file), nil)
 	if err != nil {
 		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
 	}
