@@ -1,10 +1,9 @@
 package henchman
 
 import (
-	"errors"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 )
 
 type PlanProxy struct {
@@ -35,39 +34,74 @@ func mergeMap(src TaskVars, dst TaskVars, override bool) {
 	}
 }
 
+// Custom unmarshaller which accounts for module names
 func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var tmap map[string]interface{}
+	var found bool
+	numModule := 0
+
 	err := unmarshal(&tmap)
 	if err != nil {
 		return err
 	}
+
 	for field, val := range tmap {
-		// FIXME: Also do a type assertion later on.
-		// FIXME: make sure to add a bool flag in default so people can't spam modules
 		switch field {
 		case "name":
-			tp.Name = val.(string)
+			tp.Name, found = val.(string)
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not a string", field, val)
+			}
 		case "ignore_errors":
-			tp.IgnoreErrors = val.(bool)
+			tp.IgnoreErrors, found = val.(bool)
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type bool", field, val)
+			}
 		case "local":
-			tp.Local = val.(bool)
+			tp.Local, found = val.(bool)
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type bool", field, val)
+			}
 		case "when":
-			tp.When = val.(string)
+			tp.When, found = val.(string)
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
+			}
 		case "register":
-			tp.Register = val.(string)
+			tp.Register, found = val.(string)
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
+			}
 		case "include":
-			tp.Include = val.(string)
+			tp.Include, found = val.(string)
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
+			}
 		case "vars":
-			tp.Vars = val.(map[interface{}]interface{})
+			tp.Vars, found = val.(map[interface{}]interface{})
+			if !found {
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type TaskVars", field, val)
+			}
 		default:
 			// We have a module
-			module, err := NewModule(field, val.(string))
-			if err != nil {
-				return err
+			params, found := val.(string)
+			if !found {
+				return fmt.Errorf("In Tasks. For Module \"%v\", \"%v\" is not of type string", field, val)
 			}
-			tp.Module = module
+
+			if numModule > 0 {
+				return fmt.Errorf("Can only have one module per task.")
+			}
+
+			tp.Module, err = NewModule(field, params)
+			if err != nil {
+				return fmt.Errorf("In Tasks. Module %v: %s", field, err.Error())
+			}
+
+			numModule++
 		}
 	}
+
 	return nil
 }
 
@@ -76,7 +110,12 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
 func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars) ([]*Task, error) {
-	return parseTaskProxies(taskSection, planVars, "")
+	tasksList, err := parseTaskProxies(taskSection, planVars, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return tasksList, nil
 }
 
 func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string) ([]*Task, error) {
@@ -102,8 +141,6 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 		}
 
 		if tp.Include != "" {
-			// FIXME: resolve if templating is found
-			// things need to be rendered when it's done
 			buf, err := ioutil.ReadFile(tp.Include)
 			if err != nil {
 				return nil, err
@@ -123,7 +160,7 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 			tasks = append(tasks, includedTasks...)
 		} else {
 			if tp.Module == nil {
-				return nil, errors.New("This task doesn't have a valid module")
+				return nil, fmt.Errorf("This task doesn't have a valid module")
 			}
 			task.Name = tp.Name
 			task.Module = tp.Module
@@ -150,7 +187,7 @@ func PreprocessVars(vars TaskVars) (TaskVars, error) {
 		for _, fName := range fileList.([]interface{}) {
 			tempVars, err := preprocessVarsHelper(fName)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("While checking includes - %s", err.Error())
 			}
 			mergeMap(tempVars, newVars, false)
 		}
@@ -161,9 +198,9 @@ func PreprocessVars(vars TaskVars) (TaskVars, error) {
 }
 
 func preprocessVarsHelper(fName interface{}) (TaskVars, error) {
-	newFName, ok := fName.(string)
-	if !ok {
-		log.Println("In an include in vars is not a valid string")
+	newFName, found := fName.(string)
+	if !found {
+		return nil, fmt.Errorf("%v is not of type string", fName)
 	}
 
 	buf, err := ioutil.ReadFile(newFName)
@@ -203,8 +240,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
-		log.Printf("Error processing plan - %v\n", err.Error())
-		return nil, err
+		return nil, fmt.Errorf("Error processing plan - %s", err.Error())
 	}
 
 	plan := Plan{}
@@ -213,7 +249,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	if inv != nil {
 		hosts, err = PreprocessHosts(hosts, inv)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Error processing hosts - %s", err.Error())
 		}
 	}
 	plan.Hosts = hosts
@@ -222,18 +258,15 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	if px.VarsProxy != nil {
 		vars, err = PreprocessVars(px.VarsProxy)
 		if err != nil {
-			log.Printf("Error processing vars - %v\n", err.Error())
-			return nil, err
+			return nil, fmt.Errorf("Error processing vars - %s", err.Error())
 		}
 	}
 	plan.Vars = vars
 
 	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars)
 	if err != nil {
-		log.Printf("Error processing tasks - %v\n", err.Error())
-		return nil, err
+		return nil, fmt.Errorf("Error processing tasks - %s", err.Error())
 	}
 	plan.Tasks = tasks
-
 	return &plan, err
 }

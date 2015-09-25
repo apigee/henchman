@@ -1,0 +1,6 @@
+---
+name: "Fail plan"
+tasks:
+  - name: "Bad task"
+    shell: okay=wut
+    mod: wut=mutt
