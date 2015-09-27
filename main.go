@@ -19,5 +19,6 @@ func main() {
 	task := henchman.Task{}
 	task.Name = "Check it out"
 	task.Module, _ = henchman.NewModule("yum", "package=nginx")
+	task.Sudo = true
 	task.Run(&machine)
 }

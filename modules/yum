@@ -4,7 +4,8 @@ import os
 import json
 
 params = json.loads(sys.stdin.read())
+print params
 
 print "Installing package ", params["package"]
 
-os.system("yum install %s" % params["package"])
+os.system("yum install -y %s" % params["package"])

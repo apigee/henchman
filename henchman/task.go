@@ -69,7 +69,7 @@ func (task *Task) Run(machine *Machine) error {
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 
 	// Create the remoteModDir
-	_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir), nil)
+	_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir), nil, false)
 	if err != nil {
 		log.Printf("Error while creating remote module path\n")
 		return err
@@ -82,13 +82,14 @@ func (task *Task) Run(machine *Machine) error {
 		return err
 	}
 	// Executing the module
-	log.Printf("Executing script - %s\n", remoteModPath)
+	log.Printf("Executin script - %s\n", remoteModPath)
 
 	jsonParams, err := json.Marshal(task.Module.Params)
 	if err != nil {
 		return err
 	}
-	buf, err := machine.Transport.Exec(remoteModPath, jsonParams)
+
+	buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
 	if err != nil {
 		return err
 	}

@@ -118,7 +118,7 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 	return &b, session.Run(cmd)
 }
 
-func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte) (*bytes.Buffer, error) {
+func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
 		log.Printf("Couldn't dial in to %s", sshTransport.Host)
@@ -126,6 +126,9 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte) (*bytes.Buffer,
 	}
 	defer client.Close()
 	defer session.Close()
+	if sudoEnabled {
+		cmd = fmt.Sprintf("/bin/bash -c 'sudo -H -u root %s'", cmd)
+	}
 	cmd = fmt.Sprintf("echo '%s' | %s", stdin, cmd)
 	return sshTransport.execCmd(session, cmd)
 }

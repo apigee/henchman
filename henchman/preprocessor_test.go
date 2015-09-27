@@ -225,7 +225,7 @@ func TestPreprocessTasksWithIncludesAndWhen(t *testing.T) {
 func TestPreprocessWithSudoAtThePlanLevel(t *testing.T) {
 	plan_string := `---
 name: "Sample plan"
-sudo: True
+sudo: true
 hosts:
   - "127.0.0.1:22"
   - 192.168.1.2
@@ -258,7 +258,7 @@ hosts:
 tasks:
   - name: First task
     action: cmd="ls"
-    sudo: True
+    sudo: true
   - name: Second task
     action: cmd="echo"
 `
@@ -287,7 +287,7 @@ name: "To be include"
 tasks:
     - name: "included_task1"
       action: bar=baz
-      sudo: True
+      sudo: true
     - name: "included_task2"
       action: foo=bar
 `
