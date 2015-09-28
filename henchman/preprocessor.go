@@ -53,9 +53,8 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if !found {
 				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not a string", field, val)
 			}
-			tp.Name = val.(string)
 		case "sudo":
-			tp.Sudo = val.(bool)
+			tp.Sudo, found = val.(bool)
 			if !found {
 				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not a bool", field, val)
 			}
