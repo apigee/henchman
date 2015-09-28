@@ -114,8 +114,10 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 		log.Fatalf("request for pseudo terminal failed: " + err.Error())
 	}
 	session.Stdout = &b
-	session.Stderr = &b
-	return &b, session.Run(cmd)
+	if err := session.Run(cmd); err != nil {
+		return nil, errors.New(b.String())
+	}
+	return &b, nil
 }
 
 func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
@@ -130,6 +132,7 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 		cmd = fmt.Sprintf("/bin/bash -c 'sudo -H -u root %s'", cmd)
 	}
 	cmd = fmt.Sprintf("echo '%s' | %s", stdin, cmd)
+	log.Println(cmd)
 	return sshTransport.execCmd(session, cmd)
 }
 

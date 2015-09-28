@@ -18,7 +18,10 @@ func main() {
 
 	task := henchman.Task{}
 	task.Name = "Check it out"
-	task.Module, _ = henchman.NewModule("yum", "package=nginx")
+	task.Module, _ = henchman.NewModule("yum", "package=tree loglevel=debug")
 	task.Sudo = true
-	task.Run(&machine)
+	err := task.Run(&machine)
+	if err != nil {
+		fmt.Println(err)
+	}
 }

@@ -1,6 +1,7 @@
 package henchman
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,6 +24,22 @@ type Task struct {
 	When         string
 	Register     string
 	Vars         TaskVars
+}
+
+type TaskResult struct {
+	State  string `json:"status"`
+	Output string `json:"output,omitempty"`
+	Msg    string `json:"msg"`
+}
+
+func getTaskResult(buf *bytes.Buffer) (*TaskResult, error) {
+	var taskResult TaskResult
+	resultInBytes := []byte(buf.String())
+	err := json.Unmarshal(resultInBytes, &taskResult)
+	if err != nil {
+		return &TaskResult{}, err
+	}
+	return &taskResult, nil
 }
 
 // Renders any pongo2 formatting and converts it back to a task
@@ -82,17 +99,21 @@ func (task *Task) Run(machine *Machine) error {
 		return err
 	}
 	// Executing the module
-	log.Printf("Executin script - %s\n", remoteModPath)
+	log.Printf("Executing script - %s\n", remoteModPath)
 
 	jsonParams, err := json.Marshal(task.Module.Params)
 	if err != nil {
 		return err
 	}
-
 	buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
 	if err != nil {
 		return err
 	}
-	log.Printf("%s\n", buf)
+
+	taskResult, err := getTaskResult(buf)
+	if err != nil {
+		return err
+	}
+	log.Println(taskResult)
 	return nil
 }
