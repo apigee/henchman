@@ -23,7 +23,7 @@ func moduleTestTeardown(mod *Module) {
 
 func TestValidModule(t *testing.T) {
 	name := "shell"
-	args := "cmd=\"ls -al\" foo=bar"
+	args := "cmd=\"ls -al\" foo=bar baz=☃"
 	mod, err := NewModule(name, args)
 	if err != nil {
 		t.Fatalf("Error when creating the module - %s\n", err.Error())
@@ -36,6 +36,9 @@ func TestValidModule(t *testing.T) {
 	}
 	if mod.Params["foo"] != "bar" {
 		t.Errorf("Expected value for foo to be bar. Got %s instead\n", mod.Params["foo"])
+	}
+	if mod.Params["baz"] != "☃" {
+		t.Errorf("Expected snowman. Got %s instead\n", mod.Params["baz"])
 	}
 }
 
