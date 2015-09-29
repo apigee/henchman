@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+# Shell module to execute
+import sys
+import json
+import os
+import subprocess
+
+params = json.loads(sys.stdin.read())
+
+
+# Params for this module
+# chdir: cd into the given directory to execute the shell command
+# shell: The shell to use, by default it's /bin/sh
+# cmd: The command to run. Wrapped by quotes if there are spaces
+result = {}
+try:
+    shell = params.get("shell", "/bin/sh")
+    cmd   = params.get("cmd")
+    if not cmd:
+        raise Exception("Required parameter 'cmd' not found")
+    chdir = params.get("chdir")
+    # FIXME: Error out if chdir cannot be stat'd
+    if chdir:
+        os.chdir(chdir)
+    shell_args = [shell] + cmd.split()
+    p = subprocess.Popen(shell_args, stdout=subprocess.PIPE)
+    output, err = p.communicate()
+    if err:
+        raise Exception(err)
+    result["status"] = "changed"
+    result["output"] = output
+    result["msg"] = "Successfully exec'ed command"
+except Exception, e:
+    result["status"] = "error"
+    result["msg"] = e.message
+print json.dumps(result)
+
+    
