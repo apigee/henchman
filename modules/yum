@@ -7,7 +7,7 @@ import subprocess
 
 
 # The common methods need to move to a common package
-# These also have to be inlined so that you can copy 
+# These also have to be inlined so that you can copy
 # only that file and all dependencies are in the same.
 # Didn't find a good way to do that
 #def fail_json(output):
@@ -19,20 +19,22 @@ import subprocess
 #def exit_json(output):
 #    print json.dumps(output)
 #
-params = json.loads(sys.stdin.read())
-p = subprocess.Popen(["yum", "install", "-y", "%s" % params['package']], stdout=subprocess.PIPE)
-output, err = p.communicate()
-
 result = {}
+try:
+    params = json.loads(sys.stdin.read())
+    p = subprocess.Popen(["yum", "install", "-y", "%s" % params['package']], stdout=subprocess.PIPE)
+    output, err = p.communicate()
+    if 'loglevel' in params and params['loglevel'] == 'debug':
+        result['output'] = output
 
-if 'loglevel' in params and params['loglevel'] == 'debug':
-    result['output'] = output
-
-if err != None:
+    if err != None:
+        result['status'] = "error"
+        result['msg'] = err
+    else:
+        result['status'] = "changed"
+        result['msg'] = "Successfully installed package %s" % params['package']
+except Exception, e:
     result['status'] = "error"
-    result['msg'] = err
-else:
-    result['status'] = "changed"
-    result['msg'] = "Successfully installed package %s" % params['package']
+    result['msg'] = e.message
 
 print json.dumps(result)
