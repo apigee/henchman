@@ -3,7 +3,7 @@ import sys
 import os
 import json
 import subprocess
-import json
+
 
 
 # The common methods need to move to a common package
