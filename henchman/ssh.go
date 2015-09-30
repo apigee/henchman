@@ -136,7 +136,7 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 	return sshTransport.execCmd(session, cmd)
 }
 
-func (sshTransport *SSHTransport) Put(source, destination string) error {
+func (sshTransport *SSHTransport) Put(source, destination string, dstType string) error {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
 		log.Printf("Couldn't dial in to %s", sshTransport.Host)
@@ -158,12 +158,19 @@ func (sshTransport *SSHTransport) Put(source, destination string) error {
 		}
 		defer pipe.Close()
 		buf := string(sourceBuf)
-		fmt.Fprintln(pipe, "C0700", len(buf), sourcePath)
+		if dstType == "dir" {
+			fmt.Fprintln(pipe, "C0700", len(buf), sourcePath)
+		} else {
+			fmt.Fprintln(pipe, "C0644", len(buf), sourcePath)
+		}
 		fmt.Fprint(pipe, buf)
 		fmt.Fprint(pipe, "\x00")
 	}()
-
+	//default directory scp command
 	remoteCommand := fmt.Sprintf("mkdir -p %s && cd %s && /usr/bin/scp -qrt ./", destination, destination)
+	if dstType == "file" {
+		remoteCommand = fmt.Sprintf("/usr/bin/scp -t %s", destination)
+	}
 	if err := session.Run(remoteCommand); err != nil {
 		log.Printf("Error doing scp - %s\n", err.Error())
 		return err

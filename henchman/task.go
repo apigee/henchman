@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"path"
+	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/flosch/pongo2"
@@ -76,44 +78,87 @@ func (task *Task) Render(machine *Machine) error {
 func (task *Task) Run(machine *Machine) error {
 	// Resolving module path
 	task.Id = uuid.New()
+	log.Println(task.Module)
 	modPath, err := task.Module.Resolve()
 	if err != nil {
 		return err
 	}
-	// Transfering the module
-	// FIXME: Find a way to override it
-	remoteModDir := "$HOME/.henchman"
-	remoteModPath := path.Join(remoteModDir, task.Module.Name)
-
-	// Create the remoteModDir
-	_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir), nil, false)
+	log.Println("modpath ", modPath)
+	execOrder, err := task.Module.ExecOrder()
 	if err != nil {
 		log.Printf("Error while creating remote module path\n")
 		return err
 	}
+	remoteModDir := "$HOME/.henchman"
+	remoteModPath := path.Join(remoteModDir, task.Module.Name)
+	log.Println("exec order", execOrder)
+	for _, execStep := range execOrder {
+		switch execStep {
+		case "create_dir":
+			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir),
+				nil, false)
+			if err != nil {
+				log.Printf("Error while creating remote module path\n")
+				return err
+			}
 
-	// Put the module on the remotePath
-	log.Printf("Transferring module from %s to %s\n", modPath, remoteModDir)
-	err = machine.Transport.Put(modPath, remoteModDir)
-	if err != nil {
-		return err
-	}
-	// Executing the module
-	log.Printf("Executing script - %s\n", remoteModPath)
+		case "put_module":
+			log.Printf("Transferring module from %s to %s\n", modPath, remoteModDir)
+			err = machine.Transport.Put(modPath, remoteModDir, "dir")
+			if err != nil {
+				return err
+			}
 
-	jsonParams, err := json.Marshal(task.Module.Params)
-	if err != nil {
-		return err
-	}
-	buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
-	if err != nil {
-		return err
-	}
+		case "exec_module":
+			log.Printf("Executing script - %s\n", remoteModPath)
+			jsonParams, err := json.Marshal(task.Module.Params)
+			if err != nil {
+				return err
+			}
+			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
+			if err != nil {
+				return err
+			}
+			taskResult, err := getTaskResult(buf)
+			if err != nil {
+				return err
+			}
+			log.Println(taskResult)
 
-	taskResult, err := getTaskResult(buf)
-	if err != nil {
-		return err
+		case "copy_src":
+			err = machine.Transport.Put(modPath, remoteModDir, "file")
+			if err != nil {
+				return err
+			}
+			log.Println(task.Module.Params)
+			srcPath, destPath := "", ""
+			//owner, group, mode := task.Mac
+
+			for k, v := range task.Module.Params {
+				if k == "src" {
+					srcPath = v
+				}
+				if k == "dest" {
+					destPath = v
+				}
+			}
+			curDir, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+			srcPath = strings.Trim(srcPath, "'")
+			destPath = strings.Trim(destPath, "'")
+			completeSrcPath := path.Join(curDir, srcPath)
+
+			err = machine.Transport.Put(completeSrcPath, destPath, "file")
+			msg := fmt.Sprintf("Copied %s to %s", srcPath, destPath)
+			taskResult := &TaskResult{State: "changed", Msg: msg}
+			log.Println(taskResult)
+		}
+		// to be implemented
+		//		case 'exec_template':
+		//		case 'copy_remote':
+		//	}
 	}
-	log.Println(taskResult)
 	return nil
 }

@@ -70,6 +70,7 @@ func TestModuleResolve(t *testing.T) {
 	writeTempFile([]byte("ls -al"), "shell")
 	defer rmTempFile("/tmp/shell")
 	mod, err := NewModule("shell", "foo=bar")
+	//mod, err := setupTestShellModule()
 	if err != nil {
 		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
 	}
@@ -85,11 +86,15 @@ func TestModuleResolve(t *testing.T) {
 	}
 }
 
-func TestNonexistentModuleResolve(t *testing.T) {
-	//ModuleSearchPath = append(ModuleSearchPath, "/tmp")
+func setupTestShellModule() (*Module, error) {
 	writeTempFile([]byte("ls -al"), "shell")
 	defer rmTempFile("/tmp/shell")
-	mod, err := NewModule("shell", "foo=bar")
+	return NewModule("shell", "foo=bar")
+}
+
+func TestNonexistentModuleResolve(t *testing.T) {
+	//ModuleSearchPath = append(ModuleSearchPath, "/tmp")
+	mod, err := setupTestShellModule()
 	if err != nil {
 		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
 	}
@@ -103,4 +108,49 @@ func TestNonexistentModuleResolve(t *testing.T) {
 	if fullPath != "" {
 		t.Error("Fullpath should have been empty")
 	}
+}
+
+func TestModuleDefaultExecOrder(t *testing.T) {
+	mod, err := setupTestShellModule()
+	if err != nil {
+		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
+	}
+
+	if mod == nil {
+		t.Errorf("Module shouldn't be nil")
+	}
+
+	execOrder, err := mod.ExecOrder()
+	if err != nil {
+		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
+	}
+	if execOrder[0] != "create_dir" ||
+		execOrder[1] != "put_module" ||
+		execOrder[2] != "exec_module" {
+		t.Errorf("Exec Order sequence is wrong for a default module. Expected [create_dir put_module exec_module] but instead got ", execOrder)
+	}
+}
+
+func TestModuleCopyExecOrder(t *testing.T) {
+	writeTempFile([]byte("ls -al"), "copy")
+	defer rmTempFile("/tmp/copy")
+	mod, err := NewModule("copy", "src=foo dest=bar")
+
+	if err != nil {
+		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
+	}
+
+	if mod == nil {
+		t.Errorf("Module shouldn't be nil")
+	}
+	execOrder, err := mod.ExecOrder()
+	if err != nil {
+		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
+	}
+	if execOrder[0] != "create_dir" ||
+		execOrder[1] != "put_module" ||
+		execOrder[2] != "copy_src" {
+		t.Errorf("Exec Order sequence is wrong for a copy module. Expected [create_dir put_module copy_src] but instead got ", execOrder)
+	}
+
 }

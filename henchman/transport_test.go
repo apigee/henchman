@@ -29,7 +29,7 @@ func (tt *TestTransport) Exec(cmd string, stdin []byte, sudo bool) (*bytes.Buffe
 	return bytes.NewBuffer([]byte(jsonified)), nil
 }
 
-func (tt *TestTransport) Put(source, destination string) error {
-	log.Printf("Transfered from %s to %s\n", source, destination)
+func (tt *TestTransport) Put(source, destination string, dstType string) error {
+	log.Printf("Transfered from %s to %s for dstType %s\n", source, destination, dstType)
 	return nil
 }
