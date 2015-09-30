@@ -18,7 +18,8 @@ func main() {
 
 	task := henchman.Task{}
 	task.Name = "Check it out"
-	task.Module, _ = henchman.NewModule("yum", "package=tree loglevel=debug")
+	//task.Module, _ = henchman.NewModule("yum", "package=tree loglevel=debug")
+	task.Module, _ = henchman.NewModule("rpm", "url='http://mirror.nexcess.net/epel//6/x86_64/NaturalDos-1.4-4.el6.noarch.rpm' loglevel=debug")
 	task.Sudo = true
 	err := task.Run(&machine)
 	if err != nil {

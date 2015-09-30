@@ -13,6 +13,7 @@ params = json.loads(sys.stdin.read())
 # chdir: cd into the given directory to execute the shell command
 # shell: The shell to use, by default it's /bin/sh
 # cmd: The command to run. Wrapped by quotes if there are spaces
+# loglevel: if debug, it shows you the entire output as part of 'output' key
 result = {}
 try:
     shell = params.get("shell", "/bin/sh")
@@ -24,16 +25,15 @@ try:
     if chdir:
         os.chdir(chdir)
     shell_args = [shell] + cmd.split()
-    p = subprocess.Popen(shell_args, stdout=subprocess.PIPE)
+    p = subprocess.Popen(shell_args, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
     if err:
         raise Exception(err)
     result["status"] = "changed"
-    result["output"] = output
+    if 'loglevel' in params and params['loglevel'] == 'debug':
+        result["output"] = output
     result["msg"] = "Successfully exec'ed command"
-except Exception, e:
+except Exception as e:
     result["status"] = "error"
-    result["msg"] = e.message
+    result["msg"] = str(e)
 print json.dumps(result)
-
-    
