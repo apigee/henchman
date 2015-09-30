@@ -6,5 +6,3 @@ type Plan struct {
 	Vars  TaskVars
 	Tasks []*Task
 }
-
-type Inventory map[string][]string
