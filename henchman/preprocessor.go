@@ -103,7 +103,6 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if err != nil {
 				return fmt.Errorf("In Tasks. Module %v: %s", field, err.Error())
 			}
-
 			numModule++
 		}
 	}
