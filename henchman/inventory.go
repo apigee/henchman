@@ -18,6 +18,8 @@ func (inv Inventory) Count() int {
 }
 
 func (inv Inventory) Machines() []*Machine {
+	// The same machine might be in different groups.
+	// We don't want duplicates when Machines() is being invoked
 	machineSet := make(map[string]bool)
 	var machines []*Machine
 	for _, ms := range inv {
