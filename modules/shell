@@ -24,7 +24,7 @@ try:
     # FIXME: Error out if chdir cannot be stat'd
     if chdir:
         os.chdir(chdir)
-    shell_args = [shell] + cmd.split()
+    shell_args = ["%s" % shell, "-c", "%s" % cmd]
     p = subprocess.Popen(shell_args, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
     if err:

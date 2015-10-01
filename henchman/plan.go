@@ -23,9 +23,16 @@ func (plan *Plan) Execute() error {
 		go func() {
 			defer wg.Done()
 			for _, task := range plan.Tasks {
-				task.Run(machine)
+				taskResult, err := task.Run(machine)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				log.Println(taskResult)
+
 			}
 		}()
 	}
+	wg.Wait()
 	return nil
 }

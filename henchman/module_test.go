@@ -149,8 +149,9 @@ func TestModuleCopyExecOrder(t *testing.T) {
 	}
 	if execOrder[0] != "create_dir" ||
 		execOrder[1] != "put_module" ||
-		execOrder[2] != "copy_src" {
-		t.Errorf("Exec Order sequence is wrong for a copy module. Expected [create_dir put_module copy_src] but instead got ", execOrder)
+		execOrder[2] != "put_file" ||
+		execOrder[3] != "copy_remote" {
+		t.Errorf("Exec Order sequence is wrong for a copy module. Expected [create_dir put_module put_file copy_remote] but instead got ", execOrder)
 	}
 
 }

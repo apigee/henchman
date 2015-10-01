@@ -44,6 +44,15 @@ func getTaskResult(buf *bytes.Buffer) (*TaskResult, error) {
 	return &taskResult, nil
 }
 
+func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
+	resultInBytes := []byte(buf.String())
+	err := json.Unmarshal(resultInBytes, &taskResult)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Renders any pongo2 formatting and converts it back to a task
 func (task *Task) Render(machine *Machine) error {
 	var renderedTask Task
@@ -71,23 +80,25 @@ func (task *Task) Render(machine *Machine) error {
 	return nil
 }
 
-func (task *Task) Run(machine *Machine) error {
+func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 	// Resolving module path
 	task.Id = uuid.New()
 	log.Println(task.Module)
 	modPath, err := task.Module.Resolve()
 	if err != nil {
-		return err
+		return &TaskResult{}, err
 	}
 	log.Println("modpath ", modPath)
 	execOrder, err := task.Module.ExecOrder()
 	if err != nil {
 		log.Printf("Error while creating remote module path\n")
-		return err
+		return &TaskResult{}, err
 	}
 	remoteModDir := "$HOME/.henchman"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 	log.Println("exec order", execOrder)
+
+	var taskResult TaskResult
 	for _, execStep := range execOrder {
 		switch execStep {
 		case "create_dir":
@@ -95,66 +106,90 @@ func (task *Task) Run(machine *Machine) error {
 				nil, false)
 			if err != nil {
 				log.Printf("Error while creating remote module path\n")
-				return err
+				return &TaskResult{}, err
 			}
 
 		case "put_module":
-			log.Printf("Transferring module from %s to %s\n", modPath, remoteModDir)
 			err = machine.Transport.Put(modPath, remoteModDir, "dir")
 			if err != nil {
-				return err
+				return &TaskResult{}, err
 			}
 
 		case "exec_module":
 			log.Printf("Executing script - %s\n", remoteModPath)
 			jsonParams, err := json.Marshal(task.Module.Params)
 			if err != nil {
-				return err
+				return &TaskResult{}, err
 			}
 			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
 			if err != nil {
-				return err
+				return &TaskResult{}, err
 			}
-			taskResult, err := getTaskResult(buf)
+			//This should not be empty
+			err = setTaskResult(&taskResult, buf)
 			if err != nil {
-				return err
+				return &TaskResult{}, err
 			}
 			log.Println(taskResult)
 
-		case "copy_src":
-			err = machine.Transport.Put(modPath, remoteModDir, "file")
-			if err != nil {
-				return err
+		case "copy_remote":
+			localSrcPath, dstPath := "", ""
+			//			k, present := task.Module.Params["src"]
+			for k, v := range task.Module.Params {
+				if k == "src" {
+					localSrcPath = v
+				}
+				if k == "dest" {
+					dstPath = v
+				}
 			}
-			log.Println(task.Module.Params)
-			srcPath, destPath := "", ""
-			//owner, group, mode := task.Mac
-
+			dstPath = strings.Trim(dstPath, "'")
+			remoteModDir := "$HOME/.henchman"
+			localSrcPath = strings.Trim(localSrcPath, "'")
+			_, localSrc := path.Split(localSrcPath)
+			srcPath := path.Join(remoteModDir, localSrc)
+			cmd := fmt.Sprintf("/bin/cp %s %s", srcPath, dstPath)
+			buf, err := machine.Transport.Exec(cmd, nil, task.Sudo)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			if len(buf.String()) != 0 {
+				err = setTaskResult(&taskResult, buf)
+				if err != nil {
+					return &TaskResult{}, err
+				}
+				log.Println(taskResult)
+			}
+		case "put_file":
+			srcPath := ""
 			for k, v := range task.Module.Params {
 				if k == "src" {
 					srcPath = v
 				}
-				if k == "dest" {
-					destPath = v
-				}
 			}
 			curDir, err := os.Getwd()
 			if err != nil {
-				return err
+				return &TaskResult{}, err
 			}
 			srcPath = strings.Trim(srcPath, "'")
-			destPath = strings.Trim(destPath, "'")
+			remoteModDir := "$HOME/.henchman"
+			_, src := path.Split(srcPath)
+			dstPath := path.Join(remoteModDir, src)
 			completeSrcPath := path.Join(curDir, srcPath)
+			log.Println("srcpath", completeSrcPath, "destpath", dstPath)
+			err = machine.Transport.Put(completeSrcPath, dstPath, "file")
 
-			err = machine.Transport.Put(completeSrcPath, destPath, "file")
-			msg := fmt.Sprintf("Copied %s to %s", srcPath, destPath)
-			taskResult := &TaskResult{State: "changed", Msg: msg}
-			log.Println(taskResult)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			//msg := fmt.Sprintf("Copied %s to %s", completeSrcPath, dstPath)
+			//			taskResult := &TaskResult{State: "changed", Msg: msg}
+			//			log.Println(taskResult)
 		}
 		// to be implemented
 		//		case 'exec_template':
 		//		case 'copy_remote':
 		//	}
 	}
-	return nil
+	return &taskResult, nil
 }
