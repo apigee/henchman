@@ -28,4 +28,7 @@ func TestValidYAMLInventory(t *testing.T) {
 	if inventory.Count() != 3 {
 		t.Errorf("Unexpected inventory count. Got %d\n", inventory.Count())
 	}
+	if len(inventory.Machines()) != 3 {
+		t.Errorf("Unexpected machine count. Got %d\n", len(inventory.Machines()))
+	}
 }

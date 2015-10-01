@@ -14,13 +14,22 @@ type InventoryInterface interface {
 type Inventory map[string][]*Machine
 
 func (inv Inventory) Count() int {
-	seen := make(map[string]bool) // Set of machines that've been 'seen'
-	for _, machines := range inv {
-		for _, machine := range machines {
-			seen[machine.Hostname] = true
+	return len(inv.Machines())
+}
+
+func (inv Inventory) Machines() []*Machine {
+	machineSet := make(map[string]bool)
+	var machines []*Machine
+	for _, ms := range inv {
+		for _, m := range ms {
+			_, present := machineSet[m.Hostname]
+			if !present {
+				machines = append(machines, m)
+				machineSet[m.Hostname] = true
+			}
 		}
 	}
-	return len(seen)
+	return machines
 }
 
 // FIXME: Have a way to provide specifics
