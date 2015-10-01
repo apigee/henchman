@@ -2,7 +2,7 @@ package henchman
 
 import (
 	"bytes"
-	"errors"
+	//"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -58,11 +58,11 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 		sshTransport.Port = uint16(port)
 	}
 	if sshTransport.Host == "" {
-		return errors.New("Need a hostname")
+		return fmt.Errorf("Need a hostname")
 	}
 	username := _config["username"]
 	if username == "" {
-		return errors.New("Need a username")
+		return fmt.Errorf("Need a username")
 	}
 	var auth ssh.AuthMethod
 	var authErr error
@@ -71,7 +71,7 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 	if password == "" || !present {
 		keyfile, present := _config["keyfile"]
 		if !present {
-			return errors.New("Invalid SSH Keyfile")
+			return fmt.Errorf("Invalid SSH Keyfile")
 		}
 		auth, authErr = ClientKeyAuth(keyfile)
 	} else {
@@ -115,7 +115,7 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 	}
 	session.Stdout = &b
 	if err := session.Run(cmd); err != nil {
-		return nil, errors.New(b.String())
+		return nil, fmt.Errorf(b.String())
 	}
 	return &b, nil
 }

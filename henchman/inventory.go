@@ -1,7 +1,7 @@
 package henchman
 
 import (
-	"errors"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )
@@ -40,7 +40,7 @@ type YAMLInventory map[string][]string
 func (yi *YAMLInventory) Load(ic InventoryConfig, tc TransportConfig) (Inventory, error) {
 	fname, present := ic["path"]
 	if !present {
-		return nil, errors.New("Missing 'path' in the config")
+		return nil, fmt.Errorf("Missing 'path' in the config")
 	}
 	buf, err := ioutil.ReadFile(fname)
 	if err != nil {

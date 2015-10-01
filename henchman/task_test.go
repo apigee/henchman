@@ -26,7 +26,7 @@ func TestTaskRun(t *testing.T) {
 	localhost.Hostname = "localhost"
 	localhost.Transport = &testTransport
 
-	err := task.Run(&localhost)
+	_, err := task.Run(&localhost)
 	if err != nil {
 		t.Errorf("There shouldn't have been any errors. Got : %s\n", err.Error())
 	}

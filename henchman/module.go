@@ -1,7 +1,7 @@
 package henchman
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
 	"os"
 	"path"
@@ -40,7 +40,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 				tok = s.Scan()
 				currentKey = tokText
 			} else {
-				return nil, errors.New(fmt.Sprintf("Expected '=' at position %v", s.Pos()))
+				return nil, fmt.Errorf("Expected '=' at position %v", s.Pos())
 			}
 		} else {
 			extraArgs[currentKey] = strings.Trim(tokText, "\"")
@@ -70,7 +70,7 @@ func (module *Module) Resolve() (modulePath string, err error) {
 			return fullPath, err
 		}
 	}
-	return "", errors.New("Module couldn't be resolved")
+	return "", fmt.Errorf("Module couldn't be resolved")
 }
 
 func (module *Module) ExecOrder() ([]string, error) {

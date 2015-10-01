@@ -51,48 +51,48 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		case "name":
 			tp.Name, found = val.(string)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
+				return ErrWrongType(field, val, "string")
 			}
 		case "sudo":
 			tp.Sudo, found = val.(bool)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type bool", field, val)
+				return ErrWrongType(field, val, "bool")
 			}
 		case "ignore_errors":
 			tp.IgnoreErrors, found = val.(bool)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type bool", field, val)
+				return ErrWrongType(field, val, "bool")
 			}
 		case "local":
 			tp.Local, found = val.(bool)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type bool", field, val)
+				return ErrWrongType(field, val, "bool")
 			}
 		case "when":
 			tp.When, found = val.(string)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
+				return ErrWrongType(field, val, "string")
 			}
 		case "register":
 			tp.Register, found = val.(string)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
+				return ErrWrongType(field, val, "string")
 			}
 		case "include":
 			tp.Include, found = val.(string)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
+				return ErrWrongType(field, val, "string")
 			}
 		case "vars":
 			tp.Vars, found = val.(map[interface{}]interface{})
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type TaskVars", field, val)
+				return ErrWrongType(field, val, "map[interface{}]interface{}")
 			}
 		default:
 			// We have a module
 			params, found := val.(string)
 			if !found {
-				return fmt.Errorf("In Tasks. For Module \"%v\", \"%v\" is not of type string", field, val)
+				return ErrWrongType(field, val, "string")
 			}
 
 			if numModule > 0 {
@@ -101,7 +101,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 			tp.Module, err = NewModule(field, params)
 			if err != nil {
-				return fmt.Errorf("In Tasks. Module %v: %s", field, err.Error())
+				return fmt.Errorf("Module %v: %s", field, err.Error())
 			}
 			numModule++
 		}
@@ -250,7 +250,6 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
-		fmt.Println(err.Errors[1])
 		return nil, fmt.Errorf("Error processing plan - %s", err.Error())
 	}
 	plan := Plan{}

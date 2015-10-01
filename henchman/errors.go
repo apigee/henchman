@@ -1,14 +1,17 @@
 package henchman
 
 import (
-	"errors"
+	"fmt"
 )
 
-type PreprocessError struct {
-	Msg   string
-	fName string
+type CustomUnmarshalError struct {
+	Err error
 }
 
-func (pe *preprocessError) Error() string {
-	return pe.Msg
+func (cue *CustomUnmarshalError) Error() string {
+	return cue.Err.Error()
+}
+
+func ErrWrongType(field interface{}, val interface{}, _type string) error {
+	return fmt.Errorf("For field \"%v\", \"%v\" is not of type %v", field, val, _type)
 }
