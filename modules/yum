@@ -24,19 +24,54 @@ import subprocess
 # package: package name that will be installed via yum
 # loglevel: if debug, it shows you the entire output as part of 'output' key
 
+
+def is_installed(name):
+    command = ["yum","list","installed","%s" % name]
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, err = p.communicate()
+    if "No matching Packages" in err:
+        return False
+    else:
+        return True
+
 params = json.loads(sys.stdin.read())
 result = {}
+possible_states = ["absent", "present", "latest"]
 try:
-    p = subprocess.Popen(["yum", "install", "-y", "%s" % params['package']], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, err = p.communicate()
-    if 'loglevel' in params and params['loglevel'] == 'debug':
-        result['output'] = output
+    name = params.get('package')
+    state = params.get('state')
+    # check if state provided is valid
+    valid_state = [s for s in possible_states if state == s]
+    if valid_state == []:
+        raise Exception("Valid states are one of %s ", ','.join(possible_states))
 
-    if err != None:
-        raise Exception(err)
+    # check if package is already installed
+    installed = is_installed(name)
+    command = ""
+    if installed:
+        if state == "absent":
+            command = ["yum", "remove", "-y", "%s" % name]
+        else:
+            result['msg'] = "Package %s already present" % name
+            result['status'] = "ok"
     else:
-        result['status'] = "changed"
-        result['msg'] = "Successfully installed package %s" % params['package']
+        if state == "present":
+            command = ["yum", "install", "-y", "%s" % name]
+        else:
+            result['msg'] = "Package %s absent" % name
+            result['status'] = "ok"
+
+    if command != "":
+        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = p.communicate()
+        if 'loglevel' in params and params['loglevel'] == 'debug':
+            result['output'] = output
+
+        if err != "":
+            raise Exception(err)
+        else:
+            result['status'] = "changed"
+            result['msg'] = "State of package %s changed" % name
 except Exception, e:
     result['status'] = "error"
     result['msg'] = str(e)
