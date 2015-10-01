@@ -3,35 +3,20 @@ package henchman
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strings"
 	"text/scanner"
-
-	"gopkg.in/yaml.v2"
 )
 
 var ModuleSearchPath = []string{
 	"modules",
 }
 
-const MODULE_TYPE_FILE = "moduleTypes.yml"
-
 // FIXME: Have custom error types when parsing modules
 type Module struct {
 	Name   string
 	Params map[string]string
-}
-
-type ModuleTypes struct {
-	ModuleTypeOrders []ModuleTypeOrder `yaml:"modules"`
-}
-
-type ModuleTypeOrder struct {
-	Type  string
-	Order []string
 }
 
 // Split args from the cli that are of the form,
@@ -88,43 +73,17 @@ func (module *Module) Resolve() (modulePath string, err error) {
 	return "", errors.New("Module couldn't be resolved")
 }
 
-func getModulePath() (string, error) {
-	curDir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	moduleTypePath := path.Join(curDir, MODULE_TYPE_FILE)
-	if _, err := os.Stat(moduleTypePath); err != nil {
-		moduleTypePath = path.Join(curDir, "henchman", MODULE_TYPE_FILE)
-		if _, err := os.Stat(moduleTypePath); err != nil {
-			return "", err
-		}
-	}
-	return moduleTypePath, nil
-}
-
 func (module *Module) ExecOrder() ([]string, error) {
-	moduleTypePath, err := getModulePath()
-	log.Println(moduleTypePath)
-	yamlFile, err := ioutil.ReadFile(moduleTypePath)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
+	execOrder := map[string][]string{"default": []string{"create_dir", "put_module", "exec_module"},
+		"copy": []string{"create_dir", "put_module", "copy_src"}}
 
-	var moduleTypes ModuleTypes
-
-	err = yaml.Unmarshal(yamlFile, &moduleTypes)
-	if err != nil {
-		return nil, err
-	}
 	var defaultOrder []string
-	for _, moduleTypeOrder := range moduleTypes.ModuleTypeOrders {
-		if moduleTypeOrder.Type == module.Name {
-			return moduleTypeOrder.Order, nil
+	for moduleType, order := range execOrder {
+		if moduleType == module.Name {
+			return order, nil
 		}
-		if moduleTypeOrder.Type == "default" {
-			defaultOrder = moduleTypeOrder.Order
+		if moduleType == "default" {
+			defaultOrder = order
 		}
 	}
 	//default
