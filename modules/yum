@@ -23,8 +23,6 @@ import subprocess
 # Params for this module
 # package: package name that will be installed via yum
 # loglevel: if debug, it shows you the entire output as part of 'output' key
-
-
 def is_installed(name):
     command = ["yum","list","installed","%s" % name]
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -38,7 +36,7 @@ params = json.loads(sys.stdin.read())
 result = {}
 possible_states = ["absent", "present", "latest"]
 try:
-    name = params.get('package')
+    name = params.get('name') # .strip("'")
     state = params.get('state')
     # check if state provided is valid
     valid_state = [s for s in possible_states if state == s]
@@ -60,7 +58,6 @@ try:
         else:
             result['msg'] = "Package %s absent" % name
             result['status'] = "ok"
-
     if command != "":
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, err = p.communicate()
