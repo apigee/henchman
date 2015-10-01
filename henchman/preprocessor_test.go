@@ -32,7 +32,50 @@ func TestPreprocessPlanValid(t *testing.T) {
 	}
 }
 
+func TestPreprocessPlanValidWithHosts(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/validPlanWithHosts.yaml")
+	if err != nil {
+		t.Errorf("Could not read validPlanWithHosts.yaml")
+	}
+	plan, err := PreprocessPlan(buf, inv)
+	if err != nil {
+		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
+	}
+	if len(plan.Tasks) != 4 {
+		t.Errorf("Expected 4 tasks. Found %d tasks instead\n", len(plan.Tasks))
+	}
+	// NOTE: The inner hosts are ignored and the top level is taken
+	if plan.Inventory.Count() != 2 {
+		t.Errorf("Expected 2 machines. Got %d instead\n", plan.Inventory.Count())
+	}
+}
+
 func TestPreprocessIncludeTasks(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/planWithIncludes.yaml")
+	if err != nil {
+		t.Errorf("Could not read planWithIncludes.yaml")
+	}
+
+	plan, err := PreprocessPlan(buf, inv)
+	if err != nil {
+		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
+	}
+	if len(plan.Tasks) != 3 {
+		t.Fatalf("Expected 3 tasks. Found %d instead\n", len(plan.Tasks))
+	}
+	task1 := plan.Tasks[0].Name
+	task2 := plan.Tasks[1].Name
+	if task1 != "task1" {
+		t.Errorf("Task name should have been task1. Got %s\n", task1)
+	}
+	if task2 != "included_task1" {
+		t.Errorf("Task name should have been included_task1. Got %s\n", task2)
+	}
+}
+
+func TestPreprocessIncludeTasksWithHosts(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/planWithIncludes.yaml")
 	if err != nil {

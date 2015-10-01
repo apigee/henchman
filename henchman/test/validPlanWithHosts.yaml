@@ -1,0 +1,11 @@
+---
+name: "Sample plan"
+hosts:
+  - nginx
+tasks:
+  - name: Sample task that does nothing
+    action: cmd="ls"
+  - name: Second task
+    action: cmd="echo"
+    ignore_errors: true
+  - include: test/tasksNoIncludes.yaml

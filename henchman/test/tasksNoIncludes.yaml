@@ -1,5 +1,7 @@
 ---
 name: "Tasks No Includes"
+hosts:
+  - db
 tasks:
   - name: "included_task1"
     action: bar=baz
