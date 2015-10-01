@@ -312,3 +312,21 @@ tasks:
 		}
 	}
 }
+
+func TestWithErrors(t *testing.T) {
+	plan_file :=
+		`
+---
+name: "Fail plan"
+tasks:
+  - name: "Bad task"
+    shell: okay=wut
+    mod: wut=mutt
+	- name: "Task Bad Indent"
+	  shell: okay=wutt
+`
+	_, err := PreprocessPlan([]byte(plan_file), nil)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+}
