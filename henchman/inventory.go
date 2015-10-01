@@ -8,7 +8,7 @@ import (
 
 type InventoryConfig map[string]string
 type InventoryInterface interface {
-	Load(ic InventoryConfig, transport TransportInterface) (Inventory, error)
+	Load(ic InventoryConfig, tc TransportConfig) (Inventory, error)
 }
 
 type Inventory map[string][]*Machine
@@ -37,7 +37,7 @@ func (inv Inventory) Machines() []*Machine {
 // FIXME: Have a way to provide specifics
 type YAMLInventory map[string][]string
 
-func (yi *YAMLInventory) Load(ic InventoryConfig, transport TransportInterface) (Inventory, error) {
+func (yi *YAMLInventory) Load(ic InventoryConfig, tc TransportConfig) (Inventory, error) {
 	fname, present := ic["path"]
 	if !present {
 		return nil, errors.New("Missing 'path' in the config")
@@ -54,8 +54,19 @@ func (yi *YAMLInventory) Load(ic InventoryConfig, transport TransportInterface) 
 	for group, hostnames := range *yi {
 		for _, hostname := range hostnames {
 			machine := Machine{}
+			// FIXME: Hard code ssh transport for now.
+			// We need to revisit this later.
+			tcCurr := make(TransportConfig)
+			tcCurr["hostname"] = hostname
+			for k, v := range tc {
+				tcCurr[k] = v
+			}
+			ssht, err := NewSSH(&tcCurr)
+			if err != nil {
+				return nil, err
+			}
 			machine.Hostname = hostname
-			machine.Transport = transport
+			machine.Transport = ssht
 			iv[group] = append(iv[group], &machine)
 		}
 	}

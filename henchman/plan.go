@@ -1,5 +1,10 @@
 package henchman
 
+import (
+	"log"
+	"sync"
+)
+
 type Plan struct {
 	Name      string
 	Inventory Inventory
@@ -8,5 +13,19 @@ type Plan struct {
 }
 
 func (plan *Plan) Execute() error {
+	machines := plan.Inventory.Machines()
+	log.Printf("Will attempt to execute the plan on %d machines\n", len(machines))
+	// FIXME: Don't use localhost
+	wg := new(sync.WaitGroup)
+	for _, _machine := range machines {
+		wg.Add(1)
+		machine := _machine
+		go func() {
+			defer wg.Done()
+			for _, task := range plan.Tasks {
+				task.Run(machine)
+			}
+		}()
+	}
 	return nil
 }

@@ -8,9 +8,11 @@ func loadValidInventory() (Inventory, error) {
 	ic := make(InventoryConfig)
 	ic["path"] = "test/inventory/validInventory.yaml"
 	yi := YAMLInventory{}
-	tt := TestTransport{}
-	tt.Initialize(nil)
-	inventory, err := yi.Load(ic, &tt)
+	tc := make(TransportConfig)
+	tc["hostname"] = "foo"
+	tc["username"] = "foobar"
+	tc["password"] = "bar"
+	inventory, err := yi.Load(ic, tc)
 	return inventory, err
 }
 

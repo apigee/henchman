@@ -1,12 +1,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
 	"path"
 
-	_ "github.com/apigee/henchman/henchman"
+	"github.com/apigee/henchman/henchman"
 	"github.com/codegangsta/cli"
 )
 
@@ -70,11 +71,49 @@ func gatherCommands() []cli.Command {
 }
 
 func executePlan(c *cli.Context) {
+	args := c.Args()
+	if len(args) == 0 {
+		// FIXME: Just print out the usage info?
+		log.Fatalf("Missing path to the plan")
+	}
 	// Step 1: Validate Modules path and see if it exists
-	// Step 2: Read the planFile
-	// Step 3: Set up transports for the inventory
-	// Step 4: For every machine, run the tasks
-	log.Printf("Executing the plan\n")
+	modulesPath := c.String("modules")
+	user := c.String("user")
+	keyfile := c.String("keyfile")
+	_, err := os.Stat(modulesPath)
+	if err != nil {
+		log.Fatalf("Error when validating the modules directory - %s\n", err.Error())
+	}
+
+	// Step 2: Read the inventory
+	// FIXME: Support multiple inventory types.
+	// We're dealing with YAML for now
+	inventoryPath := c.String("inventory")
+	inventoryConfig := make(henchman.InventoryConfig)
+	inventoryConfig["path"] = inventoryPath
+	inventorySource := new(henchman.YAMLInventory)
+
+	tc := make(henchman.TransportConfig)
+	tc["username"] = user
+	tc["keyfile"] = keyfile
+
+	inv, err := inventorySource.Load(inventoryConfig, tc)
+	if err != nil {
+		log.Fatalf("Error loading inventory - %s\n", err.Error())
+	}
+
+	// Step 3: Read the planFile
+	planFile := args[0]
+	planBuf, err := ioutil.ReadFile(planFile)
+	if err != nil {
+		log.Fatalf("Error when reading plan `%s': %s", planFile, err.Error())
+	}
+	plan, err := henchman.PreprocessPlan(planBuf, inv)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	plan.Execute()
+	log.Printf("Loaded the plan - %v\n", plan)
 }
 
 func main() {
