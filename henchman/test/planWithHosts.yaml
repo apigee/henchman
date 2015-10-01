@@ -1,10 +1,5 @@
 ---
 name: "Plan With Hosts"
-hosts:
-  - group1
-  - 123.456.789
-  - 000.000.000
-  - group2
 tasks:
   - name: task1
     action: cmd=echo

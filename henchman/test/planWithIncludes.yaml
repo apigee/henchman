@@ -1,8 +1,8 @@
 ---
 name: "Plan with single Include"
 hosts:
-  - "127.0.0.1:22"
-  - 192.168.1.2
+  - router.*
+
 tasks:
   - name: task1
     action: cmd="ls -al"

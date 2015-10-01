@@ -1,8 +1,5 @@
 ---
 name: "Plan with Pongo 2"
-hosts:
-  - 127.0.0.0
-  - 127.0.0.1
 vars:
   service: iptables
   key: abcd1234

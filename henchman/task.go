@@ -53,24 +53,20 @@ func (task *Task) Render(machine *Machine) error {
 	if err != nil {
 		return err
 	}
-
 	tmpl, err := pongo2.FromString(string(taskBuf))
 	if err != nil {
 		return err
 	}
-
 	// NOTE: add an update context when regMap is passed in
 	ctxt := pongo2.Context{"vars": task.Vars, "machine": machine}
 	out, err := tmpl.Execute(ctxt)
 	if err != nil {
 		return err
 	}
-
 	err = yaml.Unmarshal([]byte(out), &renderedTask)
 	if err != nil {
 		return err
 	}
-
 	*task = renderedTask
 	return nil
 }

@@ -5,8 +5,6 @@ import (
 	"os"
 	"path"
 	"testing"
-
-	"gopkg.in/yaml.v2"
 )
 
 func writeTempFile(buf []byte, fname string) string {
@@ -20,12 +18,12 @@ func rmTempFile(fpath string) {
 }
 
 func TestPreprocessPlanValid(t *testing.T) {
+	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/validPlan.yaml")
 	if err != nil {
 		t.Errorf("Could not read validPlan.yaml")
 	}
-
-	plan, err := PreprocessPlan(buf, nil)
+	plan, err := PreprocessPlan(buf, inv)
 	if err != nil {
 		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
 	}
@@ -35,12 +33,13 @@ func TestPreprocessPlanValid(t *testing.T) {
 }
 
 func TestPreprocessIncludeTasks(t *testing.T) {
+	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/planWithIncludes.yaml")
 	if err != nil {
 		t.Errorf("Could not read planWithIncludes.yaml")
 	}
 
-	plan, err := PreprocessPlan(buf, nil)
+	plan, err := PreprocessPlan(buf, inv)
 	if err != nil {
 		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
 	}
@@ -58,12 +57,12 @@ func TestPreprocessIncludeTasks(t *testing.T) {
 }
 
 func TestPreprocessNestedIncludeTasks(t *testing.T) {
+	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/planWithNestedIncludes.yaml")
 	if err != nil {
 		t.Errorf("Could not read planWithNestedIncludes.yaml")
 	}
-
-	plan, err := PreprocessPlan(buf, nil)
+	plan, err := PreprocessPlan(buf, inv)
 	if err != nil {
 		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
 	}
@@ -82,12 +81,12 @@ func TestPreprocessNestedIncludeTasks(t *testing.T) {
 }
 
 func TestPreprocessIncludeTasksWithVars(t *testing.T) {
+	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/planWithTasksAndVars.yaml")
 	if err != nil {
 		t.Errorf("Could not read planWithTasksAndVars.yaml")
 	}
-
-	plan, err := PreprocessPlan(buf, nil)
+	plan, err := PreprocessPlan(buf, inv)
 	if err != nil {
 		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
 	}
@@ -112,12 +111,13 @@ func TestPreprocessIncludeTasksWithVars(t *testing.T) {
 }
 
 func TestPreprocessVarsWithIncludeNoOverride(t *testing.T) {
+	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/planWithIncludesInVars.yaml")
 	if err != nil {
 		t.Errorf("Could not read planWithIncludesInVars.yaml")
 	}
 
-	plan, err := PreprocessPlan(buf, nil)
+	plan, err := PreprocessPlan(buf, inv)
 	if err != nil {
 		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
 	}
@@ -154,60 +154,14 @@ func TestPreprocessVarsWithIncludeNoOverride(t *testing.T) {
 	}
 }
 
-// NOTE: This assumes hosts files are in a YAML format
-//       This will change.
-func TestPreprocessHosts(t *testing.T) {
-	buf, err := ioutil.ReadFile("test/planWithHosts.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithHosts.yaml")
-	}
-
-	inv := make(Inventory)
-	invBuf, err := ioutil.ReadFile("test/hosts")
-	if err != nil {
-		t.Errorf("Could not read hosts")
-	}
-
-	err = yaml.Unmarshal(invBuf, &inv)
-	if err != nil {
-		t.Errorf("Error unmarshalling hosts")
-	}
-
-	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
-	}
-
-	if len(plan.Hosts) != 6 {
-		t.Fatalf("Expected 6 hosts.  Found %v\n", len(plan.Hosts))
-	}
-	if plan.Hosts[0] != "127.0.0.1" {
-		t.Fatalf("Expected 127.0.0.1. Found %v\n", plan.Hosts[0])
-	}
-	if plan.Hosts[1] != "127.0.0.2" {
-		t.Fatalf("Expected 127.0.0.2. Found %v\n", plan.Hosts[1])
-	}
-	if plan.Hosts[2] != "123.456.789" {
-		t.Fatalf("Expected 123.456.789. Found %v\n", plan.Hosts[2])
-	}
-	if plan.Hosts[3] != "000.000.000" {
-		t.Fatalf("Expected 000.000.000. Found %v\n", plan.Hosts[3])
-	}
-	if plan.Hosts[4] != "127.0.0.3" {
-		t.Fatalf("Expected 127.0.0.3. Found %v\n", plan.Hosts[4])
-	}
-	if plan.Hosts[5] != "127.0.0.4" {
-		t.Fatalf("Expected 127.0.0.4. Found %v\n", plan.Hosts[5])
-	}
-}
-
 func TestPreprocessTasksWithIncludesAndWhen(t *testing.T) {
+	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/planWithTaskIncludesAndWhen.yaml")
 	if err != nil {
 		t.Errorf("Could not read planWithHosts.yaml")
 	}
 
-	plan, err := PreprocessPlan(buf, nil)
+	plan, err := PreprocessPlan(buf, inv)
 	if plan.Tasks[0].When != "test == true" {
 		t.Fatalf("Expected \"test == true\".  Received \"%v\"\n", plan.Tasks[0].When)
 	}
@@ -250,11 +204,9 @@ tasks:
 }
 
 func TestPreprocessWithSudoAtTheTaskLevel(t *testing.T) {
+	inv, _ := loadValidInventory()
 	plan_string := `---
 name: "Sample plan"
-hosts:
-  - "127.0.0.1:22"
-  - 192.168.1.2
 tasks:
   - name: First task
     action: cmd="ls"
@@ -262,7 +214,7 @@ tasks:
   - name: Second task
     action: cmd="echo"
 `
-	plan, err := PreprocessPlan([]byte(plan_string), nil)
+	plan, err := PreprocessPlan([]byte(plan_string), inv)
 	if err != nil {
 		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
 	}
@@ -282,6 +234,7 @@ tasks:
 }
 
 func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
+	inv, _ := loadValidInventory()
 	include_file := `
 name: "To be include"
 tasks:
@@ -293,9 +246,6 @@ tasks:
 `
 	plan_file := `
 name: "Sample plan"
-hosts:
-  - "127.0.0.1:22"
-  - 192.168.1.2
 tasks:
   - name: task1
     action: cmd="ls -al"
@@ -303,7 +253,7 @@ tasks:
 `
 	fpath := writeTempFile([]byte(include_file), "included.yaml")
 	defer rmTempFile(fpath)
-	plan, err := PreprocessPlan([]byte(plan_file), nil)
+	plan, err := PreprocessPlan([]byte(plan_file), inv)
 	if err != nil {
 		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
 	}

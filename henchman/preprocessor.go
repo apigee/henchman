@@ -7,11 +7,11 @@ import (
 )
 
 type PlanProxy struct {
-	Name        string       `yaml:"name"`
-	Sudo        bool         `yaml:"sudo"`
-	TaskProxies []*TaskProxy `yaml:"tasks"`
-	VarsProxy   TaskVars     `yaml:"vars"`
-	HostsProxy  []string     `yaml:"hosts"`
+	Name            string       `yaml:"name"`
+	Sudo            bool         `yaml:"sudo"`
+	TaskProxies     []*TaskProxy `yaml:"tasks"`
+	VarsProxy       TaskVars     `yaml:"vars"`
+	InventoryGroups []string     `yaml:"hosts"`
 }
 
 // Task is for the general Task format.  Refer to task.go
@@ -200,7 +200,6 @@ func PreprocessVars(vars TaskVars) (TaskVars, error) {
 			mergeMap(tempVars, newVars, false)
 		}
 	}
-
 	delete(newVars, "include")
 	return newVars, nil
 }
@@ -227,18 +226,21 @@ func preprocessVarsHelper(fName interface{}) (TaskVars, error) {
 
 // Process hosts list.  Checks the host list to see if any of the
 // hosts entries are valid sections and will extract it based on
-// the inventory
-func PreprocessHosts(hosts []string, inv Inventory) ([]string, error) {
-	var newHosts []string
-	for _, host := range hosts {
-		if section, present := inv[host]; present {
-			newHosts = append(newHosts, section...)
-		} else {
-			newHosts = append(newHosts, host)
+func filterInventory(groups []string, fullInventory Inventory) Inventory {
+	// FIXME: Support globbing in the groups
+	// No groups? No problem. Just return the full inventory
+	if len(groups) == 0 {
+		return fullInventory
+	} else {
+		filtered := make(Inventory)
+		for _, group := range groups {
+			machines, present := fullInventory[group]
+			if present {
+				filtered[group] = machines
+			}
 		}
+		return filtered
 	}
-
-	return newHosts, nil
 }
 
 // For Plan
@@ -250,17 +252,8 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error processing plan - %s", err.Error())
 	}
-
 	plan := Plan{}
-
-	hosts := px.HostsProxy
-	if inv != nil {
-		hosts, err = PreprocessHosts(hosts, inv)
-		if err != nil {
-			return nil, fmt.Errorf("Error processing hosts - %s", err.Error())
-		}
-	}
-	plan.Hosts = hosts
+	plan.Inventory = filterInventory(px.InventoryGroups, inv)
 
 	vars := make(TaskVars)
 	if px.VarsProxy != nil {
