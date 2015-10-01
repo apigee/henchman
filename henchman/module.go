@@ -55,7 +55,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 				tok = s.Scan()
 				currentKey = tokText
 			} else {
-				return nil, errors.New(fmt.Sprintf("Expected '=' at position %d", s.Pos()))
+				return nil, errors.New(fmt.Sprintf("Expected '=' at position %v", s.Pos()))
 			}
 		} else {
 			extraArgs[currentKey] = strings.Trim(tokText, "\"")
