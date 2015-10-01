@@ -13,6 +13,11 @@
 			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
 		},
 		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-42-gfbda1ce",
+			"Rev": "fbda1ce02d5dabcee952040e5f4025753b6c9ce0"
+		},
+		{
 			"ImportPath": "github.com/flosch/pongo2",
 			"Comment": "v1.0-rc1-174-gf5d79aa",
 			"Rev": "f5d79aa0a914c08eb7f51a96cd7b2dbbe46fca46"
