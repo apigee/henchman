@@ -51,12 +51,12 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		case "name":
 			tp.Name, found = val.(string)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not a string", field, val)
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type string", field, val)
 			}
 		case "sudo":
 			tp.Sudo, found = val.(bool)
 			if !found {
-				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not a bool", field, val)
+				return fmt.Errorf("In Tasks. For field \"%v\", \"%v\" is not of type bool", field, val)
 			}
 		case "ignore_errors":
 			tp.IgnoreErrors, found = val.(bool)
@@ -96,7 +96,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}
 
 			if numModule > 0 {
-				return fmt.Errorf("Can only have one module per task.")
+				return fmt.Errorf("\"%v\" is an extra Module.  Can only have one module per task.", field)
 			}
 
 			tp.Module, err = NewModule(field, params)
@@ -250,6 +250,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
+		fmt.Println(err.Errors[1])
 		return nil, fmt.Errorf("Error processing plan - %s", err.Error())
 	}
 	plan := Plan{}
