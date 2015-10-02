@@ -5,10 +5,12 @@ import (
 	"sync"
 )
 
+type VarsMap map[interface{}]interface{}
+
 type Plan struct {
 	Name      string
 	Inventory Inventory
-	Vars      TaskVars
+	Vars      VarsMap
 	Tasks     []*Task
 }
 

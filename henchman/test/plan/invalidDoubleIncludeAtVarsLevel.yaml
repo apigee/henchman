@@ -3,8 +3,10 @@ name: "Sample plan"
 vars:
   hello: world
   foo: scar
-  include: test/vars/vars.yaml
-  include: test/vars/vars2.yaml
+  include:
+    - test/vars/vars.yaml
+  include:
+    - test/vars/vars2.yaml
   spam: eggs
 tasks:
   - name: Sample task that does nothing

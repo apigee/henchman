@@ -172,11 +172,23 @@ func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	}
 }
 
-func TestInvalidInvalidIncludeAtVarsLevel(t *testing.T) {
+// create table driven tests for invalids
+func TestInvalidIncludeFormatAtVarsLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/plan/invalidIncludeAtVarsLevel.yaml")
+	buf, err := ioutil.ReadFile("test/plan/invalidIncludeFormatAtVarsLevel.yaml")
 	require.NoError(t, err)
 
 	_, err = PreprocessPlan(buf, inv)
 	require.Error(t, err)
 }
+
+/*
+func TestInvalidDoubleIncludeAtVarsLevel(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/invalidDoubleIncludeAtVarsLevel.yaml")
+	require.NoError(t, err)
+
+	_, err = PreprocessPlan(buf, inv)
+	require.Error(t, err)
+}
+*/

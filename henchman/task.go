@@ -14,8 +14,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type TaskVars map[interface{}]interface{}
-
 type Task struct {
 	Id           string
 	Sudo         bool
@@ -25,7 +23,7 @@ type Task struct {
 	Local        bool
 	When         string
 	Register     string
-	Vars         TaskVars
+	Vars         VarsMap
 }
 
 type TaskResult struct {

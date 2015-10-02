@@ -10,7 +10,7 @@ type PlanProxy struct {
 	Name            string       `yaml:"name"`
 	Sudo            bool         `yaml:"sudo"`
 	TaskProxies     []*TaskProxy `yaml:"tasks"`
-	VarsProxy       TaskVars     `yaml:"vars"`
+	VarsProxy       *VarsProxy   `yaml:"vars"`
 	InventoryGroups []string     `yaml:"hosts"`
 }
 
@@ -23,9 +23,13 @@ type TaskProxy struct {
 	Include string
 }
 
+type VarsProxy struct {
+	Vars VarsMap
+}
+
 // source values will override dest values override is true
 // else dest values will not be overridden
-func mergeMap(src TaskVars, dst TaskVars, override bool) {
+func mergeMap(src map[interface{}]interface{}, dst map[interface{}]interface{}, override bool) {
 	for variable, value := range src {
 		if override == true {
 			dst[variable] = value
@@ -33,6 +37,41 @@ func mergeMap(src TaskVars, dst TaskVars, override bool) {
 			dst[variable] = value
 		}
 	}
+}
+
+// Custom unmarshaller which account for multiple include statements and include types
+// NOTE: Cannot account for double includes because unmarshal(&vMap) already does
+//       under the hood unmarshaling and does what any map would do, which is override
+//       repeating key values
+func (vp *VarsProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var vMap map[string]interface{}
+	var found bool
+	numInclude := 0
+
+	err := unmarshal(&vMap)
+	if err != nil {
+		return err
+	}
+
+	vp.Vars = make(VarsMap)
+	for field, val := range vMap {
+		switch field {
+		case "include":
+			vp.Vars["include"], found = val.([]interface{})
+			if !found {
+				return ErrWrongType(field, val, "[]interface{}")
+			}
+
+			numInclude++
+			if numInclude > 1 {
+				return fmt.Errorf("Can only have one include statement at Vars level.")
+			}
+		default:
+			vp.Vars[field] = val
+		}
+	}
+
+	return nil
 }
 
 // Custom unmarshaller which accounts for module names
@@ -114,7 +153,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // whether if it's an include value or a normal task.  If it's a normal task
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
-func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars, sudo bool) ([]*Task, error) {
+func PreprocessTasks(taskSection []*TaskProxy, planVars VarsMap, sudo bool) ([]*Task, error) {
 	tasksList, err := parseTaskProxies(taskSection, planVars, "", sudo)
 	if err != nil {
 		return nil, err
@@ -123,7 +162,7 @@ func PreprocessTasks(taskSection []*TaskProxy, planVars TaskVars, sudo bool) ([]
 	return tasksList, nil
 }
 
-func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string, sudo bool) ([]*Task, error) {
+func preprocessTasksHelper(buf []byte, prevVars VarsMap, prevWhen string, sudo bool) ([]*Task, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
@@ -133,7 +172,7 @@ func preprocessTasksHelper(buf []byte, prevVars TaskVars, prevWhen string, sudo 
 	return parseTaskProxies(px.TaskProxies, prevVars, prevWhen, sudo)
 }
 
-func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen string, sudo bool) ([]*Task, error) {
+func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen string, sudo bool) ([]*Task, error) {
 	var tasks []*Task
 	for _, tp := range taskProxies {
 		task := Task{}
@@ -153,7 +192,7 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 
 			// links previous vars
 			if tp.Vars == nil {
-				tp.Vars = make(TaskVars)
+				tp.Vars = make(VarsMap)
 			}
 			mergeMap(prevVars, tp.Vars, false)
 			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When, sudo)
@@ -191,26 +230,25 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 // And any repeat vars in the includes will be a FCFS priority
 // NOTE: if the user has multipl include blocks it'll grab the one closest to
 //       the bottom
-func PreprocessVars(vars TaskVars) (TaskVars, error) {
+
+func PreprocessVars(vars VarsMap) (VarsMap, error) {
 	newVars := vars
+
+	// parses include statements in vars
 	if fileList, present := vars["include"]; present {
-		if _, found := fileList.([]interface{}); found {
-			for _, fName := range fileList.([]interface{}) {
-				tempVars, err := preprocessVarsHelper(fName)
-				if err != nil {
-					return nil, fmt.Errorf("While checking includes - %s", err.Error())
-				}
-				mergeMap(tempVars, newVars, false)
+		for _, fName := range fileList.([]interface{}) {
+			tempVars, err := preprocessVarsHelper(fName)
+			if err != nil {
+				return nil, fmt.Errorf("While checking includes - %s", err.Error())
 			}
-		} else {
-			return nil, ErrWrongType("Include", fileList, "[]interface{}")
+			mergeMap(tempVars, newVars, false)
 		}
 	}
 	delete(newVars, "include")
 	return newVars, nil
 }
 
-func preprocessVarsHelper(fName interface{}) (TaskVars, error) {
+func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	newFName, found := fName.(string)
 	if !found {
 		return nil, ErrWrongType("Include", fName, "string")
@@ -227,7 +265,7 @@ func preprocessVarsHelper(fName interface{}) (TaskVars, error) {
 		return nil, err
 	}
 
-	return px.VarsProxy, nil
+	return px.VarsProxy.Vars, nil
 }
 
 // Process hosts list.  Checks the host list to see if any of the
@@ -261,9 +299,9 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	plan := Plan{}
 	plan.Inventory = filterInventory(px.InventoryGroups, inv)
 
-	vars := make(TaskVars)
+	vars := make(VarsMap)
 	if px.VarsProxy != nil {
-		vars, err = PreprocessVars(px.VarsProxy)
+		vars, err = PreprocessVars(px.VarsProxy.Vars)
 		if err != nil {
 			return nil, fmt.Errorf("Error processing vars - %s", err.Error())
 		}
