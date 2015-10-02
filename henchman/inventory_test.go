@@ -22,7 +22,7 @@ func loadValidInventory() (Inventory, error) {
 func TestValidYAMLInventory(t *testing.T) {
 	inventory, err := loadValidInventory()
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, inventory)
 	assert.Equal(t, 2, len(inventory["nginx"]), "Expected 2 nginx machines")
 	assert.Equal(t, 3, inventory.Count(), "Unexpected inventory count")

@@ -24,10 +24,10 @@ func rmTempFile(fpath string) {
 func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	// NOTE: The inner hosts are ignored and the top level is taken
@@ -37,10 +37,10 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 func TestPreprocessIncludeAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeAtTaskLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
 	assert.Equal(t, "task1", plan.Tasks[0].Name, "Wrong first task.")
@@ -50,10 +50,10 @@ func TestPreprocessIncludeAtTaskLevel(t *testing.T) {
 func TestPreprocessNestedIncludeAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/nestedIncludeAtTaskLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	assert.Equal(t, "task1", plan.Tasks[0].Name, "Wrong first task.")
@@ -63,10 +63,10 @@ func TestPreprocessNestedIncludeAtTaskLevel(t *testing.T) {
 func TestPreprocessIncludeAndVarsAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeAndVarsAtTaskLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 6, len(plan.Tasks), "Wrong number of tasks.")
 	assert.Equal(t, "bar", plan.Tasks[0].Vars["foo"], "Wrong key in Task Vars")
@@ -79,10 +79,10 @@ func TestPreprocessIncludeAndVarsAtTaskLevel(t *testing.T) {
 func TestPreprocessIncludeAtVarsLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeAtVarsLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, 5, len(plan.Vars), "Wrong number of vars.")
 
@@ -105,10 +105,10 @@ func TestPreprocessIncludeAtVarsLevel(t *testing.T) {
 func TestPreprocessIncludeAndWhenAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeAndWhenAtTaskLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "test == true", plan.Tasks[0].When, "task.When is wrong")
 	assert.Equal(t, "hello == world && test == false", plan.Tasks[1].When, "task.When is wrong")
@@ -119,10 +119,10 @@ func TestPreprocessIncludeAndWhenAtTaskLevel(t *testing.T) {
 func TestPreprocessWithSudoAtThePlanLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/sudoAtPlanLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
 
@@ -134,10 +134,10 @@ func TestPreprocessWithSudoAtThePlanLevel(t *testing.T) {
 func TestPreprocessWithSudoAtTheTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/sudoAtTaskLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
 
@@ -155,10 +155,10 @@ func TestPreprocessWithSudoAtTheTaskLevel(t *testing.T) {
 func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeWithSudoAtTaskLevel.yaml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
 	for _, task := range plan.Tasks {
@@ -170,4 +170,13 @@ func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 			assert.False(t, task.Sudo, "Second task should not have sudo priviledges")
 		}
 	}
+}
+
+func TestInvalidInvalidIncludeAtVarsLevel(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/invalidIncludeAtVarsLevel.yaml")
+	require.NoError(t, err)
+
+	_, err = PreprocessPlan(buf, inv)
+	require.Error(t, err)
 }

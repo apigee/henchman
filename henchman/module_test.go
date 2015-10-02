@@ -29,7 +29,7 @@ func TestValidModule(t *testing.T) {
 	args := "cmd=\"ls -al\" foo=bar baz=☃"
 	mod, err := NewModule(name, args)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, name, mod.Name, "Module names should match")
 	assert.Equal(t, "ls -al", mod.Params["cmd"], "Mod params wasn't initialized properly")
@@ -64,12 +64,12 @@ func TestModuleResolve(t *testing.T) {
 	mod, err := NewModule("shell", "foo=bar")
 	//mod, err := setupTestShellModule()
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, mod)
 
 	fullPath, err := mod.Resolve()
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "/tmp/shell", fullPath, "Got incorrect fullPath")
 }
 
@@ -83,23 +83,23 @@ func TestNonexistentModuleResolve(t *testing.T) {
 	//ModuleSearchPath = append(ModuleSearchPath, "/tmp")
 	mod, err := setupTestShellModule()
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, mod)
 
 	fullPath, err := mod.Resolve()
 
-	require.NotNil(t, err)
+	require.Error(t, err)
 	require.Equal(t, "", fullPath, "Fullpath should have been empty")
 }
 
 func TestModuleDefaultExecOrder(t *testing.T) {
 	mod, err := setupTestShellModule()
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, mod)
 
 	execOrder, err := mod.ExecOrder()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "create_dir", execOrder[0], "Exec Order sequence is wrong for a default module")
 	assert.Equal(t, "put_module", execOrder[1], "Exec Order sequence is wrong for a default module")
@@ -111,11 +111,11 @@ func TestModuleCopyExecOrder(t *testing.T) {
 	defer rmTempFile("/tmp/copy")
 	mod, err := NewModule("copy", "src=foo dest=bar")
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, mod)
 
 	execOrder, err := mod.ExecOrder()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "create_dir", execOrder[0], "Exec Order sequence is wrong for a default module")
 	assert.Equal(t, "put_module", execOrder[1], "Exec Order sequence is wrong for a default module")

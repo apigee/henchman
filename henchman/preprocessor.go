@@ -189,15 +189,21 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars TaskVars, prevWhen stri
 // Processes plan level vars with includes
 // All plan level vars will be in the vars map
 // And any repeat vars in the includes will be a FCFS priority
+// NOTE: if the user has multipl include blocks it'll grab the one closest to
+//       the bottom
 func PreprocessVars(vars TaskVars) (TaskVars, error) {
 	newVars := vars
 	if fileList, present := vars["include"]; present {
-		for _, fName := range fileList.([]interface{}) {
-			tempVars, err := preprocessVarsHelper(fName)
-			if err != nil {
-				return nil, fmt.Errorf("While checking includes - %s", err.Error())
+		if _, found := fileList.([]interface{}); found {
+			for _, fName := range fileList.([]interface{}) {
+				tempVars, err := preprocessVarsHelper(fName)
+				if err != nil {
+					return nil, fmt.Errorf("While checking includes - %s", err.Error())
+				}
+				mergeMap(tempVars, newVars, false)
 			}
-			mergeMap(tempVars, newVars, false)
+		} else {
+			return nil, ErrWrongType("Include", fileList, "[]interface{}")
 		}
 	}
 	delete(newVars, "include")
@@ -207,7 +213,7 @@ func PreprocessVars(vars TaskVars) (TaskVars, error) {
 func preprocessVarsHelper(fName interface{}) (TaskVars, error) {
 	newFName, found := fName.(string)
 	if !found {
-		return nil, fmt.Errorf("%v is not of type string", fName)
+		return nil, ErrWrongType("Include", fName, "string")
 	}
 
 	buf, err := ioutil.ReadFile(newFName)

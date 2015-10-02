@@ -1,7 +1,7 @@
 package henchman
 
 import (
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -30,15 +30,15 @@ func TestTaskRun(t *testing.T) {
 	localhost.Transport = &testTransport
 
 	_, err := task.Run(&localhost)
-	require.Nil(t, err, "There shouldn't have been any errors")
+	require.NoError(t, err, "There shouldn't have been any errors")
 }
 
 func TestTaskRender(t *testing.T) {
 	buf, err := ioutil.ReadFile("test/plan/planWithPongo2.yaml")
-	require.Nil(t, err, "Could not read planWithPongo2.yaml")
+	require.NoError(t, err, "Could not read planWithPongo2.yaml")
 
 	plan, err := PreprocessPlan(buf, nil)
-	require.Nil(t, err, "This plan shouldn't be having an error")
+	require.NoError(t, err, "This plan shouldn't be having an error")
 
 	testTransport := TestTransport{}
 	localhost := Machine{}
@@ -46,7 +46,7 @@ func TestTaskRender(t *testing.T) {
 	localhost.Transport = &testTransport
 
 	err = plan.Tasks[0].Render(&localhost)
-	require.Nil(t, err, "This plan shouldn't be having an error")
+	require.NoError(t, err, "This plan shouldn't be having an error")
 
 	assert.Equal(t, "iptables at localhost", plan.Tasks[0].Name, "Expected iptables at localhost.  Received %v\n")
 }
