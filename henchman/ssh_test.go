@@ -4,6 +4,9 @@ import (
 	_ "fmt"
 	_ "os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidPasswordAuth(t *testing.T) {
@@ -12,9 +15,8 @@ func TestValidPasswordAuth(t *testing.T) {
 	c["password"] = "password"
 	c["hostname"] = "localhost"
 	_, err := NewSSH(&c)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+
+	require.Nil(t, err)
 }
 
 func TestInvalidPasswordAuth(t *testing.T) {
@@ -22,9 +24,7 @@ func TestInvalidPasswordAuth(t *testing.T) {
 	c["username"] = "user1"
 	c["hostname"] = "localhost"
 	_, err := NewSSH(&c)
-	if err == nil {
-		t.Errorf("There should have been an error since password isn't present")
-	}
+	require.Nil(t, err, "There should have been an error since password isn't present")
 }
 
 // func TestSSHExec(t *testing.T) {

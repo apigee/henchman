@@ -2,6 +2,9 @@ package henchman
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func loadValidInventory() (Inventory, error) {
@@ -18,19 +21,10 @@ func loadValidInventory() (Inventory, error) {
 
 func TestValidYAMLInventory(t *testing.T) {
 	inventory, err := loadValidInventory()
-	if err != nil {
-		t.Fatalf("Unexpected error - %s\n", err.Error())
-	}
-	if inventory == nil {
-		t.Fatalf("Inventory shouldn't be nil")
-	}
-	if len(inventory["nginx"]) != 2 {
-		t.Errorf("Expected 2 nginx machines. Got %d instead\n", len(inventory["nginx"]))
-	}
-	if inventory.Count() != 3 {
-		t.Errorf("Unexpected inventory count. Got %d\n", inventory.Count())
-	}
-	if len(inventory.Machines()) != 3 {
-		t.Errorf("Unexpected machine count. Got %d\n", len(inventory.Machines()))
-	}
+
+	require.Nil(t, err)
+	require.NotNil(t, inventory)
+	assert.Equal(t, 2, len(inventory["nginx"]), "Expected 2 nginx machines")
+	assert.Equal(t, 3, inventory.Count(), "Unexpected inventory count")
+	assert.Equal(t, 3, len(inventory.Machines()), "Unexpected machine count")
 }

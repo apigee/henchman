@@ -25,9 +25,7 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
 	require.Nil(t, err)
-	fmt.Println("Here")
 
-	fmt.Println("Here1")
 	plan, err := PreprocessPlan(buf, inv)
 	require.Nil(t, err)
 

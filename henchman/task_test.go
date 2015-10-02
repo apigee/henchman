@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTaskRun(t *testing.T) {
@@ -27,21 +30,15 @@ func TestTaskRun(t *testing.T) {
 	localhost.Transport = &testTransport
 
 	_, err := task.Run(&localhost)
-	if err != nil {
-		t.Errorf("There shouldn't have been any errors. Got : %s\n", err.Error())
-	}
+	require.Nil(t, err, "There shouldn't have been any errors")
 }
 
 func TestTaskRender(t *testing.T) {
 	buf, err := ioutil.ReadFile("test/plan/planWithPongo2.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithPongo2.yaml")
-	}
+	require.Nil(t, err, "Could not read planWithPongo2.yaml")
 
 	plan, err := PreprocessPlan(buf, nil)
-	if err != nil {
-		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
-	}
+	require.Nil(t, err, "This plan shouldn't be having an error")
 
 	testTransport := TestTransport{}
 	localhost := Machine{}
@@ -49,13 +46,7 @@ func TestTaskRender(t *testing.T) {
 	localhost.Transport = &testTransport
 
 	err = plan.Tasks[0].Render(&localhost)
-	if err != nil {
-		t.Fatalf("There shouldn't have been any errors. Got : %s\n", err.Error())
-	}
+	require.Nil(t, err, "This plan shouldn't be having an error")
 
-	if plan.Tasks[0].Name != "iptables at localhost" {
-		t.Errorf("Expected iptables at localhost.  Received %v\n", plan.Tasks[0].Name)
-	}
-
-	fmt.Println(plan.Tasks[0].Module)
+	assert.Equal(t, "iptables at localhost", plan.Tasks[0].Name, "Expected iptables at localhost.  Received %v\n")
 }

@@ -4,6 +4,9 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func moduleTestSetup(modName string) (module *Module) {
@@ -25,40 +28,29 @@ func TestValidModule(t *testing.T) {
 	name := "shell"
 	args := "cmd=\"ls -al\" foo=bar baz=☃"
 	mod, err := NewModule(name, args)
-	if err != nil {
-		t.Fatalf("Error when creating the module - %s\n", err.Error())
-	}
-	if mod.Name != name {
-		t.Errorf("Mod name should have been %s. Got %s instead\n", name, mod.Name)
-	}
-	if mod.Params["cmd"] != "ls -al" {
-		t.Errorf("Mod params wasn't initialized properly")
-	}
-	if mod.Params["foo"] != "bar" {
-		t.Errorf("Expected value for foo to be bar. Got %s instead\n", mod.Params["foo"])
-	}
-	if mod.Params["baz"] != "☃" {
-		t.Errorf("Expected snowman. Got %s instead\n", mod.Params["baz"])
-	}
+
+	require.Nil(t, err)
+
+	assert.Equal(t, name, mod.Name, "Module names should match")
+	assert.Equal(t, "ls -al", mod.Params["cmd"], "Mod params wasn't initialized properly")
+	assert.Equal(t, "bar", mod.Params["foo"], "Expected value for foo to be bar")
+	assert.Equal(t, "☃", mod.Params["baz"], "Expected a snowman")
 }
 
 func TestInvalidArgsModule(t *testing.T) {
 	name := "invalid"
 	args := "foo"
 	_, err := NewModule(name, args)
-	if err == nil {
-		t.Errorf("Module arg parsing should have failed")
-	}
 
+	require.Error(t, err, "Module arg parsing should have failed")
 }
 
 func TestInvalidArgsModule2(t *testing.T) {
 	name := "invalid"
 	args := "foo bar=baz"
 	_, err := NewModule(name, args)
-	if err == nil {
-		t.Errorf("Module arg parsing should have failed")
-	}
+
+	require.Error(t, err, "Module arg parsing should have failed")
 }
 
 func TestModuleResolve(t *testing.T) {
@@ -71,19 +63,14 @@ func TestModuleResolve(t *testing.T) {
 	defer rmTempFile("/tmp/shell")
 	mod, err := NewModule("shell", "foo=bar")
 	//mod, err := setupTestShellModule()
-	if err != nil {
-		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
-	}
-	if mod == nil {
-		t.Errorf("Module shouldn't be nil")
-	}
+
+	require.Nil(t, err)
+	require.NotNil(t, mod)
+
 	fullPath, err := mod.Resolve()
-	if err != nil {
-		t.Fatalf("Error when resolving module path - %s\n", err.Error())
-	}
-	if fullPath != "/tmp/shell" {
-		t.Errorf("Got incorrect fullPath - %s\n", fullPath)
-	}
+
+	require.Nil(t, err)
+	assert.Equal(t, "/tmp/shell", fullPath, "Got incorrect fullPath")
 }
 
 func setupTestShellModule() (*Module, error) {
@@ -95,40 +82,28 @@ func setupTestShellModule() (*Module, error) {
 func TestNonexistentModuleResolve(t *testing.T) {
 	//ModuleSearchPath = append(ModuleSearchPath, "/tmp")
 	mod, err := setupTestShellModule()
-	if err != nil {
-		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
-	}
-	if mod == nil {
-		t.Errorf("Module shouldn't be nil")
-	}
+
+	require.Nil(t, err)
+	require.NotNil(t, mod)
+
 	fullPath, err := mod.Resolve()
-	if err == nil {
-		t.Error("Module path resolution should have failed")
-	}
-	if fullPath != "" {
-		t.Error("Fullpath should have been empty")
-	}
+
+	require.NotNil(t, err)
+	require.Equal(t, "", fullPath, "Fullpath should have been empty")
 }
 
 func TestModuleDefaultExecOrder(t *testing.T) {
 	mod, err := setupTestShellModule()
-	if err != nil {
-		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
-	}
 
-	if mod == nil {
-		t.Errorf("Module shouldn't be nil")
-	}
+	require.Nil(t, err)
+	require.NotNil(t, mod)
 
 	execOrder, err := mod.ExecOrder()
-	if err != nil {
-		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
-	}
-	if execOrder[0] != "create_dir" ||
-		execOrder[1] != "put_module" ||
-		execOrder[2] != "exec_module" {
-		t.Errorf("Exec Order sequence is wrong for a default module. Expected [create_dir put_module exec_module] but instead got ", execOrder)
-	}
+	require.Nil(t, err)
+
+	assert.Equal(t, "create_dir", execOrder[0], "Exec Order sequence is wrong for a default module")
+	assert.Equal(t, "put_module", execOrder[1], "Exec Order sequence is wrong for a default module")
+	assert.Equal(t, "exec_module", execOrder[2], "Exec Order sequence is wrong for a default module")
 }
 
 func TestModuleCopyExecOrder(t *testing.T) {
@@ -136,22 +111,14 @@ func TestModuleCopyExecOrder(t *testing.T) {
 	defer rmTempFile("/tmp/copy")
 	mod, err := NewModule("copy", "src=foo dest=bar")
 
-	if err != nil {
-		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
-	}
+	require.Nil(t, err)
+	require.NotNil(t, mod)
 
-	if mod == nil {
-		t.Errorf("Module shouldn't be nil")
-	}
 	execOrder, err := mod.ExecOrder()
-	if err != nil {
-		t.Fatalf("There shouldn't have been any error. Got %s\n", err.Error())
-	}
-	if execOrder[0] != "create_dir" ||
-		execOrder[1] != "put_module" ||
-		execOrder[2] != "put_file" ||
-		execOrder[3] != "copy_remote" {
-		t.Errorf("Exec Order sequence is wrong for a copy module. Expected [create_dir put_module put_file copy_remote] but instead got ", execOrder)
-	}
+	require.Nil(t, err)
 
+	assert.Equal(t, "create_dir", execOrder[0], "Exec Order sequence is wrong for a default module")
+	assert.Equal(t, "put_module", execOrder[1], "Exec Order sequence is wrong for a default module")
+	assert.Equal(t, "put_file", execOrder[2], "Exec Order sequence is wrong for a default module")
+	assert.Equal(t, "copy_remote", execOrder[3], "Exec Order sequence is wrong for a default module")
 }
