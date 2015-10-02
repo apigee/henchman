@@ -1,5 +1,0 @@
----
-name: "Plan With Hosts"
-tasks:
-  - name: task1
-    action: cmd=echo

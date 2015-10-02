@@ -1,11 +1,15 @@
 ---
 name: "Sample plan"
-hosts:
-  - nginx
+vars:
+  hello: world
+  foo: scar
+  include:
+   - test/vars/vars.yaml
+   - test/vars/vars2.yaml
+  spam: eggs
 tasks:
   - name: Sample task that does nothing
     action: cmd="ls"
   - name: Second task
     action: cmd="echo"
     ignore_errors: true
-  - include: test/tasksNoIncludes.yaml

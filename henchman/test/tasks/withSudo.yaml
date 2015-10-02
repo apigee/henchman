@@ -1,0 +1,8 @@
+---
+name: "To be include"
+tasks:
+    - name: "included_task1"
+      action: bar=baz
+      sudo: true
+    - name: "included_task2"
+      action: foo=bar

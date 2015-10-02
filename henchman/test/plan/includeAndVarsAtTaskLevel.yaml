@@ -5,7 +5,7 @@ vars:
 tasks:
   - name: task1
     action: ls=al
-  - include: test/tasksWithIncludesAndVars.yaml
+  - include: test/tasks/WithIncludeAndVars.yaml
     vars:
       foo: nope
       bar: baz

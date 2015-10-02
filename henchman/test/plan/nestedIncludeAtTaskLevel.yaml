@@ -3,4 +3,4 @@ name: "Sample plan"
 tasks:
   - name: task1 
     action: cmd=ls user=foo
-  - include: test/tasksWithIncludes.yaml
+  - include: test/tasks/withInclude.yaml

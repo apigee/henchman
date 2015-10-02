@@ -33,7 +33,7 @@ func TestTaskRun(t *testing.T) {
 }
 
 func TestTaskRender(t *testing.T) {
-	buf, err := ioutil.ReadFile("test/planWithPongo2.yaml")
+	buf, err := ioutil.ReadFile("test/plan/planWithPongo2.yaml")
 	if err != nil {
 		t.Errorf("Could not read planWithPongo2.yaml")
 	}

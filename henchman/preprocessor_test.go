@@ -1,10 +1,14 @@
 package henchman
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func writeTempFile(buf []byte, fname string) string {
@@ -17,318 +21,155 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
-func TestPreprocessPlanValid(t *testing.T) {
+func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/validPlan.yaml")
-	if err != nil {
-		t.Errorf("Could not read validPlan.yaml")
-	}
-	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 2 {
-		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
-	}
-}
+	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
+	require.Nil(t, err)
+	fmt.Println("Here")
 
-func TestPreprocessPlanValidWithHosts(t *testing.T) {
-	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/validPlanWithHosts.yaml")
-	if err != nil {
-		t.Errorf("Could not read validPlanWithHosts.yaml")
-	}
+	fmt.Println("Here1")
 	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 4 {
-		t.Errorf("Expected 4 tasks. Found %d tasks instead\n", len(plan.Tasks))
-	}
+	require.Nil(t, err)
+
+	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	// NOTE: The inner hosts are ignored and the top level is taken
-	if plan.Inventory.Count() != 2 {
-		t.Errorf("Expected 2 machines. Got %d instead\n", plan.Inventory.Count())
-	}
+	assert.Equal(t, 2, plan.Inventory.Count(), "Wrong number of machines")
 }
 
-func TestPreprocessIncludeTasks(t *testing.T) {
+func TestPreprocessIncludeAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/planWithIncludes.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithIncludes.yaml")
-	}
+	buf, err := ioutil.ReadFile("test/plan/includeAtTaskLevel.yaml")
+	require.Nil(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 3 {
-		t.Fatalf("Expected 3 tasks. Found %d instead\n", len(plan.Tasks))
-	}
-	task1 := plan.Tasks[0].Name
-	task2 := plan.Tasks[1].Name
-	if task1 != "task1" {
-		t.Errorf("Task name should have been task1. Got %s\n", task1)
-	}
-	if task2 != "included_task1" {
-		t.Errorf("Task name should have been included_task1. Got %s\n", task2)
-	}
+	require.Nil(t, err)
+
+	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "task1", plan.Tasks[0].Name, "Wrong first task.")
+	assert.Equal(t, "included_task1", plan.Tasks[1].Name, "Wrong second task.")
 }
 
-func TestPreprocessIncludeTasksWithHosts(t *testing.T) {
+func TestPreprocessNestedIncludeAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/planWithIncludes.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithIncludes.yaml")
-	}
+	buf, err := ioutil.ReadFile("test/plan/nestedIncludeAtTaskLevel.yaml")
+	require.Nil(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 3 {
-		t.Fatalf("Expected 3 tasks. Found %d instead\n", len(plan.Tasks))
-	}
-	task1 := plan.Tasks[0].Name
-	task2 := plan.Tasks[1].Name
-	if task1 != "task1" {
-		t.Errorf("Task name should have been task1. Got %s\n", task1)
-	}
-	if task2 != "included_task1" {
-		t.Errorf("Task name should have been included_task1. Got %s\n", task2)
-	}
+	require.Nil(t, err)
+
+	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "task1", plan.Tasks[0].Name, "Wrong first task.")
+	assert.Equal(t, "included_task1", plan.Tasks[2].Name, "Wrong second task.")
 }
 
-func TestPreprocessNestedIncludeTasks(t *testing.T) {
+func TestPreprocessIncludeAndVarsAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/planWithNestedIncludes.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithNestedIncludes.yaml")
-	}
-	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 4 {
-		t.Fatalf("Expected 4 tasks. Found %d instead\n", len(plan.Tasks))
-	}
+	buf, err := ioutil.ReadFile("test/plan/includeAndVarsAtTaskLevel.yaml")
+	require.Nil(t, err)
 
-	task1 := plan.Tasks[0].Name
-	task2 := plan.Tasks[1].Name
-	if task1 != "task1" {
-		t.Errorf("Task name should have been task1. Got %s\n", task1)
-	}
-	if task2 != "included_task1" {
-		t.Errorf("Task name should have been included_task1. Got %s\n", task2)
-	}
+	plan, err := PreprocessPlan(buf, inv)
+	require.Nil(t, err)
+
+	assert.Equal(t, 6, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "bar", plan.Tasks[0].Vars["foo"], "Wrong key in Task Vars")
+	assert.Equal(t, "nope", plan.Tasks[1].Vars["foo"], "Wrong key in Task Vars")
+	assert.Equal(t, "thumb", plan.Tasks[2].Vars["foo"], "Wrong key in Task Vars")
+	assert.Equal(t, "nope", plan.Tasks[4].Vars["foo"], "Wrong key in Task Vars")
+	assert.Equal(t, "bar", plan.Tasks[5].Vars["foo"], "Wrong key in Task Vars")
 }
 
-func TestPreprocessIncludeTasksWithVars(t *testing.T) {
+func TestPreprocessIncludeAtVarsLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/planWithTasksAndVars.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithTasksAndVars.yaml")
-	}
-	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 6 {
-		t.Fatalf("Expected 5 tasks. Found %d instead\n", len(plan.Tasks))
-	}
-	if plan.Tasks[0].Vars["foo"] != "bar" {
-		t.Fatalf("Expected bar. Found %v instead\n", plan.Tasks[0].Vars["foo"])
-	}
-	if plan.Tasks[1].Vars["foo"] != "nope" {
-		t.Fatalf("Expected nope. Found %v instead\n", plan.Tasks[1].Vars["foo"])
-	}
-	if plan.Tasks[2].Vars["foo"] != "thumb" {
-		t.Fatalf("Expected thumb. Found %v instead\n", plan.Tasks[2].Vars["foo"])
-	}
-	if plan.Tasks[4].Vars["foo"] != "nope" {
-		t.Fatalf("Expected nope. Found %v instead\n", plan.Tasks[3].Vars["foo"])
-	}
-	if plan.Tasks[5].Vars["foo"] != "bar" {
-		t.Fatalf("Expected bar. Found %v instead\n", plan.Tasks[4].Vars["foo"])
-	}
-}
-
-func TestPreprocessVarsWithIncludeNoOverride(t *testing.T) {
-	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/planWithIncludesInVars.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithIncludesInVars.yaml")
-	}
+	buf, err := ioutil.ReadFile("test/plan/includeAtVarsLevel.yaml")
+	require.Nil(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	if err != nil {
-		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 2 {
-		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
-	}
+	require.Nil(t, err)
 
-	if len(plan.Vars) != 5 {
-		t.Errorf("Expected 5 vars.  Found %d vars instead\n", len(plan.Vars))
-	}
+	require.Equal(t, 5, len(plan.Vars), "Wrong number of vars.")
+
 	for key, val := range plan.Vars {
 		switch key {
 		case "fun":
-			if val.(string) != "times" {
-				t.Fatalf("For key fun, expected \"times\".  Received %v\n", val)
-			}
+			assert.Equal(t, "times", val.(string), fmt.Sprintf("Wrong value for key %v", key))
 		case "hello":
-			if val.(string) != "world" {
-				t.Fatalf("For key hello, expected \"world\".  Received %v\n", val)
-			}
+			assert.Equal(t, "world", val.(string), fmt.Sprintf("Wrong value for key %v", key))
 		case "foo":
-			if val.(string) != "scar" {
-				t.Fatalf("For key foo, expected \"scar\".  Received %v\n", val)
-			}
+			assert.Equal(t, "scar", val.(string), fmt.Sprintf("Wrong value for key %v", key))
 		case "spam":
-			if val.(string) != "eggs" {
-				t.Fatalf("For key spam, expected \"eggs\".  Received %v\n", val)
-			}
+			assert.Equal(t, "eggs", val.(string), fmt.Sprintf("Wrong value for key %v", key))
 		case "goodbye":
-			if val.(string) != "moon" {
-				t.Fatalf("For key goodbye, expected \"times\".  Received %v\n", val)
-			}
+			assert.Equal(t, "moon", val.(string), fmt.Sprintf("Wrong value for key %v", key))
 		}
 	}
 }
 
-func TestPreprocessTasksWithIncludesAndWhen(t *testing.T) {
+func TestPreprocessIncludeAndWhenAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/planWithTaskIncludesAndWhen.yaml")
-	if err != nil {
-		t.Errorf("Could not read planWithHosts.yaml")
-	}
+	buf, err := ioutil.ReadFile("test/plan/includeAndWhenAtTaskLevel.yaml")
+	require.Nil(t, err)
 
 	plan, err := PreprocessPlan(buf, inv)
-	if plan.Tasks[0].When != "test == true" {
-		t.Fatalf("Expected \"test == true\".  Received \"%v\"\n", plan.Tasks[0].When)
-	}
-	if plan.Tasks[1].When != "hello == world && test == false" {
-		t.Fatalf("Expected \"hello == world && test == false\".  Received \"%v\"\n", plan.Tasks[1].When)
-	}
-	if plan.Tasks[2].When != "jolly == santa && goodbye == moon && test == false" {
-		t.Fatalf("Expected \"jolly == santa && goodbye == moon && test == false\".  Received \"%v\"\n", plan.Tasks[2].When)
-	}
-	if plan.Tasks[3].When != "goodbye == moon && test == false" {
-		t.Fatalf("Expected \"goodbye == moon && test == false\".  Received \"%v\"\n", plan.Tasks[3].When)
-	}
+	require.Nil(t, err)
+
+	assert.Equal(t, "test == true", plan.Tasks[0].When, "task.When is wrong")
+	assert.Equal(t, "hello == world && test == false", plan.Tasks[1].When, "task.When is wrong")
+	assert.Equal(t, "jolly == santa && goodbye == moon && test == false", plan.Tasks[2].When, "task.When is wrong")
+	assert.Equal(t, "goodbye == moon && test == false", plan.Tasks[3].When, "task.When is wrong")
 }
 
 func TestPreprocessWithSudoAtThePlanLevel(t *testing.T) {
-	plan_string := `---
-name: "Sample plan"
-sudo: true
-hosts:
-  - "127.0.0.1:22"
-  - 192.168.1.2
-tasks:
-  - name: Sample task that does nothing
-    action: cmd="ls"
-  - name: Another task
-    action: cmd="test"
-`
-	plan, err := PreprocessPlan([]byte(plan_string), nil)
-	if err != nil {
-		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 2 {
-		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
-	}
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/sudoAtPlanLevel.yaml")
+	require.Nil(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.Nil(t, err)
+
+	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
+
 	for _, task := range plan.Tasks {
-		if !task.Sudo {
-			t.Errorf("This task should have sudo privilege")
-		}
+		assert.True(t, task.Sudo, "Sudo should be true")
 	}
 }
 
 func TestPreprocessWithSudoAtTheTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	plan_string := `---
-name: "Sample plan"
-tasks:
-  - name: First task
-    action: cmd="ls"
-    sudo: true
-  - name: Second task
-    action: cmd="echo"
-`
-	plan, err := PreprocessPlan([]byte(plan_string), inv)
-	if err != nil {
-		t.Fatalf("This plan couldn't be processed - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 2 {
-		t.Errorf("Expected 2 tasks. Found %d tasks instead\n", len(plan.Tasks))
-	}
+	buf, err := ioutil.ReadFile("test/plan/sudoAtTaskLevel.yaml")
+	require.Nil(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.Nil(t, err)
+
+	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
+
 	for _, task := range plan.Tasks {
-		if task.Name == "First task" && !task.Sudo {
-			t.Errorf("The task %s should have sudo privilege", task.Name)
-
+		if task.Name == "First task" {
+			assert.True(t, task.Sudo, "First task should have sudo priviledges")
 		}
-		if task.Name == "Second task" && task.Sudo {
-			t.Errorf("The task %s should have sudo privilege", task.Name)
 
+		if task.Name == "Second task" {
+			assert.False(t, task.Sudo, "Second task should not have sudo priviledges")
 		}
 	}
 }
 
 func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	inv, _ := loadValidInventory()
-	include_file := `
-name: "To be include"
-tasks:
-    - name: "included_task1"
-      action: bar=baz
-      sudo: true
-    - name: "included_task2"
-      action: foo=bar
-`
-	plan_file := `
-name: "Sample plan"
-tasks:
-  - name: task1
-    action: cmd="ls -al"
-  - include: /tmp/included.yaml
-`
-	fpath := writeTempFile([]byte(include_file), "included.yaml")
-	defer rmTempFile(fpath)
-	plan, err := PreprocessPlan([]byte(plan_file), inv)
-	if err != nil {
-		t.Fatalf("This plan shouldn't be having an error - %s\n", err.Error())
-	}
-	if len(plan.Tasks) != 3 {
-		t.Fatalf("Expected 3 tasks. Found %d instead\n", len(plan.Tasks))
-	}
-	for _, task := range plan.Tasks {
-		if task.Name == "included_task1" && !task.Sudo {
-			t.Errorf("Expected nested_task1 task to have Sudo privileges")
-		}
-		if task.Name != "included_task1" && task.Sudo {
-			t.Errorf("Expected task %s to not have Sudo privileges", task.Name)
-		}
-	}
-}
+	buf, err := ioutil.ReadFile("test/plan/includeWithSudoAtTaskLevel.yaml")
+	require.Nil(t, err)
 
-/*
-func TestWithErrors(t *testing.T) {
-	plan_file :=
-		`
----
-name: "Fail plan"
-tasks:
-  - name: "Bad task"
-    shell: okay=wut
-    mod: wut=mutt
-	- name: "Task Bad Indent"
-	  shell: okay=wutt
-`
-	_, err := PreprocessPlan([]byte(plan_file), nil)
-	if err != nil {
-		t.Errorf(err.Error())
+	plan, err := PreprocessPlan(buf, inv)
+	require.Nil(t, err)
+
+	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
+	for _, task := range plan.Tasks {
+		if task.Name == "included_task1" {
+			assert.True(t, task.Sudo, "First task should have sudo priviledges")
+		}
+
+		if task.Name == "included_task2" {
+			assert.False(t, task.Sudo, "Second task should not have sudo priviledges")
+		}
 	}
 }
-*/
