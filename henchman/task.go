@@ -3,6 +3,7 @@ package henchman
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -100,6 +101,7 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 	for _, execStep := range execOrder {
 		switch execStep {
 		case "create_dir":
+			// creates remote .henchman location
 			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir),
 				nil, false)
 			if err != nil {
@@ -108,12 +110,14 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 			}
 
 		case "put_module":
+			// copies module from local location to remote location
 			err = machine.Transport.Put(modPath, remoteModDir, "dir")
 			if err != nil {
 				return &TaskResult{}, err
 			}
 
 		case "exec_module":
+			// executes module by calling the copied module remotely
 			log.Printf("Executing script - %s\n", remoteModPath)
 			jsonParams, err := json.Marshal(task.Module.Params)
 			if err != nil {
@@ -131,21 +135,22 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 			log.Println(taskResult)
 
 		case "copy_remote":
-			localSrcPath, dstPath := "", ""
-			//			k, present := task.Module.Params["src"]
-			for k, v := range task.Module.Params {
-				if k == "src" {
-					localSrcPath = v
-				}
-				if k == "dest" {
-					dstPath = v
-				}
+			//copies file from remote .henchman location to expected location
+			localSrcPath, present := task.Module.Params["src"]
+			if !present {
+				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
+			}
+			localSrcPath = strings.Trim(localSrcPath, "'")
+
+			dstPath, present := task.Module.Params["dest"]
+			if !present {
+				return &TaskResult{}, errors.New("Unable to find 'dest' parameter")
 			}
 			dstPath = strings.Trim(dstPath, "'")
-			remoteModDir := "$HOME/.henchman"
-			localSrcPath = strings.Trim(localSrcPath, "'")
-			_, localSrc := path.Split(localSrcPath)
-			srcPath := path.Join(remoteModDir, localSrc)
+
+			_, localSrcFile := path.Split(localSrcPath)
+			srcPath := path.Join(remoteModDir, localSrcFile)
+
 			cmd := fmt.Sprintf("/bin/cp %s %s", srcPath, dstPath)
 			buf, err := machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
@@ -159,34 +164,28 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 				log.Println(taskResult)
 			}
 		case "put_file":
-			srcPath := ""
-			for k, v := range task.Module.Params {
-				if k == "src" {
-					srcPath = v
-				}
+			//scp's file from local location to remote location
+			srcPath, present := task.Module.Params["src"]
+			if !present {
+				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
+			srcPath = strings.Trim(srcPath, "'")
 			curDir, err := os.Getwd()
 			if err != nil {
 				return &TaskResult{}, err
 			}
-			srcPath = strings.Trim(srcPath, "'")
-			remoteModDir := "$HOME/.henchman"
-			_, src := path.Split(srcPath)
-			dstPath := path.Join(remoteModDir, src)
+			_, srcFile := path.Split(srcPath)
+			dstPath := path.Join(remoteModDir, srcFile)
 			completeSrcPath := path.Join(curDir, srcPath)
-			log.Println("srcpath", completeSrcPath, "destpath", dstPath)
+
 			err = machine.Transport.Put(completeSrcPath, dstPath, "file")
 
 			if err != nil {
 				return &TaskResult{}, err
 			}
-			//msg := fmt.Sprintf("Copied %s to %s", completeSrcPath, dstPath)
-			//			taskResult := &TaskResult{State: "changed", Msg: msg}
-			//			log.Println(taskResult)
 		}
 		// to be implemented
 		//		case 'exec_template':
-		//		case 'copy_remote':
 		//	}
 	}
 	return &taskResult, nil
