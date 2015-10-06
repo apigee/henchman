@@ -306,6 +306,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 			return nil, fmt.Errorf("Error processing vars - %s", err.Error())
 		}
 	}
+	vars["inventory"] = inv
 	plan.Vars = vars
 
 	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars, px.Sudo)
