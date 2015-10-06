@@ -37,6 +37,20 @@ func TestValidModule(t *testing.T) {
 	assert.Equal(t, "☃", mod.Params["baz"], "Expected a snowman")
 }
 
+func TestValidModuleWithVariousChars(t *testing.T) {
+	name := "shell"
+	args := "cmd='ls -al' url=\"http://foo.com/abc\" baz='abc-def'"
+	mod, err := NewModule(name, args)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, name, mod.Name, "Module names should match")
+	assert.Equal(t, "ls -al", mod.Params["cmd"], "Mod params wasn't initialized properly")
+	assert.Equal(t, "http://foo.com/abc", mod.Params["url"], "Expected value for foo to be bar")
+	assert.Equal(t, "abc-def", mod.Params["baz"], "Expected a snowman")
+
+}
+
 func TestInvalidArgsModule(t *testing.T) {
 	name := "invalid"
 	args := "foo"

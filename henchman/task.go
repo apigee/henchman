@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/flosch/pongo2"
@@ -140,13 +139,11 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
-			localSrcPath = strings.Trim(localSrcPath, "'")
 
 			dstPath, present := task.Module.Params["dest"]
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'dest' parameter")
 			}
-			dstPath = strings.Trim(dstPath, "'")
 
 			_, localSrcFile := path.Split(localSrcPath)
 			srcPath := path.Join(remoteModDir, localSrcFile)
@@ -169,7 +166,6 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
-			srcPath = strings.Trim(srcPath, "'")
 			curDir, err := os.Getwd()
 			if err != nil {
 				return &TaskResult{}, err
