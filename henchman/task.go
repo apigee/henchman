@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -135,7 +136,7 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 
 		case "copy_remote":
 			//copies file from remote .henchman location to expected location
-			localSrcPath, present := task.Module.Params["src"]
+			remoteSrcPath, present := task.Module.Params["src"]
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
@@ -145,7 +146,7 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 				return &TaskResult{}, errors.New("Unable to find 'dest' parameter")
 			}
 
-			_, localSrcFile := path.Split(localSrcPath)
+			_, localSrcFile := path.Split(remoteSrcPath)
 			srcPath := path.Join(remoteModDir, localSrcFile)
 
 			cmd := fmt.Sprintf("/bin/cp %s %s", srcPath, dstPath)
@@ -179,10 +180,35 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 			if err != nil {
 				return &TaskResult{}, err
 			}
+
+		case "process_template":
+			srcPath, present := task.Module.Params["src"]
+			if !present {
+				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
+			}
+			tpl, err := pongo2.FromFile(srcPath)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			out, err := tpl.Execute(pongo2.Context{"vars": task.Vars})
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			tmpDir, srcFile := path.Split(srcPath)
+			tmpFileName := fmt.Sprintf(".%s", srcFile)
+			tmpFile := path.Join(tmpDir, tmpFileName)
+
+			err = ioutil.WriteFile(tmpFile, []byte(out), 0644)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			task.Module.Params["srcOrig"] = srcPath
+			task.Module.Params["src"] = tmpFile
+
+		case "reset_src":
+			task.Module.Params["src"] = task.Module.Params["srcOrig"]
+			delete(task.Module.Params, "srcOrig")
 		}
-		// to be implemented
-		//		case 'exec_template':
-		//	}
 	}
 	return &taskResult, nil
 }

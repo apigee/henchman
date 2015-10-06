@@ -125,7 +125,9 @@ func (module *Module) Resolve() (modulePath string, err error) {
 
 func (module *Module) ExecOrder() ([]string, error) {
 	execOrder := map[string][]string{"default": []string{"create_dir", "put_module", "exec_module"},
-		"copy": []string{"create_dir", "put_module", "put_file", "copy_remote", "exec_module"}}
+		"copy": []string{"create_dir", "put_module", "put_file", "copy_remote", "exec_module"},
+		"template": []string{"create_dir", "put_module", "process_template", "put_file", "copy_remote",
+			"reset_src", "exec_module"}}
 
 	var defaultOrder []string
 	for moduleType, order := range execOrder {
