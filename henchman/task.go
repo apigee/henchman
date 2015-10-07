@@ -12,7 +12,6 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/flosch/pongo2"
-	"gopkg.in/yaml.v2"
 )
 
 type Task struct {
@@ -52,37 +51,74 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	return nil
 }
 
-// Renders any pongo2 formatting and converts it back to a task
-func (task *Task) Render(machine *Machine) error {
-	var renderedTask Task
-	// changes Task struct back to a string so
-	// templating can be done
-	taskBuf, err := yaml.Marshal(task)
+func (task *Task) renderValue(value string) (string, error) {
+	tmpl, err := pongo2.FromString(value)
 	if err != nil {
-		return err
-	}
-	tmpl, err := pongo2.FromString(string(taskBuf))
-	if err != nil {
-		return err
+		log.Println("tmpl error")
+		return "", err
 	}
 	// NOTE: add an update context when regMap is passed in
-	ctxt := pongo2.Context{"vars": task.Vars, "machine": machine}
+	ctxt := pongo2.Context{"vars": task.Vars} //, "machine": machine}
 	out, err := tmpl.Execute(ctxt)
 	if err != nil {
-		return err
+		log.Println("execute error")
+		return "", err
 	}
-	err = yaml.Unmarshal([]byte(out), &renderedTask)
-	if err != nil {
-		return err
+	return out, nil
+
+}
+
+// Renders any pongo2 formatting and converts it back to a task
+func (task *Task) Render(input interface{}) (interface{}, error) {
+	// changes Task struct back to a string so
+	// templating can be done
+	switch value := input.(type) {
+	case map[string]string:
+		output := make(map[string]string)
+		for k, v := range value {
+			result, err := task.renderValue(v)
+			if err != nil {
+				return "", err
+			}
+			output[k] = result
+		}
+		return output, nil
+	case string:
+		return task.renderValue(value)
+
+	default:
+		return "", errors.New("Unexpected value type passed to render")
 	}
-	*task = renderedTask
-	return nil
 }
 
 func (task *Task) Run(machine *Machine) (*TaskResult, error) {
-	// Resolving module path
+	//Render task
+	name, err := task.Render(task.Name)
+	if err != nil {
+		return &TaskResult{}, err
+	}
+
+	when, err := task.Render(task.When)
+	if err != nil {
+		return &TaskResult{}, err
+	}
+
+	params, err := task.Render(task.Module.Params)
+	if err != nil {
+		return &TaskResult{}, err
+	}
+
+	task.Name = name.(string)
+	task.When = when.(string)
+	task.Module.Params = params.(map[string]string)
+
 	task.Id = uuid.New()
+	if len(task.Vars) == 0 {
+		task.Vars = make(VarsMap)
+	}
+	task.Vars["current_host"] = machine
 	log.Println(task.Module)
+	// Resolving module path
 	modPath, err := task.Module.Resolve()
 	if err != nil {
 		return &TaskResult{}, err
