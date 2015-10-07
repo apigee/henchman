@@ -3,7 +3,7 @@
 Henchman is a non-agent based orchestration and automation tool created in Go, and inspired by Ansible.
 
 ## Why Go?
-Although, python and ruby are awesome as systems languages, Golang fits this 'get shit done' niche more.  Dependencies is generally an issue in ruby/python where users have to install and maintain gems/pip modules.  With Go there are no dependencies to install, and a single binary file and can shipped and ready to use.  Not to mention binaries are always faster than interpreters.  In addition, Go has built in concurrency constructs, and a specific way to do things.
+Although, python and ruby are awesome as systems languages, Golang fits this 'get shit done' niche more.  Dependencies is generally an issue in ruby/python where users have to install and maintain gems/pip modules.  With Go there are no dependencies to install, and a single binary file and can shipped and ready to use.  In addition, Go has built in concurrency constructs, and a specific way to do things.
 
 ## Setup
 * Install go [here](https://golang.org/doc/install)
