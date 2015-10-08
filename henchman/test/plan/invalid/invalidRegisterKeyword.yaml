@@ -1,0 +1,6 @@
+---
+name: "invalid register keyword plan"
+tasks:
+   - name: "First Task"
+     shell: cmd=echo
+     register: vars  

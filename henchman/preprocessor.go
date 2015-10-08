@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"strings"
 )
 
 type PlanProxy struct {
@@ -116,6 +117,12 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			tp.Register, found = val.(string)
 			if !found {
 				return ErrWrongType(field, val, "string")
+			}
+			if len(strings.Fields(tp.Register)) > 1 {
+				return ErrNotValidVariable(tp.Register)
+			}
+			if isKeyword(tp.Register) {
+				return ErrKeyword(tp.Register)
 			}
 		case "include":
 			tp.Include, found = val.(string)

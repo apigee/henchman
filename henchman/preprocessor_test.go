@@ -172,17 +172,7 @@ func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	}
 }
 
-// create table driven tests for invalids
-func TestInvalidIncludeFormatAtVarsLevel(t *testing.T) {
-	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/plan/invalidIncludeFormatAtVarsLevel.yaml")
-	require.NoError(t, err)
-
-	_, err = PreprocessPlan(buf, inv)
-	require.Error(t, err)
-}
-
-func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
+/*func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/planWithComments.yaml")
 	require.NoError(t, err)
@@ -195,18 +185,25 @@ func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
 	assert.Equal(t, "hello", plan.Vars["foo"], "Variable foo should have value hello")
 	assert.Nil(t, plan.Vars["bar"], "Variable 'bar' should be commented")
 }
+*/
 
-func TestPreprocessWithInvalidTaskComments(t *testing.T) {
+// Table driven test for Invalids
+func TestInvalid(t *testing.T) {
+	var tests = []struct {
+		fName string
+	}{
+		{"test/plan/invalid/invalidIncludeFormatAtVarsLevel.yaml"},
+		{"test/plan/invalid/invalidRegisterKeyword.yaml"},
+		{"test/plan/invalid/invalidRegisterVariable.yaml"},
+		//{"test/plan/invalid/taskWithInvalidComments.yaml"},
+		//{"test/plan/invalid/taskWithInvalidComments2.yaml"},
+	}
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/plan/taskWithInvalidComments.yaml")
-	require.NoError(t, err)
+	for _, test := range tests {
+		buf, err := ioutil.ReadFile(test.fName)
+		require.NoError(t, err)
 
-	_, err = PreprocessPlan(buf, inv)
-	require.Error(t, err)
-
-	buf, err = ioutil.ReadFile("test/plan/taskWithInvalidComments2.yaml")
-	require.NoError(t, err)
-
-	_, err = PreprocessPlan(buf, inv)
-	require.Error(t, err)
+		_, err = PreprocessPlan(buf, inv)
+		require.Error(t, err, fmt.Sprintf("Expected error in %v", test.fName))
+	}
 }
