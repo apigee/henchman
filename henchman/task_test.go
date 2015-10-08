@@ -46,11 +46,13 @@ func TestTaskRender(t *testing.T) {
 	localhost.Transport = &testTransport
 
 	task := plan.Tasks[0]
-	name, err := task.Render(task.Name)
+	var name string
+	err = task.Render(task.Name, &name)
 	require.NoError(t, err, "This plan shouldn't be having an error")
 	assert.Equal(t, "iptables with abcd1234", name, "Expected iptables at abcd1234. Received %v\n")
 
-	params, err := task.Render(task.Module.Params)
+	params := make(map[string]string)
+	err = task.Render(task.Module.Params, params)
 	require.NoError(t, err, "This plan shouldn't be having an error")
-	assert.Equal(t, "iptables", params.(map[string]string)["key"], "Expected iptables at abcd1234. Received %v\n")
+	assert.Equal(t, "iptables", params["key"], "Expected iptables at abcd1234. Received %v\n")
 }

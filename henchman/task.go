@@ -69,48 +69,57 @@ func (task *Task) renderValue(value string) (string, error) {
 }
 
 // Renders any pongo2 formatting and converts it back to a task
-func (task *Task) Render(input interface{}) (interface{}, error) {
+func (task *Task) Render(input interface{}, output interface{}) error {
 	// changes Task struct back to a string so
 	// templating can be done
 	switch value := input.(type) {
 	case map[string]string:
-		output := make(map[string]string)
 		for k, v := range value {
 			result, err := task.renderValue(v)
 			if err != nil {
-				return "", err
+				return err
 			}
+			output := output.(map[string]string)
 			output[k] = result
 		}
-		return output, nil
+		return nil
 	case string:
-		return task.renderValue(value)
+		result := output.(*string)
+		value, err := task.renderValue(value)
+		if err != nil {
+			return err
+		}
+		*result = value
+		return nil
 
 	default:
-		return "", errors.New("Unexpected value type passed to render")
+		return errors.New("Unexpected value type passed to render")
 	}
 }
 
 func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 	//Render task
-	name, err := task.Render(task.Name)
+	var name string
+	err := task.Render(task.Name, &name)
 	if err != nil {
 		return &TaskResult{}, err
 	}
 
-	when, err := task.Render(task.When)
+	var when string
+	err = task.Render(task.When, &when)
 	if err != nil {
 		return &TaskResult{}, err
 	}
 
-	params, err := task.Render(task.Module.Params)
+	params := make(map[string]string)
+	err = task.Render(task.Module.Params, params)
 	if err != nil {
 		return &TaskResult{}, err
 	}
 
-	task.Name = name.(string)
-	task.When = when.(string)
-	task.Module.Params = params.(map[string]string)
+	task.Name = name
+	task.When = when
+	task.Module.Params = params
 
 	task.Id = uuid.New()
 	if len(task.Vars) == 0 {
