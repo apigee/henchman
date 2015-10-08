@@ -98,6 +98,11 @@ func (task *Task) Render(input interface{}, output interface{}) error {
 }
 
 func (task *Task) Run(machine *Machine) (*TaskResult, error) {
+	// Add current host to vars
+	if len(task.Vars) == 0 {
+		task.Vars = make(VarsMap)
+	}
+	task.Vars["current_host"] = machine
 	//Render task
 	var name string
 	err := task.Render(task.Name, &name)
@@ -122,17 +127,13 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 	task.Module.Params = params
 
 	task.Id = uuid.New()
-	if len(task.Vars) == 0 {
-		task.Vars = make(VarsMap)
-	}
-	task.Vars["current_host"] = machine
+
 	log.Println(task.Module)
 	// Resolving module path
 	modPath, err := task.Module.Resolve()
 	if err != nil {
 		return &TaskResult{}, err
 	}
-	log.Println("modpath ", modPath)
 	execOrder, err := task.Module.ExecOrder()
 	if err != nil {
 		log.Printf("Error while creating remote module path\n")

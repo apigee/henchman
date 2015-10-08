@@ -182,13 +182,31 @@ func TestInvalidIncludeFormatAtVarsLevel(t *testing.T) {
 	require.Error(t, err)
 }
 
-/*
-func TestInvalidDoubleIncludeAtVarsLevel(t *testing.T) {
+func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
-	buf, err := ioutil.ReadFile("test/plan/invalidDoubleIncludeAtVarsLevel.yaml")
+	buf, err := ioutil.ReadFile("test/plan/planWithComments.yaml")
+	require.NoError(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.NoError(t, err)
+
+	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "Second task", plan.Tasks[0].Name, "Task name is wrong. Expected task name was 'second task'")
+	assert.Equal(t, "hello", plan.Vars["foo"], "Variable foo should have value hello")
+	assert.Nil(t, plan.Vars["bar"], "Variable 'bar' should be commented")
+}
+
+func TestPreprocessWithInvalidTaskComments(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/taskWithInvalidComments.yaml")
+	require.NoError(t, err)
+
+	_, err = PreprocessPlan(buf, inv)
+	require.Error(t, err)
+
+	buf, err = ioutil.ReadFile("test/plan/taskWithInvalidComments2.yaml")
 	require.NoError(t, err)
 
 	_, err = PreprocessPlan(buf, inv)
 	require.Error(t, err)
 }
-*/
