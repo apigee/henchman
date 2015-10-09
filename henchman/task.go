@@ -123,7 +123,6 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 		log.Println("Shouldn't enter here since Vars should be initialized in preprocess")
 		task.Vars = make(VarsMap)
 	}
-	task.Vars["current_host"] = machine
 	task.Id = uuid.New()
 
 	modPath, err := task.Module.Resolve()
