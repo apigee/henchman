@@ -80,10 +80,11 @@ func (task *Task) Render(registerMap RegMap) error {
 		return err
 	}
 
-	//NOTE: just a place holder here since ProcessWhen will actually check the when line
-	task.When, err = renderValue(task.When, task.Vars, registerMap)
-	if err != nil {
-		return err
+	if task.When != "" {
+		task.When, err = renderValue("{{"+task.When+"}}", task.Vars, registerMap)
+		if err != nil {
+			return err
+		}
 	}
 
 	for k, v := range task.Module.Params {
@@ -96,19 +97,13 @@ func (task *Task) Render(registerMap RegMap) error {
 	return nil
 }
 
-// Does a conditional check for Tasks When Param.  Any error will cause
-// this function to return false
+// checks and converts when to bool
 func (task *Task) ProcessWhen(registerMap RegMap) (bool, error) {
 	if task.When == "" {
 		return true, nil
 	}
 
-	out, err := renderValue("{{"+task.When+"}}", task.Vars, registerMap)
-	if err != nil {
-		return false, err
-	}
-
-	result, err := strconv.ParseBool(out)
+	result, err := strconv.ParseBool(task.When)
 	if err != nil {
 		return false, err
 	}

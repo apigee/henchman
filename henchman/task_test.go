@@ -1,7 +1,7 @@
 package henchman
 
 import (
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -32,7 +32,6 @@ func TestTaskRun(t *testing.T) {
 	regMap := make(RegMap)
 
 	_, err := task.Run(&localhost, regMap)
-	fmt.Println(regMap)
 	require.NoError(t, err, "There shouldn't have been any errors")
 }
 
@@ -68,6 +67,4 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	proceed, err := task.ProcessWhen(regMap)
 	require.NoError(t, err, "When should evaluate properly")
 	assert.Equal(t, true, proceed, "When should evaluate to true")
-
-	fmt.Println(task.ProcessWhen(regMap))
 }
