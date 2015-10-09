@@ -84,6 +84,7 @@ func executePlan(c *cli.Context) {
 	if err != nil {
 		log.Fatalf("Error when validating the modules directory - %s\n", err.Error())
 	}
+	henchman.ModuleSearchPath = append(henchman.ModuleSearchPath, modulesPath)
 
 	// Step 2: Read the inventory
 	// FIXME: Support multiple inventory types.
