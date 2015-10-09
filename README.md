@@ -13,7 +13,7 @@ Although, python and ruby are awesome as systems languages, Golang fits this 'ge
 * If you have not done so, set `export $PATH=$PATH:$GOPATH/bin`
 * `go get github.com/tools/godep`
 * `godep restore`
-* `go build -o hench`
+* `go build -o bin/henchman`
 
 ## How Henchman Works
 Henchman executes a plan (a collection of tasks) on a given set of machines.  Each plan will run the list of tasks by SSHing into a machine, and generally copy over the module specified by the task and execute it.  
@@ -39,7 +39,7 @@ Explain all features of tasks.  Include Examples
 CLI commands insert here.
 
 If you are using Vagrant to spin up vms
-`./hench exec plan.yml --inventory inv.yaml --user vagrant --keyfile <  >`
+`bin/henchman exec plan.yml --inventory inv.yaml --user vagrant --keyfile <  >`
 
 ## Modules
 
