@@ -113,7 +113,6 @@ func executePlan(c *cli.Context) {
 		log.Fatalf(err.Error())
 	}
 	plan.Execute()
-	log.Printf("Loaded the plan - %v\n", plan)
 }
 
 func main() {

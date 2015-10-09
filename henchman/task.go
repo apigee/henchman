@@ -175,7 +175,6 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 			if err != nil {
 				return &TaskResult{}, err
 			}
-			log.Println(taskResult)
 
 		case "copy_remote":
 			//copies file from remote .henchman location to expected location

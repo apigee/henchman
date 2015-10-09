@@ -17,7 +17,7 @@ type Plan struct {
 
 func (plan *Plan) Execute() error {
 	machines := plan.Inventory.Machines()
-	log.Printf("Will attempt to execute the plan on %d machines\n", len(machines))
+	log.Printf("Executing plan `%s' on %d machines\n", plan.Name, len(machines))
 	// FIXME: Don't use localhost
 	wg := new(sync.WaitGroup)
 	for _, _machine := range machines {
@@ -34,20 +34,18 @@ func (plan *Plan) Execute() error {
 					log.Println("Error Rendering Task: %v.  Received: %v", task.Name, err.Error())
 					return
 				}
-
 				proceed, err := task.ProcessWhen(registerMap)
 				if err != nil {
 					log.Println("Error Processing When at Task: %v.  Received: %v", task.Name, err.Error())
 					return
 				}
-
 				if proceed == true {
 					taskResult, err := task.Run(machine, registerMap)
 					if err != nil {
 						log.Println(err)
 						return
 					}
-					log.Println(taskResult)
+					log.Println(taskResult.Output)
 				}
 			}
 		}()
