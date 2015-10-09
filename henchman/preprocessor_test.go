@@ -29,6 +29,7 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	plan, err := PreprocessPlan(buf, inv)
 	require.NoError(t, err)
 
+	assert.Equal(t, "Sample plan", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	// NOTE: The inner hosts are ignored and the top level is taken
 	assert.Equal(t, 2, plan.Inventory.Count(), "Wrong number of machines")
@@ -42,6 +43,7 @@ func TestPreprocessIncludeAtTaskLevel(t *testing.T) {
 	plan, err := PreprocessPlan(buf, inv)
 	require.NoError(t, err)
 
+	assert.Equal(t, "Plan with single Include", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
 	assert.Equal(t, "task1", plan.Tasks[0].Name, "Wrong first task.")
 	assert.Equal(t, "included_task1", plan.Tasks[1].Name, "Wrong second task.")
@@ -55,6 +57,7 @@ func TestPreprocessNestedIncludeAtTaskLevel(t *testing.T) {
 	plan, err := PreprocessPlan(buf, inv)
 	require.NoError(t, err)
 
+	assert.Equal(t, "Sample plan", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	assert.Equal(t, "task1", plan.Tasks[0].Name, "Wrong first task.")
 	assert.Equal(t, "included_task1", plan.Tasks[2].Name, "Wrong second task.")
@@ -68,6 +71,7 @@ func TestPreprocessIncludeAndVarsAtTaskLevel(t *testing.T) {
 	plan, err := PreprocessPlan(buf, inv)
 	require.NoError(t, err)
 
+	assert.Equal(t, "Plan With Tasks and Vars", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 6, len(plan.Tasks), "Wrong number of tasks.")
 	assert.Equal(t, "bar", plan.Tasks[0].Vars["foo"], "Wrong key in Task Vars")
 	assert.Equal(t, "nope", plan.Tasks[1].Vars["foo"], "Wrong key in Task Vars")
@@ -100,6 +104,7 @@ func TestPreprocessIncludeAtVarsLevel(t *testing.T) {
 			assert.Equal(t, "moon", val.(string), fmt.Sprintf("Wrong value for key %v", key))
 		}
 	}
+	assert.Equal(t, "Sample plan", plan.Name, "Plan name wasn't unmarshalled")
 }
 
 func TestPreprocessIncludeAndWhenAtTaskLevel(t *testing.T) {
@@ -114,6 +119,7 @@ func TestPreprocessIncludeAndWhenAtTaskLevel(t *testing.T) {
 	assert.Equal(t, "hello == world && test == false", plan.Tasks[1].When, "task.When is wrong")
 	assert.Equal(t, "jolly == santa && goodbye == moon && test == false", plan.Tasks[2].When, "task.When is wrong")
 	assert.Equal(t, "goodbye == moon && test == false", plan.Tasks[3].When, "task.When is wrong")
+	assert.Equal(t, "Plan with Task Includes And When", plan.Name, "Plan name wasn't unmarshalled")
 }
 
 func TestPreprocessWithSudoAtThePlanLevel(t *testing.T) {
@@ -125,7 +131,7 @@ func TestPreprocessWithSudoAtThePlanLevel(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
-
+	assert.Equal(t, "Sample plan", plan.Name, "Plan name wasn't unmarshalled")
 	for _, task := range plan.Tasks {
 		assert.True(t, task.Sudo, "Sudo should be true")
 	}
@@ -140,7 +146,7 @@ func TestPreprocessWithSudoAtTheTaskLevel(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
-
+	assert.Equal(t, "Sample plan", plan.Name, "Plan name wasn't unmarshalled")
 	for _, task := range plan.Tasks {
 		if task.Name == "First task" {
 			assert.True(t, task.Sudo, "First task should have sudo priviledges")
@@ -161,6 +167,7 @@ func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "Sample plan", plan.Name, "Plan name wasn't unmarshalled")
 	for _, task := range plan.Tasks {
 		if task.Name == "included_task1" {
 			assert.True(t, task.Sudo, "First task should have sudo priviledges")

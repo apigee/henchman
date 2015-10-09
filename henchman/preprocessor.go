@@ -305,6 +305,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	}
 	plan := Plan{}
 	plan.Inventory = filterInventory(px.InventoryGroups, inv)
+	plan.Name = px.Name
 
 	vars := make(VarsMap)
 	if px.VarsProxy != nil {
