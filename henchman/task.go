@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strconv"
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/flosch/pongo2"
@@ -51,89 +52,85 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	return nil
 }
 
-func (task *Task) renderValue(value string) (string, error) {
+// strings will be evaluated using pongo2 templating with context of
+// VarsMap and RegisterMap
+func renderValue(value string, varsMap VarsMap, registerMap map[string]interface{}) (string, error) {
 	tmpl, err := pongo2.FromString(value)
 	if err != nil {
 		log.Println("tmpl error")
 		return "", err
 	}
 	// NOTE: add an update context when regMap is passed in
-	ctxt := pongo2.Context{"vars": task.Vars} //, "machine": machine}
+	ctxt := pongo2.Context{"vars": varsMap} //, "machine": machine}
+	ctxt = ctxt.Update(registerMap)
+
 	out, err := tmpl.Execute(ctxt)
 	if err != nil {
 		log.Println("execute error")
 		return "", err
 	}
 	return out, nil
-
 }
 
-// Renders any pongo2 formatting and converts it back to a task
-func (task *Task) Render(input interface{}, output interface{}) error {
-	// changes Task struct back to a string so
-	// templating can be done
-	switch value := input.(type) {
-	case map[string]string:
-		for k, v := range value {
-			result, err := task.renderValue(v)
-			if err != nil {
-				return err
-			}
-			output := output.(map[string]string)
-			output[k] = result
-		}
-		return nil
-	case string:
-		result := output.(*string)
-		value, err := task.renderValue(value)
+// wrapper for Rendering each task
+func (task *Task) Render(registerMap RegMap) error {
+	var err error
+	task.Name, err = renderValue(task.Name, task.Vars, registerMap)
+	if err != nil {
+		return err
+	}
+
+	//NOTE: just a place holder here since ProcessWhen will actually check the when line
+	task.When, err = renderValue(task.When, task.Vars, registerMap)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range task.Module.Params {
+		task.Module.Params[k], err = renderValue(v, task.Vars, registerMap)
 		if err != nil {
 			return err
 		}
-		*result = value
-		return nil
-
-	default:
-		return errors.New("Unexpected value type passed to render")
 	}
+
+	return nil
 }
 
-func (task *Task) Run(machine *Machine) (*TaskResult, error) {
+// Does a conditional check for Tasks When Param.  Any error will cause
+// this function to return false
+func (task *Task) ProcessWhen(registerMap RegMap) (bool, error) {
+	if task.When == "" {
+		return true, nil
+	}
+
+	out, err := renderValue("{{"+task.When+"}}", task.Vars, registerMap)
+	if err != nil {
+		return false, err
+	}
+
+	result, err := strconv.ParseBool(out)
+	if err != nil {
+		return false, err
+	}
+
+	return result, nil
+}
+
+func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error) {
 	// Add current host to vars
+	// NOTE: task.Vars is initialized in preprocessor.go
 	if len(task.Vars) == 0 {
+		log.Println("Shouldn't enter here since Vars should be initialized in preprocess")
 		task.Vars = make(VarsMap)
 	}
 	task.Vars["current_host"] = machine
-	//Render task
-	var name string
-	err := task.Render(task.Name, &name)
-	if err != nil {
-		return &TaskResult{}, err
-	}
-
-	var when string
-	err = task.Render(task.When, &when)
-	if err != nil {
-		return &TaskResult{}, err
-	}
-
-	params := make(map[string]string)
-	err = task.Render(task.Module.Params, params)
-	if err != nil {
-		return &TaskResult{}, err
-	}
-
-	task.Name = name
-	task.When = when
-	task.Module.Params = params
-
 	task.Id = uuid.New()
 
-	log.Println(task.Module)
-	// Resolving module path
 	modPath, err := task.Module.Resolve()
 	if err != nil {
 		return &TaskResult{}, err
 	}
+
 	execOrder, err := task.Module.ExecOrder()
 	if err != nil {
 		log.Printf("Error while creating remote module path\n")
@@ -256,5 +253,10 @@ func (task *Task) Run(machine *Machine) (*TaskResult, error) {
 			delete(task.Module.Params, "srcOrig")
 		}
 	}
+
+	if task.Register != "" {
+		registerMap[task.Register] = taskResult
+	}
+
 	return &taskResult, nil
 }

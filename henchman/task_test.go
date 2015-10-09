@@ -1,7 +1,7 @@
 package henchman
 
 import (
-	//"fmt"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -29,11 +29,14 @@ func TestTaskRun(t *testing.T) {
 	localhost.Hostname = "localhost"
 	localhost.Transport = &testTransport
 
-	_, err := task.Run(&localhost)
+	regMap := make(RegMap)
+
+	_, err := task.Run(&localhost, regMap)
+	fmt.Println(regMap)
 	require.NoError(t, err, "There shouldn't have been any errors")
 }
 
-func TestTaskRender(t *testing.T) {
+func TestTaskRenderAndProcessWhen(t *testing.T) {
 	buf, err := ioutil.ReadFile("test/plan/planWithPongo2.yaml")
 	require.NoError(t, err, "Could not read planWithPongo2.yaml")
 
@@ -45,14 +48,26 @@ func TestTaskRender(t *testing.T) {
 	localhost.Hostname = "localhost"
 	localhost.Transport = &testTransport
 
-	task := plan.Tasks[0]
-	var name string
-	err = task.Render(task.Name, &name)
-	require.NoError(t, err, "This plan shouldn't be having an error")
-	assert.Equal(t, "iptables with abcd1234", name, "Expected iptables at abcd1234. Received %v\n")
+	regMap := make(RegMap)
+	regMap["cmd"] = "touch"
+	regMap["name"] = "Task 2"
 
-	params := make(map[string]string)
-	err = task.Render(task.Module.Params, params)
-	require.NoError(t, err, "This plan shouldn't be having an error")
-	assert.Equal(t, "iptables", params["key"], "Expected iptables at abcd1234. Received %v\n")
+	for _, task := range plan.Tasks {
+		err = task.Render(regMap)
+		require.NoError(t, err)
+	}
+
+	task := plan.Tasks[0]
+	assert.Equal(t, "iptables with abcd1234", task.Name, "Expected iptables at abcd1234")
+	assert.Equal(t, "iptables", task.Module.Params["key"], "Expected key to be abcd1234")
+
+	task = plan.Tasks[1]
+	assert.Equal(t, "Task 2 is valid", task.Name, "Task Name should have rendered properly")
+	assert.Equal(t, "touch", task.Module.Params["cmd"], "Module param should have rendered properly")
+
+	proceed, err := task.ProcessWhen(regMap)
+	require.NoError(t, err, "When should evaluate properly")
+	assert.Equal(t, true, proceed, "When should evaluate to true")
+
+	fmt.Println(task.ProcessWhen(regMap))
 }

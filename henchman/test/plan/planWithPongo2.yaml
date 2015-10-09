@@ -7,3 +7,6 @@ tasks:
   - name: "{{ vars.service }} with {{ vars.key }}"
     shell: cmd=echo key="{{ vars.service }}"
     local: true
+  - name: "{{ name }} is valid"
+    shell: cmd="{{ cmd }}" key=tmpKey
+    when: vars.service == "iptables"

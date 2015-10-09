@@ -6,6 +6,7 @@ import (
 )
 
 type VarsMap map[interface{}]interface{}
+type RegMap map[string]interface{}
 
 type Plan struct {
 	Name      string
@@ -22,16 +23,32 @@ func (plan *Plan) Execute() error {
 	for _, _machine := range machines {
 		wg.Add(1)
 		machine := _machine
+		// NOTE: need individual registerMap for each machine
+		registerMap := make(RegMap)
 		go func() {
 			defer wg.Done()
 			for _, task := range plan.Tasks {
-				taskResult, err := task.Run(machine)
+				task.Vars["current_host"] = machine
+				err := task.Render(registerMap)
 				if err != nil {
-					log.Println(err)
+					log.Println("Error Rendering Task: %v.  Received: %v", task.Name, err.Error())
 					return
 				}
-				log.Println(taskResult)
 
+				proceed, err := task.ProcessWhen(registerMap)
+				if err != nil {
+					log.Println("Error Processing When at Task: %v.  Received: %v", task.Name, err.Error())
+					return
+				}
+
+				if proceed == true {
+					taskResult, err := task.Run(machine, registerMap)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+					log.Println(taskResult)
+				}
 			}
 		}()
 	}

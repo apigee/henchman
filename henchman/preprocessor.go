@@ -321,5 +321,6 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 		return nil, fmt.Errorf("Error processing tasks - %s", err.Error())
 	}
 	plan.Tasks = tasks
+
 	return &plan, err
 }
