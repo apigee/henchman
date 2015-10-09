@@ -31,10 +31,9 @@ func (plan *Plan) Execute() error {
 				task.Vars["current_host"] = machine
 				err := task.Render(registerMap)
 				if err != nil {
-					log.Println("Error Rendering Task: %v.  Received: %v", task.Name, err.Error())
+					log.Printf("Error Rendering Task: %v.  Received: %v\n", task.Name, err.Error())
 					return
 				}
-
 				taskResult, err := task.Run(machine, registerMap)
 				if err != nil {
 					log.Println(err)
