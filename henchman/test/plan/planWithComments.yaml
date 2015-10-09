@@ -1,0 +1,16 @@
+---
+name: "Sample plan"
+vars:
+  foo: "hello"
+# bar: "world"
+  
+hosts:
+  - nginx
+tasks:
+#  - name: First task
+#    action: cmd="ls"
+  - name: Second task
+    action: cmd="echo"
+    ignore_errors: true
+  - name: Third task
+    action: cmd="foo"

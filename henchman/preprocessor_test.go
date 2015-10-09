@@ -179,7 +179,7 @@ func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	}
 }
 
-/*func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
+func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/planWithComments.yaml")
 	require.NoError(t, err)
@@ -192,7 +192,6 @@ func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	assert.Equal(t, "hello", plan.Vars["foo"], "Variable foo should have value hello")
 	assert.Nil(t, plan.Vars["bar"], "Variable 'bar' should be commented")
 }
-*/
 
 // Table driven test for Invalids
 func TestInvalid(t *testing.T) {
