@@ -63,8 +63,9 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	task = plan.Tasks[1]
 	assert.Equal(t, "Task 2 is valid", task.Name, "Task Name should have rendered properly")
 	assert.Equal(t, "touch", task.Module.Params["cmd"], "Module param should have rendered properly")
+	assert.Equal(t, "True", task.When, "When should be true in string form")
 
-	proceed, err := task.ProcessWhen(regMap)
+	proceed, err := task.ProcessWhen()
 	require.NoError(t, err, "When should evaluate properly")
 	assert.Equal(t, true, proceed, "When should evaluate to true")
 }

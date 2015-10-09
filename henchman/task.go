@@ -98,7 +98,7 @@ func (task *Task) Render(registerMap RegMap) error {
 }
 
 // checks and converts when to bool
-func (task *Task) ProcessWhen(registerMap RegMap) (bool, error) {
+func (task *Task) ProcessWhen() (bool, error) {
 	if task.When == "" {
 		return true, nil
 	}
@@ -114,11 +114,16 @@ func (task *Task) ProcessWhen(registerMap RegMap) (bool, error) {
 func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error) {
 	// Add current host to vars
 	// NOTE: task.Vars is initialized in preprocessor.go
-	if len(task.Vars) == 0 {
-		log.Println("Shouldn't enter here since Vars should be initialized in preprocess")
-		task.Vars = make(VarsMap)
-	}
 	task.Id = uuid.New()
+
+	proceed, err := task.ProcessWhen()
+	if err != nil {
+		return &TaskResult{}, err
+	}
+
+	if proceed == false {
+		return &TaskResult{State: "skipped"}, nil
+	}
 
 	modPath, err := task.Module.Resolve()
 	if err != nil {

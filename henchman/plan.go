@@ -34,19 +34,13 @@ func (plan *Plan) Execute() error {
 					log.Println("Error Rendering Task: %v.  Received: %v", task.Name, err.Error())
 					return
 				}
-				proceed, err := task.ProcessWhen(registerMap)
+
+				taskResult, err := task.Run(machine, registerMap)
 				if err != nil {
-					log.Println("Error Processing When at Task: %v.  Received: %v", task.Name, err.Error())
+					log.Println(err)
 					return
 				}
-				if proceed == true {
-					taskResult, err := task.Run(machine, registerMap)
-					if err != nil {
-						log.Println(err)
-						return
-					}
-					log.Println(taskResult.Output)
-				}
+				log.Println(taskResult.Output)
 			}
 		}()
 	}
