@@ -28,7 +28,6 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 
 	plan, err := PreprocessPlan(buf, inv)
 	require.NoError(t, err)
-
 	assert.Equal(t, "Sample plan", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	// NOTE: The inner hosts are ignored and the top level is taken
@@ -39,7 +38,6 @@ func TestPreprocessIncludeAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeAtTaskLevel.yaml")
 	require.NoError(t, err)
-
 	plan, err := PreprocessPlan(buf, inv)
 	require.NoError(t, err)
 
@@ -201,8 +199,6 @@ func TestInvalid(t *testing.T) {
 		{"test/plan/invalid/invalidIncludeFormatAtVarsLevel.yaml"},
 		{"test/plan/invalid/invalidRegisterKeyword.yaml"},
 		{"test/plan/invalid/invalidRegisterVariable.yaml"},
-		//{"test/plan/invalid/taskWithInvalidComments.yaml"},
-		//{"test/plan/invalid/taskWithInvalidComments2.yaml"},
 	}
 	inv, _ := loadValidInventory()
 	for _, test := range tests {

@@ -2,73 +2,66 @@ package henchman
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 type InventoryConfig map[string]string
 type InventoryInterface interface {
-	Load(ic InventoryConfig, tc TransportConfig) (Inventory, error)
+	Load(ic InventoryConfig) (Inventory, error)
 }
 
-type Inventory map[string][]*Machine
+//type Inventory map[string][]*Machine
+type Inventory struct {
+	//GroupHosts map[string][]*Machine
+	Groups   map[string]HostGroup                   `yaml:"groups"`
+	HostVars map[string]map[interface{}]interface{} `yaml:"hostvars"`
+}
 
 func (inv Inventory) Count() int {
-	return len(inv.Machines())
-}
-
-func (inv Inventory) Machines() []*Machine {
-	// The same machine might be in different groups.
-	// We don't want duplicates when Machines() is being invoked
-	machineSet := make(map[string]bool)
-	var machines []*Machine
-	for _, ms := range inv {
-		for _, m := range ms {
-			_, present := machineSet[m.Hostname]
-			if !present {
-				machines = append(machines, m)
-				machineSet[m.Hostname] = true
-			}
-		}
+	count := 0
+	for _, hostGroup := range inv.Groups {
+		count += len(hostGroup.Hosts)
 	}
-	return machines
+	return count
 }
 
 // FIXME: Have a way to provide specifics
-type YAMLInventory map[string][]string
+type YAMLInventory struct {
+	Groups   map[string]HostGroup                   `yaml:"groups"`
+	HostVars map[string]map[interface{}]interface{} `yaml:"hostvars"`
+}
 
-func (yi *YAMLInventory) Load(ic InventoryConfig, tc TransportConfig) (Inventory, error) {
+type HostGroup struct {
+	Hosts []string                    `yaml:"hosts"`
+	Vars  map[interface{}]interface{} `yaml:"vars"`
+}
+
+func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	fname, present := ic["path"]
 	if !present {
-		return nil, fmt.Errorf("Missing 'path' in the config")
+		return Inventory{}, fmt.Errorf("Missing 'path' in the config")
 	}
 	buf, err := ioutil.ReadFile(fname)
 	if err != nil {
-		return nil, err
+		return Inventory{}, err
 	}
 	err = yaml.Unmarshal(buf, &yi)
 	if err != nil {
-		return nil, err
+		return Inventory{}, err
 	}
-	iv := make(Inventory)
-	for group, hostnames := range *yi {
-		for _, hostname := range hostnames {
-			machine := Machine{}
-			// FIXME: Hard code ssh transport for now.
-			// We need to revisit this later.
-			tcCurr := make(TransportConfig)
-			tcCurr["hostname"] = hostname
-			for k, v := range tc {
-				tcCurr[k] = v
-			}
-			ssht, err := NewSSH(&tcCurr)
-			if err != nil {
-				return nil, err
-			}
-			machine.Hostname = hostname
-			machine.Transport = ssht
-			iv[group] = append(iv[group], &machine)
-		}
+	iv := &Inventory{}
+	iv.HostVars = yi.HostVars
+	iv.Groups = yi.Groups
+	return *iv, nil
+}
+
+func (inv *Inventory) MergeHostVars(hostname string, taskVars map[interface{}]interface{}) {
+	if len(inv.HostVars) == 0 {
+		return
 	}
-	return iv, nil
+	if _, present := inv.HostVars[hostname]; present {
+		MergeMap(inv.HostVars[hostname], taskVars, true)
+	}
 }

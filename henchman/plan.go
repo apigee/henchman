@@ -15,9 +15,40 @@ type Plan struct {
 	Tasks     []*Task
 }
 
-func (plan *Plan) Execute() error {
-	machines := plan.Inventory.Machines()
+func getMachinesFromInventory(inv Inventory, tc TransportConfig) ([]*Machine, error) {
+	var machines []*Machine
+	machineSet := make(map[string]bool)
+	for _, hostGroup := range inv.Groups {
+		for _, hostname := range hostGroup.Hosts {
+			if _, present := machineSet[hostname]; !present {
+				machineSet[hostname] = true
+				machine := &Machine{}
+				machine.Hostname = hostname
+				tcCurr := make(TransportConfig)
+				tcCurr["hostname"] = hostname
+				for k, v := range tc {
+					tcCurr[k] = v
+				}
+				machine.Vars = hostGroup.Vars
+				ssht, err := NewSSH(&tcCurr)
+				if err != nil {
+					return nil, err
+				}
+				machine.Transport = ssht
+				machines = append(machines, machine)
+			}
+		}
+	}
+	return machines, nil
+}
+
+func (plan *Plan) Execute(tc TransportConfig) error {
+	machines, err := getMachinesFromInventory(plan.Inventory, tc)
+	if err != nil {
+		return err
+	}
 	log.Printf("Executing plan `%s' on %d machines\n", plan.Name, len(machines))
+
 	// FIXME: Don't use localhost
 	wg := new(sync.WaitGroup)
 	for _, _machine := range machines {
@@ -29,6 +60,10 @@ func (plan *Plan) Execute() error {
 			defer wg.Done()
 			for _, task := range plan.Tasks {
 				task.Vars["current_host"] = machine
+				// applying group vars
+				MergeMap(machine.Vars, task.Vars, true)
+				plan.Inventory.MergeHostVars(machine.Hostname, task.Vars)
+				log.Println("task vars...", task.Vars)
 				err := task.Render(registerMap)
 				if err != nil {
 					log.Printf("Error Rendering Task: %v.  Received: %v\n", task.Name, err.Error())

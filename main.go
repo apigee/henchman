@@ -98,7 +98,7 @@ func executePlan(c *cli.Context) {
 	tc["username"] = user
 	tc["keyfile"] = keyfile
 
-	inv, err := inventorySource.Load(inventoryConfig, tc)
+	inv, err := inventorySource.Load(inventoryConfig)
 	if err != nil {
 		log.Fatalf("Error loading inventory - %s\n", err.Error())
 	}
@@ -113,7 +113,7 @@ func executePlan(c *cli.Context) {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	plan.Execute()
+	plan.Execute(tc)
 }
 
 func main() {
