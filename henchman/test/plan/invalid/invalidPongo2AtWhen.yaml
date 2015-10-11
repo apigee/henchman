@@ -1,0 +1,11 @@
+---
+name: "invalid pongo2 at when"
+vars:
+   service: "iptables"
+tasks:
+   - name: "Task 1"
+     shell: cmd=echo
+     when: vars.service == "iptables"
+   - name: "Task 2"
+     shell: cmd=touch
+     when: {{ vars.service }} == "iptables" 

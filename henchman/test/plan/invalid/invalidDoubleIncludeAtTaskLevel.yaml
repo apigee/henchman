@@ -1,0 +1,5 @@
+---
+name: "Plan with double include at task level"
+tasks:
+   - include: test/tasks/noInclude.yaml
+     include: test/tasks/withSudo.yaml

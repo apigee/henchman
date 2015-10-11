@@ -113,6 +113,9 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if !found {
 				return ErrWrongType(field, val, "string")
 			}
+			if strings.Contains(tp.When, "{{") || strings.Contains(tp.When, "}}") {
+				return fmt.Errorf("When field should not include {{ or }}")
+			}
 		case "register":
 			tp.Register, found = val.(string)
 			if !found {
