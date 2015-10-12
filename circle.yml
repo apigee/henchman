@@ -6,10 +6,14 @@ dependencies:
   pre:
     - go get github.com/tools/godep
   override:
+    - mkdir -p "$GOPATH/src/$IMPORT_PATH"
+    - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
     - godep restore ./...
 
 test:
   pre:
+    # Getting import errors in circleci
+    - go get github.com/apigee/henchman/henchman
     - go vet -x ./...
   override:
     - go test -v ./...
