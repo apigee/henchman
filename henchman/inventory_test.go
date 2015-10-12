@@ -56,9 +56,13 @@ func TestMergeHostVars(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, inventory)
 
-	taskvars := map[interface{}]interface{}{"ulimit": 400}
-	inventory.MergeHostVars("1.1.1.1", taskvars)
+	taskvars1 := map[interface{}]interface{}{"ulimit": 400}
 
-	assert.Equal(t, 240, taskvars["ulimit"], "Expected hostvars override for ulimit to be 240")
+	inventory.MergeHostVars("1.1.1.1", taskvars1)
 
+	assert.Equal(t, 240, taskvars1["ulimit"], "Expected hostvars override for ulimit to be 240")
+
+	taskvars2 := map[interface{}]interface{}{"ulimit": 400}
+	inventory.MergeHostVars("1.1.1.2", taskvars2)
+	assert.Equal(t, 400, taskvars2["ulimit"], "Expected hostvars override for ulimit to be 240")
 }

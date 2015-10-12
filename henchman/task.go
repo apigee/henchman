@@ -73,22 +73,22 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 }
 
 // wrapper for Rendering each task
-func (task *Task) Render(registerMap RegMap) error {
+func (task *Task) Render(vars VarsMap, registerMap RegMap) error {
 	var err error
-	task.Name, err = renderValue(task.Name, task.Vars, registerMap)
+	task.Name, err = renderValue(task.Name, vars, registerMap)
 	if err != nil {
 		return err
 	}
 
 	if task.When != "" {
-		task.When, err = renderValue("{{"+task.When+"}}", task.Vars, registerMap)
+		task.When, err = renderValue("{{"+task.When+"}}", vars, registerMap)
 		if err != nil {
 			return err
 		}
 	}
 
 	for k, v := range task.Module.Params {
-		task.Module.Params[k], err = renderValue(v, task.Vars, registerMap)
+		task.Module.Params[k], err = renderValue(v, vars, registerMap)
 		if err != nil {
 			return err
 		}
@@ -111,11 +111,15 @@ func (task *Task) ProcessWhen() (bool, error) {
 	return result, nil
 }
 
-func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error) {
+func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*TaskResult, error) {
 	// Add current host to vars
-	// NOTE: task.Vars is initialized in preprocessor.go
 	task.Id = uuid.New()
 
+	//local copy of module params for each machine
+	moduleParams := make(map[string]string)
+	for k, v := range task.Module.Params {
+		moduleParams[k] = v
+	}
 	proceed, err := task.ProcessWhen()
 	if err != nil {
 		return &TaskResult{}, err
@@ -161,7 +165,7 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 		case "exec_module":
 			// executes module by calling the copied module remotely
 			log.Printf("Executing script - %s\n", remoteModPath)
-			jsonParams, err := json.Marshal(task.Module.Params)
+			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
 				return &TaskResult{}, err
 			}
@@ -177,12 +181,12 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 
 		case "copy_remote":
 			//copies file from remote .henchman location to expected location
-			remoteSrcPath, present := task.Module.Params["src"]
+			remoteSrcPath, present := moduleParams["src"]
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
 
-			dstPath, present := task.Module.Params["dest"]
+			dstPath, present := moduleParams["dest"]
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'dest' parameter")
 			}
@@ -204,7 +208,7 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 			}
 		case "put_file":
 			//scp's file from local location to remote location
-			srcPath, present := task.Module.Params["src"]
+			srcPath, present := moduleParams["src"]
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
@@ -223,7 +227,7 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 			}
 
 		case "process_template":
-			srcPath, present := task.Module.Params["src"]
+			srcPath, present := moduleParams["src"]
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
@@ -231,11 +235,12 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 			if err != nil {
 				return &TaskResult{}, err
 			}
-			out, err := tpl.Execute(pongo2.Context{"vars": task.Vars})
+			out, err := tpl.Execute(pongo2.Context{"vars": vars})
 			if err != nil {
 				return &TaskResult{}, err
 			}
 			tmpDir, srcFile := path.Split(srcPath)
+			srcFile = srcFile + "_" + machine.Hostname
 			tmpFileName := fmt.Sprintf(".%s", srcFile)
 			tmpFile := path.Join(tmpDir, tmpFileName)
 
@@ -243,12 +248,10 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 			if err != nil {
 				return &TaskResult{}, err
 			}
-			task.Module.Params["srcOrig"] = srcPath
-			task.Module.Params["src"] = tmpFile
-
+			moduleParams["srcOrig"] = srcPath
+			moduleParams["src"] = tmpFile
 		case "reset_src":
-			task.Module.Params["src"] = task.Module.Params["srcOrig"]
-			delete(task.Module.Params, "srcOrig")
+			moduleParams["src"] = moduleParams["srcOrig"]
 		}
 	}
 

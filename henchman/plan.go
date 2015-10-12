@@ -59,17 +59,20 @@ func (plan *Plan) Execute(tc TransportConfig) error {
 		go func() {
 			defer wg.Done()
 			for _, task := range plan.Tasks {
-				task.Vars["current_host"] = machine
-				// applying group vars
-				MergeMap(machine.Vars, task.Vars, true)
-				plan.Inventory.MergeHostVars(machine.Hostname, task.Vars)
-				log.Println("task vars...", task.Vars)
-				err := task.Render(registerMap)
+				// copy of task.Vars. It'll be different for each machine
+				vars := make(VarsMap)
+				for k, v := range task.Vars {
+					vars[k] = v
+				}
+				vars["current_host"] = machine
+				MergeMap(machine.Vars, vars, true)
+				plan.Inventory.MergeHostVars(machine.Hostname, vars)
+				err := task.Render(vars, registerMap)
 				if err != nil {
 					log.Printf("Error Rendering Task: %v.  Received: %v\n", task.Name, err.Error())
 					return
 				}
-				taskResult, err := task.Run(machine, registerMap)
+				taskResult, err := task.Run(machine, vars, registerMap)
 				if err != nil {
 					log.Println(err)
 					return

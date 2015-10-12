@@ -34,6 +34,26 @@ Explain all aspects and features of Vars here.  Include Examples
 Explain all features of tasks.  Include Examples
 
 ## Inventories
+Inventory takes 2 keys at the top: 'groups' and 'hostvars'.
+Under 'groups', you can specify various group names and they in turn can have 'hosts' and 'vars' applicable to the group of hosts
+'hostvars' allow overrides at individual host level
+
+groups:
+  all:
+    hosts:
+      - 192.168.33.10
+    vars:
+      test: 10
+ 
+  zookeeper:
+    hosts:
+      - z1
+      - z2
+      - z3
+hostvars:
+   "192.168.33.10":
+      test: 20
+
 
 ## How to Use
 CLI commands insert here.
