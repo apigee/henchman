@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/apigee/henchman",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
@@ -24,6 +24,10 @@
 			"ImportPath": "github.com/flosch/pongo2",
 			"Comment": "v1.0-rc1-174-gf5d79aa",
 			"Rev": "f5d79aa0a914c08eb7f51a96cd7b2dbbe46fca46"
+		},
+		{
+			"ImportPath": "github.com/flynn/go-shlex",
+			"Rev": "3f9db97f856818214da2e1057f8ad84803971cff"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
