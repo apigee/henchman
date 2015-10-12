@@ -2,6 +2,7 @@ package henchman
 
 import (
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -13,6 +14,40 @@ type Plan struct {
 	Inventory Inventory
 	Vars      VarsMap
 	Tasks     []*Task
+}
+
+const HENCHMAN_PREFIX = "henchman_"
+
+func GetHenchmanVars(vars VarsMap) VarsMap {
+	var henchmanVars VarsMap
+
+	for k, v := range vars {
+		if strings.Contains(k.(string), HENCHMAN_PREFIX) {
+			if len(henchmanVars) == 0 {
+				henchmanVars = make(VarsMap)
+			}
+			parts := strings.Split(k.(string), HENCHMAN_PREFIX)
+			henchmanVars[parts[len(parts)-1]] = v
+		}
+	}
+
+	return henchmanVars
+}
+
+func mergeHenchmanVarsWithTransport(tcCurr TransportConfig, hostname string, hostGroupVars VarsMap,
+	hostVars map[string]map[interface{}]interface{}) {
+
+	henchmanVars := make(VarsMap)
+	henchmanVars = GetHenchmanVars(hostGroupVars)
+	for k, v := range henchmanVars {
+		tcCurr[k.(string)] = v.(string)
+	}
+	if _, present := hostVars[hostname]; present {
+		henchmanVars = GetHenchmanVars(hostVars[hostname])
+		for k, v := range henchmanVars {
+			tcCurr[k.(string)] = v.(string)
+		}
+	}
 }
 
 func getMachinesFromInventory(inv Inventory, tc TransportConfig) ([]*Machine, error) {
@@ -30,6 +65,10 @@ func getMachinesFromInventory(inv Inventory, tc TransportConfig) ([]*Machine, er
 					tcCurr[k] = v
 				}
 				machine.Vars = hostGroup.Vars
+
+				mergeHenchmanVarsWithTransport(tcCurr, hostname, hostGroup.Vars, inv.HostVars)
+
+				log.Println("Transport Config for machine", hostname, ": ", tcCurr)
 				ssht, err := NewSSH(&tcCurr)
 				if err != nil {
 					return nil, err

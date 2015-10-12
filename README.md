@@ -54,6 +54,27 @@ hostvars:
    "192.168.33.10":
       test: 20
 
+In addition,henchman transport variables can also be overridden
+Example:
+groups:
+  g1:
+    hosts:
+      - 10.224.192.11
+    vars:
+      henchman_username: "vagrant"
+      henchman_keyfile: "~/.ssh/all_private_key"
+
+  g2:
+    hosts:
+      - 10.224.192.12
+    vars:
+      sysadmin_email: "foobar2@apigee.com"
+      henchman_username: "vagrant"
+ 
+hostvars:
+   "10.224.192.12":
+      henchman_keyfile: "~/.ssh/g2_private_key"
+
 
 ## How to Use
 CLI commands insert here.

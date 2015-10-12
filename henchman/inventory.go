@@ -19,6 +19,11 @@ type Inventory struct {
 	HostVars map[string]map[interface{}]interface{} `yaml:"hostvars"`
 }
 
+type HostGroup struct {
+	Hosts []string                    `yaml:"hosts"`
+	Vars  map[interface{}]interface{} `yaml:"vars"`
+}
+
 func (inv Inventory) Count() int {
 	count := 0
 	for _, hostGroup := range inv.Groups {
@@ -31,11 +36,6 @@ func (inv Inventory) Count() int {
 type YAMLInventory struct {
 	Groups   map[string]HostGroup                   `yaml:"groups"`
 	HostVars map[string]map[interface{}]interface{} `yaml:"hostvars"`
-}
-
-type HostGroup struct {
-	Hosts []string                    `yaml:"hosts"`
-	Vars  map[interface{}]interface{} `yaml:"vars"`
 }
 
 func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {

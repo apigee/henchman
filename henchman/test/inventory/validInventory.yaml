@@ -22,6 +22,7 @@ groups:
 hostvars:
   "192.168.1.1":
      keyfile: "~/.ssh/another_key"
+     henchman_user: "root"
      ulimit: 240
      files: 240
   "1.1.1.1":
