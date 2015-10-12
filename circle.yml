@@ -19,9 +19,8 @@ test:
     - godep restore
     - go test -v ./...
   post:    
-    - go build -o bin/henchman
-    - tar -cvzf "henchman.${CIRCLE_SHA1}.linux.tar.gz" bin/ modules
+    - sh ./package.sh
 
 general:
   artifacts:
-    - "henchman.${CIRCLE_SHA1}.linux.tar.gz"
+    - "artefacts/*.tar.gz"
