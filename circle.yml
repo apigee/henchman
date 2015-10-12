@@ -16,6 +16,12 @@ test:
     - go get github.com/apigee/henchman/henchman
     - go vet -x ./...
   override:
+    - godep restore
     - go test -v ./...
+  post:    
+    - go build -o bin/henchman
+    - tar -cvzf "henchman.${CIRCLE_SHA1}.linux.tar.gz"
 
-  
+general:
+  artifacts:
+    - "henchman.${CIRCLE_SHA1}.linux.tar.gz"
