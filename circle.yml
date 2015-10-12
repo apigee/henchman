@@ -20,7 +20,7 @@ test:
     - go test -v ./...
   post:    
     - go build -o bin/henchman
-    - tar -cvzf "henchman.${CIRCLE_SHA1}.linux.tar.gz"
+    - tar -cvzf "henchman.${CIRCLE_SHA1}.linux.tar.gz" bin/ modules
 
 general:
   artifacts:
