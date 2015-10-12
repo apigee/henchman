@@ -6,16 +6,6 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-15",
-			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
-		},
-		{
-			"ImportPath": "code.google.com/p/go.crypto/ssh",
-			"Comment": "null-236",
-			"Rev": "69e2a90ed92d03812364aeb947b7068dc42e561e"
-		},
-		{
 			"ImportPath": "github.com/codegangsta/cli",
 			"Comment": "1.2.0-42-gfbda1ce",
 			"Rev": "fbda1ce02d5dabcee952040e5f4025753b6c9ce0"
@@ -30,6 +20,10 @@
 			"Rev": "3f9db97f856818214da2e1057f8ad84803971cff"
 		},
 		{
+			"ImportPath": "github.com/pborman/uuid",
+			"Rev": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655"
+		},
+		{
 			"ImportPath": "github.com/stretchr/testify/assert",
 			"Comment": "v1.0-49-g2b15294",
 			"Rev": "2b15294402a895a4224659d181866f545991021e"
@@ -38,6 +32,14 @@
 			"ImportPath": "github.com/stretchr/testify/require",
 			"Comment": "v1.0-49-g2b15294",
 			"Rev": "2b15294402a895a4224659d181866f545991021e"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/curve25519",
+			"Rev": "c8b9e6388ef638d5a8a9d865c634befdc46a6784"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh",
+			"Rev": "c8b9e6388ef638d5a8a9d865c634befdc46a6784"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

@@ -11,8 +11,8 @@ import (
 	"path"
 	"strconv"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/flosch/pongo2"
+	"github.com/pborman/uuid"
 )
 
 type Task struct {
