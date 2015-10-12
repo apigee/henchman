@@ -8,11 +8,12 @@ dependencies:
   override:
     - mkdir -p "$GOPATH/src/$IMPORT_PATH"
     - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
+    - godep restore ./...
 
 test:
   pre:
     - go vet -x ./...
   override:
-    - godep go test -v ./...
+    - go test -v ./...
 
   
