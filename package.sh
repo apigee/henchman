@@ -21,10 +21,10 @@ do
         BINDIR="bin/$os/$arch"
         GOOS=$os GOARCH=$arch go build -o bin/$os/$arch/henchman
         cp -R modules ${BINDIR} 
-        pushd ${BINDIR}
+        cd ${BINDIR}
         tar -cvf "henchman.${GIT_COMMIT_SHA1}.${os}.${arch}.tar.gz" henchman modules
         cp *.tar.gz ${ARTEFACTS}
-        popd
+        cd -
     done
 done
 
