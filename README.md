@@ -1,6 +1,6 @@
 
 
-# henchman [![Build Status](https://travis-ci.org/apigee/henchman.svg?branch=master)](https://travis-ci.org/apigee/henchman)
+# henchman [![Circle CI](https://circleci.com/gh/apigee/henchman/tree/master.svg?style=svg)](https://circleci.com/gh/apigee/henchman/tree/master)
 ## What is Henchman
 Henchman is a non-agent based orchestration and automation tool created in Go, and inspired by Ansible.
 
