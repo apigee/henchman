@@ -53,19 +53,18 @@ func mergeHenchmanVarsWithTransport(tcCurr TransportConfig, hostname string, hos
 func getMachinesFromInventory(inv Inventory, tc TransportConfig) ([]*Machine, error) {
 	var machines []*Machine
 	machineSet := make(map[string]bool)
-	for _, hostGroup := range inv.Groups {
+	for group, hostGroup := range inv.Groups {
 		for _, hostname := range hostGroup.Hosts {
 			if _, present := machineSet[hostname]; !present {
 				machineSet[hostname] = true
 				machine := &Machine{}
 				machine.Hostname = hostname
+				machine.Group = group
 				tcCurr := make(TransportConfig)
 				tcCurr["hostname"] = hostname
 				for k, v := range tc {
 					tcCurr[k] = v
 				}
-				machine.Vars = hostGroup.Vars
-
 				mergeHenchmanVarsWithTransport(tcCurr, hostname, hostGroup.Vars, inv.HostVars)
 
 				log.Println("Transport Config for machine", hostname, ": ", tcCurr)
@@ -91,8 +90,9 @@ func (plan *Plan) Execute(tc TransportConfig) error {
 	// FIXME: Don't use localhost
 	wg := new(sync.WaitGroup)
 	for _, _machine := range machines {
-		wg.Add(1)
 		machine := _machine
+		wg.Add(1)
+		machineVars := plan.Inventory.Groups[machine.Group].Vars
 		// NOTE: need individual registerMap for each machine
 		registerMap := make(RegMap)
 		go func() {
@@ -100,11 +100,9 @@ func (plan *Plan) Execute(tc TransportConfig) error {
 			for _, task := range plan.Tasks {
 				// copy of task.Vars. It'll be different for each machine
 				vars := make(VarsMap)
-				for k, v := range task.Vars {
-					vars[k] = v
-				}
+				MergeMap(task.Vars, vars, true)
+				MergeMap(machineVars, vars, true)
 				vars["current_host"] = machine
-				MergeMap(machine.Vars, vars, true)
 				plan.Inventory.MergeHostVars(machine.Hostname, vars)
 				err := task.Render(vars, registerMap)
 				if err != nil {
