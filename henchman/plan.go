@@ -39,12 +39,15 @@ func (plan *Plan) Execute() error {
 		registerMap := make(RegMap)
 		go func() {
 			defer wg.Done()
+			var actualMachine *Machine
 			for _, task := range plan.Tasks {
 				if task.Local == true {
-					task.Vars["current_host"] = local.Hostname
+					actualMachine = local
 				} else {
-					task.Vars["current_host"] = machine.Hostname
+					actualMachine = machine
 				}
+
+				task.Vars["current_host"] = actualMachine.Hostname
 
 				err := task.Render(registerMap)
 				if err != nil {
@@ -52,12 +55,7 @@ func (plan *Plan) Execute() error {
 					return
 				}
 
-				var taskResult *TaskResult
-				if task.Local == true {
-					taskResult, err = task.Run(local, registerMap)
-				} else {
-					taskResult, err = task.Run(machine, registerMap)
-				}
+				taskResult, err := task.Run(actualMachine, registerMap)
 				if err != nil {
 					log.Println(err)
 					return
