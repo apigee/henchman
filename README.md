@@ -46,8 +46,18 @@ If you are using Vagrant to spin up vms
 
 ## Modules
 All modules will return a struct with the fields: msg, output, status (ok, changed, error)
+
 #### copy
+Copy the specified file to the destination.  
+Params:
+* src - location of file to be copied
+* dest - location of file to be stored
+
 #### template
+Renders and copies over a file.  
+Params:
+* src - location of file to be copied
+* dest - location of file to be stored
 
 #### shell
 Runs a shell command.  

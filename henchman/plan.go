@@ -40,6 +40,7 @@ func (plan *Plan) Execute() error {
 					return
 				}
 				log.Println(taskResult.Output)
+				log.Println(registerMap)
 			}
 		}()
 	}

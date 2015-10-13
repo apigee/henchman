@@ -1,0 +1,13 @@
+---
+name: "Plan with Registers and When"
+hosts:
+   - test 
+tasks:
+   - name: "Task 1"
+     shell: cmd="echo hello" 
+     local: true
+     register: first
+   - name: "Task 2"
+     shell: cmd="echo goodbye"
+     local: true
+     register: second
