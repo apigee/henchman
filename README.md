@@ -50,22 +50,22 @@ All modules will return a struct with the fields: msg, output, status (ok, chang
 #### template
 
 #### shell
-Runs a shell command.\n
-Params
+Runs a shell command.  
+Params:
 * chdir - cd into the given directory to execute the shell command
 * shell - The shell to use, by default it's /bin/sh
 * cmd - The command to run. Wrapped by quotes if there are spaces. (required)
 * loglevel - if debug, it shows you the entire output as part of 'output' key
 
 #### rpm
-Install a package using rpm
-Params
+Install a package using rpm.  
+Params:
 * url - url that provides the rpm that should be installed
 * loglevel - if debug, it shows you the entire output as part of 'output' key
 
 #### yum
-Install a package using yum.
-Params
+Install a package using yum.  
+Params:
 * package - the name of the package to be installed
 * loglevel - if debug, it shows you the entire output as part of 'output' key
 
