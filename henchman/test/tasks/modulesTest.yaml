@@ -1,0 +1,5 @@
+---
+name: "Test copy"
+tasks:
+   - name: "Copy module"
+     copy: src="henchman/test/tasks/modulesTest.yaml" dest="~/temp.yaml"

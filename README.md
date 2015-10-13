@@ -28,7 +28,8 @@ Insert a fat Plan example here with all features
 Insert pratical use case here
 
 ### Hosts
-Explain features of hosts section.  Include Examples
+Explain features of hosts section.  Include Examples  
+When there is no host section, the full inventory is loaded in  
 
 ### Vars
 Explain all aspects and features of Vars here.  Include Examples
@@ -45,7 +46,8 @@ If you are using Vagrant to spin up vms
 `bin/henchman exec plan.yml --inventory inv.yaml --user vagrant --keyfile <  >`
 
 ## Modules
-All modules will return a struct with the fields: msg, output, status (ok, changed, error)
+All modules will return a struct with the fields: Msg, Output, State 
+('ok' , 'changed', 'skipped', 'failed', 'unreachable')
 
 #### copy
 Copy the specified file to the destination.  

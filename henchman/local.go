@@ -68,3 +68,8 @@ func (local *LocalTransport) Put(source, destination string, _ string) error {
 	}
 	return err
 }
+
+func NewLocal(config *TransportConfig) (*LocalTransport, error) {
+	local := LocalTransport{}
+	return &local, local.Initialize(config)
+}
