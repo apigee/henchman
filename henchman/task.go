@@ -144,7 +144,7 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 		switch execStep {
 		case "create_dir":
 			// creates remote .henchman location
-			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir),
+			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
 				nil, false)
 			if err != nil {
 				log.Printf("Error while creating remote module path\n")
