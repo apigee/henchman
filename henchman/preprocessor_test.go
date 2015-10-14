@@ -207,6 +207,7 @@ func TestInvalid(t *testing.T) {
 		{"test/plan/invalid/invalidIncludeFormatAtVarsLevel.yaml"},
 		{"test/plan/invalid/invalidRegisterKeyword.yaml"},
 		{"test/plan/invalid/invalidRegisterVariable.yaml"},
+		{"test/plan/invalid/invalidPongo2AtWhen.yaml"},
 	}
 	inv, _ := loadValidInventory()
 	for _, test := range tests {

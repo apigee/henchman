@@ -11,8 +11,8 @@ import (
 	"path"
 	"strconv"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/flosch/pongo2"
+	"github.com/pborman/uuid"
 )
 
 type Task struct {
@@ -139,7 +139,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		log.Printf("Error while creating remote module path\n")
 		return &TaskResult{}, err
 	}
-	remoteModDir := "$HOME/.henchman"
+	remoteModDir := "${HOME}/.henchman"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 	log.Println("exec order", execOrder)
 
@@ -148,7 +148,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		switch execStep {
 		case "create_dir":
 			// creates remote .henchman location
-			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s\n", remoteModDir),
+			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
 				nil, false)
 			if err != nil {
 				log.Printf("Error while creating remote module path\n")

@@ -4,29 +4,32 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/user"
 	"path"
 
 	"github.com/apigee/henchman/henchman"
 	"github.com/codegangsta/cli"
 )
 
-func currentUsername() *user.User {
-	u, err := user.Current()
-	if err != nil {
-		log.Printf("Couldn't get current username: %s. Assuming root" + err.Error())
-		u, err = user.Lookup("root")
-		if err != nil {
-			log.Print(err.Error())
-		}
-		return u
+// NOTE: We're not using os/user because of the requirement on cgo.
+// This prevents us from creating cross-builds. Therefore just env vars.
+// Check https://github.com/golang/go/issues/6376
+func currentUsername() string {
+	// FIXME: Do we even care for Windows?
+	currUser := os.Getenv("USER")
+	if currUser == "" {
+		log.Println("Couldn't get current username. Assuming root")
+		return "root"
 	}
-	return u
+	return currUser
 }
 
 func defaultKeyFile() string {
-	u := currentUsername()
-	return path.Join(u.HomeDir, ".ssh", "id_rsa")
+	homeDir := os.Getenv("HOME")
+	if homeDir == "" {
+		currUser := currentUsername()
+		homeDir = path.Join("/home", currUser)
+	}
+	return path.Join(homeDir, ".ssh", "id_rsa")
 }
 
 func gatherCommands() []cli.Command {
@@ -46,7 +49,7 @@ func gatherCommands() []cli.Command {
 	}
 	usernameFlag := cli.StringFlag{
 		Name:  "user",
-		Value: currentUsername().Username,
+		Value: currentUsername(),
 		Usage: "Remote user executing this plan",
 	}
 	// FIXME: Should this come from the transport instead.

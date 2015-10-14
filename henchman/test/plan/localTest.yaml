@@ -1,0 +1,13 @@
+---
+name: "Testing local == true"
+hosts:
+   - individual 
+tasks:
+   - name: "Task 1"
+     shell: cmd="echo hello {{ vars.current_host }}" loglevel="debug"
+     local: true
+     register: second
+   - name: "Task 2"
+     shell: cmd="echo goodbye world" loglevel="debug"
+     local: true
+     register: second

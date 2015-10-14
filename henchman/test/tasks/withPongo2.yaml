@@ -1,0 +1,10 @@
+---
+name: "Included Task with Pongo2"
+tasks:
+   - name: "iTask 1"
+     shell: cmd=echo
+     when: vars.service == "iptables"
+   - name: "iTask 2"
+     shell: cmd=touch
+     when: name == "iTask 2" 
+

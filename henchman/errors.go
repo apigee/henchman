@@ -28,6 +28,8 @@ func isKeyword(val string) bool {
 	switch val {
 	case "vars":
 		return true
+	case "item":
+		return true
 	default:
 		return false
 	}

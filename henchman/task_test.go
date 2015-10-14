@@ -68,4 +68,41 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	proceed, err := task.ProcessWhen()
 	require.NoError(t, err, "When should evaluate properly")
 	assert.Equal(t, true, proceed, "When should evaluate to true")
+
+	task = plan.Tasks[2]
+	assert.Equal(t, "iTask 1", task.Name, "Task Name should have rendered properly")
+	assert.Equal(t, "True", task.When, "When should evaluate properly")
+
+	task = plan.Tasks[3]
+	assert.Equal(t, "iTask 2", task.Name, "Task Name should have rendered properly")
+	assert.Equal(t, "False", task.When, "When should evaluate properly")
+
+	// tests for ProcessWhen()
+	task = plan.Tasks[4]
+	proceed, err = task.ProcessWhen()
+	require.Error(t, err, "When should only have a true or false string")
+	assert.Equal(t, false, proceed, "When should evaluate to false")
+
+	task = plan.Tasks[5]
+	proceed, err = task.ProcessWhen()
+	require.NoError(t, err, "When should only have a true or false string")
+	assert.Equal(t, false, proceed, "When should evaluate to false")
+}
+
+func TestingInvalidRendering(t *testing.T) {
+	buf, err := ioutil.ReadFile("test/plan/invalid/invalidPongo2.yaml")
+	require.NoError(t, err, "Could not read invalidPongo2.yaml")
+
+	plan, err := PreprocessPlan(buf, nil)
+	require.NoError(t, err, "This plan shouldn't be having an error")
+
+	regMap := make(RegMap)
+	plan.Tasks[0].Render(regMap)
+	require.Error(t, err, "task.Name should not render properly, nested {{ }} are not allowed")
+
+	plan.Tasks[1].Render(regMap)
+	require.Error(t, err, "task.Name should not render properly, every \"{{\" needs a closing \"}}\"")
+
+	plan.Tasks[2].Render(regMap)
+	require.NoError(t, err, "Having }} in a variable is legal")
 }

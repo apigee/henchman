@@ -1,0 +1,12 @@
+---
+name: "Task With Items"
+vars:
+   service: "iptables"
+   key: "abcd1234"
+tasks:
+   - name: "Task 1"
+     shell: cmd=echo params={{ item }}
+     with_items:
+        - test1
+        - test2
+        - test3

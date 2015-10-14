@@ -111,7 +111,6 @@ func NewModule(name string, params string) (*Module, error) {
 	return &module, nil
 }
 
-// Module not found
 func (module *Module) Resolve() (modulePath string, err error) {
 	for _, dir := range ModuleSearchPath {
 		fullPath := path.Join(dir, module.Name)

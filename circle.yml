@@ -1,0 +1,28 @@
+machine:
+  environment:
+    IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+
+dependencies:
+  pre:
+    - go get github.com/tools/godep
+  override:
+    - mkdir -p "$GOPATH/src/$IMPORT_PATH"
+    - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
+    - godep restore ./...
+
+test:
+  pre:
+    # Getting import errors in circleci
+    - go get github.com/apigee/henchman/henchman
+    - go vet -x ./...
+  override:
+    - godep restore
+    - go test -v ./...
+    - go test ./henchman -covermode=count -coverprofile=coverage.out -coverpkg=./...
+  post:
+    - sh ./package.sh
+
+
+general:
+  artifacts:
+    - "artefacts/*.tar.gz"
