@@ -27,8 +27,7 @@ func localhost() *Machine {
 	return &localhost
 }
 
-func (plan *Plan) Execute() error {
-	machines := plan.Inventory.Machines()
+func (plan *Plan) Execute(machines []*Machine) error {
 	local := localhost()
 
 	log.Printf("Executing plan `%s' on %d machines\n", plan.Name, len(machines))
