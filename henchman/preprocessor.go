@@ -2,9 +2,10 @@ package henchman
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type PlanProxy struct {
@@ -26,18 +27,6 @@ type TaskProxy struct {
 
 type VarsProxy struct {
 	Vars VarsMap
-}
-
-// source values will override dest values override is true
-// else dest values will not be overridden
-func mergeMap(src map[interface{}]interface{}, dst map[interface{}]interface{}, override bool) {
-	for variable, value := range src {
-		if override == true {
-			dst[variable] = value
-		} else if _, present := dst[variable]; !present {
-			dst[variable] = value
-		}
-	}
 }
 
 // Custom unmarshaller which account for multiple include statements and include types
@@ -204,7 +193,7 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen strin
 			if tp.Vars == nil {
 				tp.Vars = make(VarsMap)
 			}
-			mergeMap(prevVars, tp.Vars, false)
+			MergeMap(prevVars, tp.Vars, false)
 			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When, sudo)
 			if err != nil {
 				return nil, err
@@ -251,7 +240,7 @@ func PreprocessVars(vars VarsMap) (VarsMap, error) {
 			if err != nil {
 				return nil, fmt.Errorf("While checking includes - %s", err.Error())
 			}
-			mergeMap(tempVars, newVars, false)
+			MergeMap(tempVars, newVars, false)
 		}
 	}
 	delete(newVars, "include")
@@ -283,33 +272,58 @@ func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 func filterInventory(groups []string, fullInventory Inventory) Inventory {
 	// FIXME: Support globbing in the groups
 	// No groups? No problem. Just return the full inventory
+	//	return fullInventory
 	if len(groups) == 0 {
 		return fullInventory
 	} else {
-		filtered := make(Inventory)
+		filtered := Inventory{}
+		filtered.Groups = make(map[string]HostGroup)
+		//filtered.HostVars = fullInventory.HostVars
+		//log.Println(fullInventory)
 		for _, group := range groups {
-			machines, present := fullInventory[group]
+			machines, present := fullInventory.Groups[group]
 			if present {
-				filtered[group] = machines
+				filtered.Groups[group] = machines
 			}
 		}
+		filtered.HostVars = fullInventory.HostVars
 		return filtered
 	}
+}
+
+func newPlanProxy(buf []byte) (PlanProxy, error) {
+	var px PlanProxy
+	err := yaml.Unmarshal(buf, &px)
+	if err != nil {
+		fmt.Errorf("Error processing plan - %s", err.Error())
+		return px, err
+	}
+	return px, nil
+}
+
+func GetInventoryGroups(buf []byte) ([]string, error) {
+	px, err := newPlanProxy(buf)
+	if err != nil {
+		return nil, err
+	}
+	return px.InventoryGroups, nil
+
 }
 
 // For Plan
 // NOTE: inventory should always be initialized and passed in?
 //       or should we just check to see if it's nil?
 func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
-	var px PlanProxy
-	err := yaml.Unmarshal(buf, &px)
+	px, err := newPlanProxy(buf)
 	if err != nil {
-		return nil, fmt.Errorf("Error processing plan - %s", err.Error())
+		return nil, err
 	}
+
 	plan := Plan{}
-	plan.Inventory = filterInventory(px.InventoryGroups, inv)
+	plan.Inventory = inv
 	plan.Name = px.Name
 
+	//common vars processing
 	vars := make(VarsMap)
 	if px.VarsProxy != nil {
 		vars, err = PreprocessVars(px.VarsProxy.Vars)
@@ -319,6 +333,9 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	}
 	vars["inventory"] = inv
 	plan.Vars = vars
+	if err != nil {
+		return nil, err
+	}
 
 	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars, px.Sudo)
 	if err != nil {

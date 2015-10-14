@@ -101,7 +101,7 @@ func executePlan(c *cli.Context) {
 	tc["username"] = user
 	tc["keyfile"] = keyfile
 
-	inv, err := inventorySource.Load(inventoryConfig, tc)
+	inv, err := inventorySource.Load(inventoryConfig)
 	if err != nil {
 		log.Fatalf("Error loading inventory - %s\n", err.Error())
 	}
@@ -112,11 +112,18 @@ func executePlan(c *cli.Context) {
 	if err != nil {
 		log.Fatalf("Error when reading plan `%s': %s", planFile, err.Error())
 	}
-	plan, err := henchman.PreprocessPlan(planBuf, inv)
+	invGroups, err := henchman.GetInventoryGroups(planBuf)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	plan.Execute()
+	inventory := inv.GetInventoryForGroups(invGroups)
+	machines, err := inventory.GetMachines(tc)
+
+	plan, err := henchman.PreprocessPlan(planBuf, inventory)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	plan.Execute(machines)
 }
 
 func main() {

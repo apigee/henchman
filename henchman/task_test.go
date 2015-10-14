@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTaskRun(t *testing.T) {
+func TestTaskRunForSingleMachine(t *testing.T) {
 	mod := moduleTestSetup("sample_module")
 	defer moduleTestTeardown(mod)
 
@@ -31,7 +31,7 @@ func TestTaskRun(t *testing.T) {
 
 	regMap := make(RegMap)
 
-	_, err := task.Run(&localhost, regMap)
+	_, err := task.Run(&localhost, task.Vars, regMap)
 	require.NoError(t, err, "There shouldn't have been any errors")
 }
 
@@ -39,7 +39,7 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	buf, err := ioutil.ReadFile("test/plan/planWithPongo2.yaml")
 	require.NoError(t, err, "Could not read planWithPongo2.yaml")
 
-	plan, err := PreprocessPlan(buf, nil)
+	plan, err := PreprocessPlan(buf, Inventory{})
 	require.NoError(t, err, "This plan shouldn't be having an error")
 
 	testTransport := TestTransport{}
@@ -52,7 +52,7 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	regMap["name"] = "Task 2"
 
 	for _, task := range plan.Tasks {
-		err = task.Render(regMap)
+		err = task.Render(task.Vars, regMap)
 		require.NoError(t, err)
 	}
 

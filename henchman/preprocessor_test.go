@@ -26,9 +26,16 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
 	require.NoError(t, err)
 
-	plan, err := PreprocessPlan(buf, inv)
-	require.NoError(t, err)
+	tc := make(TransportConfig)
+	tc["hostname"] = "foo"
+	tc["username"] = "foobar"
+	tc["password"] = "bar"
 
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	plan, err := PreprocessPlan(buf, inventory)
+
+	require.NoError(t, err)
 	assert.Equal(t, "Sample plan", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	// NOTE: The inner hosts are ignored and the top level is taken
@@ -39,7 +46,6 @@ func TestPreprocessIncludeAtTaskLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeAtTaskLevel.yaml")
 	require.NoError(t, err)
-
 	plan, err := PreprocessPlan(buf, inv)
 	require.NoError(t, err)
 
@@ -202,8 +208,6 @@ func TestInvalid(t *testing.T) {
 		{"test/plan/invalid/invalidRegisterKeyword.yaml"},
 		{"test/plan/invalid/invalidRegisterVariable.yaml"},
 		{"test/plan/invalid/invalidPongo2AtWhen.yaml"},
-		//{"test/plan/invalid/invalidDoubleIncludeAtTaskLevel.yaml"},
-		//{"test/plan/invalid/invalidDoubleIncludeAtVarsLevel.yaml"},
 	}
 	inv, _ := loadValidInventory()
 	for _, test := range tests {

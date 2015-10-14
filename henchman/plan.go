@@ -16,6 +16,8 @@ type Plan struct {
 	Tasks     []*Task
 }
 
+const HENCHMAN_PREFIX = "henchman_"
+
 func localhost() *Machine {
 	tc := make(TransportConfig)
 	local, _ := NewLocal(&tc)
@@ -30,32 +32,37 @@ func (plan *Plan) Execute() error {
 	local := localhost()
 
 	log.Printf("Executing plan `%s' on %d machines\n", plan.Name, len(machines))
+
 	// FIXME: Don't use localhost
 	wg := new(sync.WaitGroup)
 	for _, _machine := range machines {
-		wg.Add(1)
 		machine := _machine
+		wg.Add(1)
+		//		machineVars := plan.Inventory.Groups[machine.Group].Vars
 		// NOTE: need individual registerMap for each machine
 		registerMap := make(RegMap)
 		go func() {
 			defer wg.Done()
 			var actualMachine *Machine
 			for _, task := range plan.Tasks {
+				// copy of task.Vars. It'll be different for each machine
+				vars := make(VarsMap)
+				MergeMap(task.Vars, vars, true)
+				MergeMap(machine.Vars, vars, true)
 				if task.Local == true {
 					actualMachine = local
 				} else {
 					actualMachine = machine
 				}
 
-				task.Vars["current_host"] = actualMachine.Hostname
+				vars["current_host"] = actualMachine.Hostname
+				err := task.Render(vars, registerMap)
 
-				err := task.Render(registerMap)
 				if err != nil {
 					log.Printf("Error Rendering Task: %v.  Received: %v\n", task.Name, err.Error())
 					return
 				}
-
-				taskResult, err := task.Run(actualMachine, registerMap)
+				taskResult, err := task.Run(actualMachine, vars, registerMap)
 				if err != nil {
 					log.Println(err)
 					return

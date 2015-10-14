@@ -38,6 +38,47 @@ Explain all aspects and features of Vars here.  Include Examples
 Explain all features of tasks.  Include Examples
 
 ## Inventories
+Inventory takes 2 keys at the top: 'groups' and 'hostvars'.
+Under 'groups', you can specify various group names and they in turn can have 'hosts' and 'vars' applicable to the group of hosts
+'hostvars' allow overrides at individual host level
+
+groups:
+  all:
+    hosts:
+      - 192.168.33.10
+    vars:
+      test: 10
+ 
+  zookeeper:
+    hosts:
+      - z1
+      - z2
+      - z3
+hostvars:
+   "192.168.33.10":
+      test: 20
+
+In addition,henchman transport variables can also be overridden
+Example:
+groups:
+  g1:
+    hosts:
+      - 10.224.192.11
+    vars:
+      henchman_username: "vagrant"
+      henchman_keyfile: "~/.ssh/all_private_key"
+
+  g2:
+    hosts:
+      - 10.224.192.12
+    vars:
+      sysadmin_email: "foobar2@apigee.com"
+      henchman_username: "vagrant"
+ 
+hostvars:
+   "10.224.192.12":
+      henchman_keyfile: "~/.ssh/g2_private_key"
+
 
 ## How to Use
 CLI commands insert here.

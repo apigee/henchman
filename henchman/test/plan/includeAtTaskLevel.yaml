@@ -1,7 +1,7 @@
 ---
 name: "Plan with single Include"
 hosts:
-  - router.*
+  - nginx.*
 
 tasks:
   - name: task1
