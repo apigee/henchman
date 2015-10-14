@@ -135,7 +135,7 @@ func (task *Task) Run(machine *Machine, registerMap RegMap) (*TaskResult, error)
 		log.Printf("Error while creating remote module path\n")
 		return &TaskResult{}, err
 	}
-	remoteModDir := "$HOME/.henchman"
+	remoteModDir := "${HOME}/.henchman"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 	log.Println("exec order", execOrder)
 

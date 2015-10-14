@@ -19,6 +19,8 @@ func (local *LocalTransport) Initialize(config *TransportConfig) error {
 func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
 	var b bytes.Buffer
 	var err error
+
+	cmdStr = strings.Replace(cmdStr, "\"", "\\\"", -1)
 	if sudoEnabled {
 		cmdStr = fmt.Sprintf("/bin/sh -c \"sudo -H -u root %s\"", cmdStr)
 	} else {
@@ -42,7 +44,6 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 	}
 	cmd.Stdout = &b
 	cmd.Stderr = &b
-
 	err = cmd.Start()
 	if err != nil {
 		return nil, err
@@ -61,17 +62,9 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 }
 
 func (local *LocalTransport) Put(source, destination string, _ string) error {
-	// Might as well use the localExec to call cp
-	// FIXME: Escape other chars as well?
-	source = strings.Replace(source, " ", "\\ ", -1)
-	destination = strings.Replace(destination, " ", "\\ ", -1)
-
 	// Run cp in a subshell to expand env variables.
-	cpCmd := fmt.Sprintf("cp -r %s %s", source, destination)
+	cpCmd := fmt.Sprintf("cp -r \"%s\" \"%s\"", source, destination)
 	_, err := local.Exec(cpCmd, nil, false)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
 	return err
 }
 
