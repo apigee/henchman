@@ -18,8 +18,10 @@ test:
   override:
     - godep restore
     - go test -v ./...
-  post:    
+    - go test ./henchman -covermode=count -coverprofile=coverage.out -coverpkg=./...
+  post:
     - sh ./package.sh
+    - go tool cover -html=coverage.out -o artefacts/coverage.html
 
 general:
   artifacts:
