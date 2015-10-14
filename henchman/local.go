@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/flynn/go-shlex"
 )
@@ -19,7 +20,9 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 	var b bytes.Buffer
 	var err error
 	if sudoEnabled {
-		cmdStr = fmt.Sprintf("/bin/bash -c 'sudo -H -u root %s'", cmdStr)
+		cmdStr = fmt.Sprintf("/bin/sh -c \"sudo -H -u root %s\"", cmdStr)
+	} else {
+		cmdStr = fmt.Sprintf("/bin/sh -c \"%s\"", cmdStr)
 	}
 	// FIXME: This is kinda dumb and can break for weird inputs. Make this more robust
 	commands, err := shlex.Split(cmdStr)
@@ -59,9 +62,12 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 
 func (local *LocalTransport) Put(source, destination string, _ string) error {
 	// Might as well use the localExec to call cp
-	// FIXME: Make this portable
+	// FIXME: Escape other chars as well?
+	source = strings.Replace(source, " ", "\\ ", -1)
+	destination = strings.Replace(destination, " ", "\\ ", -1)
 
-	cpCmd := fmt.Sprintf("cp -r \"%s\" \"%s\"", source, destination)
+	// Run cp in a subshell to expand env variables.
+	cpCmd := fmt.Sprintf("cp -r %s %s", source, destination)
 	_, err := local.Exec(cpCmd, nil, false)
 	if err != nil {
 		fmt.Println(err.Error())
