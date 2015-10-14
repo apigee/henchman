@@ -2,6 +2,6 @@ package henchman
 
 type Machine struct {
 	Hostname  string
-	Group     string
+	Vars      VarsMap
 	Transport TransportInterface
 }

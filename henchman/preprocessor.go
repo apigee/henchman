@@ -288,15 +288,34 @@ func filterInventory(groups []string, fullInventory Inventory) Inventory {
 	}
 }
 
+func newPlanProxy(buf []byte) (PlanProxy, error) {
+	var px PlanProxy
+	err := yaml.Unmarshal(buf, &px)
+	if err != nil {
+		fmt.Errorf("Error processing plan - %s", err.Error())
+		return px, err
+	}
+	return px, nil
+}
+
+func GetInventoryGroups(buf []byte) ([]string, error) {
+	px, err := newPlanProxy(buf)
+	if err != nil {
+		return nil, err
+	}
+	return px.InventoryGroups, nil
+
+}
+
 // For Plan
 // NOTE: inventory should always be initialized and passed in?
 //       or should we just check to see if it's nil?
 func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
-	var px PlanProxy
-	err := yaml.Unmarshal(buf, &px)
+	px, err := newPlanProxy(buf)
 	if err != nil {
-		return nil, fmt.Errorf("Error processing plan - %s", err.Error())
+		return nil, err
 	}
+
 	plan := Plan{}
 	plan.Inventory = filterInventory(px.InventoryGroups, inv)
 	plan.Name = px.Name

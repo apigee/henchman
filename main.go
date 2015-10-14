@@ -109,11 +109,18 @@ func executePlan(c *cli.Context) {
 	if err != nil {
 		log.Fatalf("Error when reading plan `%s': %s", planFile, err.Error())
 	}
+	invGroups, err := henchman.GetInventoryGroups(planBuf)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	inventory := inv.GetInventoryForGroups(invGroups)
+	machines, err := inventory.GetMachines(tc)
+
 	plan, err := henchman.PreprocessPlan(planBuf, inv)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	plan.Execute(tc)
+	plan.Execute(machines)
 }
 
 func main() {
