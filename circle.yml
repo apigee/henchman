@@ -19,9 +19,10 @@ test:
     - godep restore
     - go test -v ./...
     - go test ./henchman -covermode=count -coverprofile=coverage.out -coverpkg=./...
+    - go tool cover -html=coverage.out -o artefacts/coverage.html
   post:
     - sh ./package.sh
-    - go tool cover -html=coverage.out -o artefacts/coverage.html
+
 
 general:
   artifacts:
