@@ -11,10 +11,6 @@ func loadValidInventory() (Inventory, error) {
 	ic := make(InventoryConfig)
 	ic["path"] = "test/inventory/validInventory.yaml"
 	yi := YAMLInventory{}
-	tc := make(TransportConfig)
-	tc["hostname"] = "foo"
-	tc["username"] = "foobar"
-	tc["password"] = "bar"
 	inventory, err := yi.Load(ic)
 	return inventory, err
 }

@@ -143,22 +143,6 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 	return machines, nil
 }
 
-//func mergeHenchmanVarsWithTransport(tcCurr TransportConfig, hostname string, hostGroupVars VarsMap,
-//	hostVars map[string]map[interface{}]interface{}) {
-//
-//	henchmanVars := make(VarsMap)
-//	henchmanVars = GetHenchmanVars(hostGroupVars)
-//	for k, v := range henchmanVars {
-//		tcCurr[k.(string)] = v.(string)
-//	}
-//	if _, present := hostVars[hostname]; present {
-//		henchmanVars = GetHenchmanVars(hostVars[hostname])
-//		for k, v := range henchmanVars {
-//			tcCurr[k.(string)] = v.(string)
-//		}
-//	}
-//}
-
 func GetHenchmanVars(vars VarsMap) VarsMap {
 	var henchmanVars VarsMap
 

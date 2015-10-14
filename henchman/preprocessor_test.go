@@ -26,7 +26,15 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
 	require.NoError(t, err)
 
-	plan, err := PreprocessPlan(buf, inv)
+	tc := make(TransportConfig)
+	tc["hostname"] = "foo"
+	tc["username"] = "foobar"
+	tc["password"] = "bar"
+
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	plan, err := PreprocessPlan(buf, inventory)
+
 	require.NoError(t, err)
 	assert.Equal(t, "Sample plan", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")

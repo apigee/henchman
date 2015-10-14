@@ -116,7 +116,7 @@ func executePlan(c *cli.Context) {
 	inventory := inv.GetInventoryForGroups(invGroups)
 	machines, err := inventory.GetMachines(tc)
 
-	plan, err := henchman.PreprocessPlan(planBuf, inv)
+	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
