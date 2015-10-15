@@ -73,6 +73,17 @@ func gatherCommands() []cli.Command {
 	}
 }
 
+func setInventoryVars(plan *henchman.Plan, inv henchman.Inventory) {
+	var all_hosts []string
+	for group, hostGroup := range inv.Groups {
+		plan.Vars[group] = hostGroup.Hosts
+		for _, host := range hostGroup.Hosts {
+			all_hosts = append(all_hosts, host)
+		}
+	}
+	plan.Vars["all_hosts"] = all_hosts
+}
+
 func executePlan(c *cli.Context) {
 	args := c.Args()
 	if len(args) == 0 {
@@ -123,6 +134,8 @@ func executePlan(c *cli.Context) {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+
+	setInventoryVars(plan, inv)
 	plan.Execute(machines)
 }
 

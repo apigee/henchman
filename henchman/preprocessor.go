@@ -331,7 +331,6 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 			return nil, fmt.Errorf("Error processing vars - %s", err.Error())
 		}
 	}
-	vars["inventory"] = inv
 	plan.Vars = vars
 	if err != nil {
 		return nil, err
