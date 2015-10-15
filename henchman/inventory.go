@@ -53,6 +53,20 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	if err != nil {
 		return Inventory{}, err
 	}
+
+	if yi.Groups == nil {
+		return Inventory{}, fmt.Errorf("Groups field is required.  Refer to README.md for proper formatting")
+	}
+
+	for key, val := range yi.Groups {
+		if key == "hosts" {
+			return Inventory{}, fmt.Errorf("\"hosts\" is not a valid group name")
+		}
+		if val.Hosts == nil {
+			return Inventory{}, fmt.Errorf("%v requires a hosts field.  Refer to README.md for proper formatting", key)
+		}
+	}
+
 	iv := &Inventory{}
 	iv.HostVars = yi.HostVars
 	iv.Groups = yi.Groups

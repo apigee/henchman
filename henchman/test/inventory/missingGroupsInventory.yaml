@@ -1,0 +1,29 @@
+---
+nginx: 
+  hosts: 
+    - "192.168.1.1"
+    - "192.168.1.2"
+  vars:
+    ulimit: 300
+    henchman_keyfile: "~/.ssh/ssh_key"
+db: 
+  hosts: 
+    - "1.1.1.1"
+    - "1.1.1.2"
+    - "1.1.1.3"
+  vars:
+    ulimit: 200
+    henchman_user: "root"
+app:
+  hosts: 
+    - "1.1.1.1"
+    - "1.1.1.4"
+hostvars:
+  "192.168.1.1":
+     keyfile: "~/.ssh/another_key"
+     henchman_user: "root"
+     ulimit: 240
+     files: 240
+  "1.1.1.1":
+     ulimit: 240
+     files: 240

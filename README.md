@@ -40,7 +40,9 @@ Explain all features of tasks.  Include Examples
 ## Inventories
 Inventory takes 2 keys at the top: 'groups' and 'hostvars'.
 Under 'groups', you can specify various group names and they in turn can have 'hosts' and 'vars' applicable to the group of hosts
-'hostvars' allow overrides at individual host level
+'hostvars' allow overrides at individual host level.
+
+'groups', and 'hosts' are both required keys.  In addition, a group name cannot be named 'hosts'.
 ```yaml
 groups:
   all:

@@ -15,6 +15,22 @@ func loadValidInventory() (Inventory, error) {
 	return inventory, err
 }
 
+func TestLoadInvalidInventory(t *testing.T) {
+	ic := make(InventoryConfig)
+	ic["path"] = "test/inventory/missingGroupsInventory.yaml"
+	yi := YAMLInventory{}
+	_, err := yi.Load(ic)
+	require.Error(t, err)
+
+	ic["path"] = "test/inventory/missingHostsInventory.yaml"
+	_, err = yi.Load(ic)
+	require.Error(t, err)
+
+	ic["path"] = "test/inventory/invalidInventory.yaml"
+	_, err = yi.Load(ic)
+	require.Error(t, err)
+}
+
 func TestValidYAMLInventorygroup(t *testing.T) {
 	inventory, err := loadValidInventory()
 
