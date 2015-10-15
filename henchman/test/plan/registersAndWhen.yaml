@@ -5,18 +5,14 @@ hosts:
 tasks:
    - name: "Task 1"
      shell: cmd="echo hello {{ vars.current_host }}" loglevel="debug"
-     local: true
      register: first
    - name: "Task 2"
      shell: cmd="echo goodbye world" loglevel="debug"
-     local: true
      register: second
    - name: "Task 3"
      shell: cmd="echo success" loglevel="debug"
-     local: true
      when: second.State == "changed"
 #   - include: "henchman/test/tasks/modulesTest.yaml"
 #     when: second.State == "changed"
    - name: "Task 4"
      shell: cmd="ls" loglevel="debug"
-     local: true

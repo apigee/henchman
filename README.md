@@ -41,7 +41,7 @@ Explain all features of tasks.  Include Examples
 Inventory takes 2 keys at the top: 'groups' and 'hostvars'.
 Under 'groups', you can specify various group names and they in turn can have 'hosts' and 'vars' applicable to the group of hosts
 'hostvars' allow overrides at individual host level
-
+```yaml
 groups:
   all:
     hosts:
@@ -57,9 +57,9 @@ groups:
 hostvars:
    "192.168.33.10":
       test: 20
-
 In addition,henchman transport variables can also be overridden
 Example:
+```yaml
 groups:
   g1:
     hosts:
@@ -78,7 +78,7 @@ groups:
 hostvars:
    "10.224.192.12":
       henchman_keyfile: "~/.ssh/g2_private_key"
-
+```
 
 ## How to Use
 CLI commands insert here.
