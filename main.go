@@ -75,12 +75,17 @@ func gatherCommands() []cli.Command {
 
 func setInventoryVars(plan *henchman.Plan, inv henchman.Inventory) {
 	var all_hosts []string
+	duplicates := make(map[string]bool)
 	for group, hostGroup := range inv.Groups {
 		plan.Vars[group] = hostGroup.Hosts
 		for _, host := range hostGroup.Hosts {
-			all_hosts = append(all_hosts, host)
+			if _, present := duplicates[host]; !present {
+				duplicates[host] = true
+				all_hosts = append(all_hosts, host)
+			}
 		}
 	}
+
 	plan.Vars["all_hosts"] = all_hosts
 }
 
