@@ -1,0 +1,19 @@
+hosts:
+  "1.1.1.2":
+     groups:
+        - "org/coke"
+        - "region/us"
+  "1.1.1.3":
+     groups:
+        - "region/us"
+        - "org/coke"
+groups:
+   "org/coke":
+       vars:
+          version: 1
+   "region/us":
+       vars:
+          version: 2
+heirarchy:
+  - "org/{{ vars.org.name }}"   
+  - "region/{{ region.name }}"
