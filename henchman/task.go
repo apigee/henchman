@@ -60,8 +60,8 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 		log.Println("tmpl error")
 		return "", err
 	}
-	// NOTE: add an update context when regMap is passed in
-	ctxt := pongo2.Context{"vars": varsMap} //, "machine": machine}
+
+	ctxt := pongo2.Context{"vars": varsMap}
 	ctxt = ctxt.Update(registerMap)
 
 	out, err := tmpl.Execute(ctxt)

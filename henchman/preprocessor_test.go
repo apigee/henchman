@@ -79,11 +79,12 @@ func TestPreprocessIncludeAndVarsAtTaskLevel(t *testing.T) {
 
 	assert.Equal(t, "Plan With Tasks and Vars", plan.Name, "plan name wasn't unmarshalled properly")
 	assert.Equal(t, 6, len(plan.Tasks), "Wrong number of tasks.")
-	assert.Equal(t, "bar", plan.Tasks[0].Vars["foo"], "Wrong key in Task Vars")
+	assert.Empty(t, plan.Tasks[0].Vars, "Isn't part of included task, should not have variables binded")
 	assert.Equal(t, "nope", plan.Tasks[1].Vars["foo"], "Wrong key in Task Vars")
 	assert.Equal(t, "thumb", plan.Tasks[2].Vars["foo"], "Wrong key in Task Vars")
+	assert.Equal(t, "baz", plan.Tasks[3].Vars["bar"], "Wrong key in Task Vars")
 	assert.Equal(t, "nope", plan.Tasks[4].Vars["foo"], "Wrong key in Task Vars")
-	assert.Equal(t, "bar", plan.Tasks[5].Vars["foo"], "Wrong key in Task Vars")
+	assert.Empty(t, plan.Tasks[5].Vars, "Isn't part of included task, should not have variables binded")
 }
 
 func TestPreprocessIncludeAtVarsLevel(t *testing.T) {

@@ -21,8 +21,9 @@ type PlanProxy struct {
 // field for each task
 // Include is the file name for the included Tasks list
 type TaskProxy struct {
-	Task    `yaml:",inline"`
-	Include string
+	Task        `yaml:",inline"`
+	Include     string
+	IncludeVars VarsMap `yaml:"vars"`
 }
 
 type VarsProxy struct {
@@ -122,7 +123,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				return ErrWrongType(field, val, "string")
 			}
 		case "vars":
-			tp.Vars, found = val.(map[interface{}]interface{})
+			tp.IncludeVars, found = val.(map[interface{}]interface{})
 			if !found {
 				return ErrWrongType(field, val, "map[interface{}]interface{}")
 			}
@@ -152,8 +153,9 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // whether if it's an include value or a normal task.  If it's a normal task
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
-func PreprocessTasks(taskSection []*TaskProxy, planVars VarsMap, sudo bool) ([]*Task, error) {
-	tasksList, err := parseTaskProxies(taskSection, planVars, "", sudo)
+// NOTE: task.Vars should only be valid for include taskProxies
+func PreprocessTasks(taskSection []*TaskProxy, sudo bool) ([]*Task, error) {
+	tasksList, err := parseTaskProxies(taskSection, nil, "", sudo)
 	if err != nil {
 		return nil, err
 	}
@@ -190,11 +192,10 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen strin
 			}
 
 			// links previous vars
-			if tp.Vars == nil {
-				tp.Vars = make(VarsMap)
+			if prevVars != nil {
+				MergeMap(prevVars, tp.IncludeVars, false)
 			}
-			MergeMap(prevVars, tp.Vars, false)
-			includedTasks, err := preprocessTasksHelper(buf, tp.Vars, tp.When, sudo)
+			includedTasks, err := preprocessTasksHelper(buf, tp.IncludeVars, tp.When, sudo)
 			if err != nil {
 				return nil, err
 			}
@@ -210,8 +211,14 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen strin
 			task.Local = tp.Local
 			task.Register = tp.Register
 			task.When = tp.When
-			// NOTE: assigns to prevVars not tp.Vars
-			task.Vars = prevVars
+			// NOTE: plan.Vars is merged in plan.execute(...) before Render
+			// Creates an empty map for later use if there are no
+			// included vars
+			if prevVars == nil {
+				task.Vars = make(VarsMap)
+			} else {
+				task.Vars = prevVars
+			}
 			task.Sudo = sudo
 			if tp.Sudo {
 				task.Sudo = tp.Sudo
@@ -332,11 +339,8 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 		}
 	}
 	plan.Vars = vars
-	if err != nil {
-		return nil, err
-	}
 
-	tasks, err := PreprocessTasks(px.TaskProxies, plan.Vars, px.Sudo)
+	tasks, err := PreprocessTasks(px.TaskProxies, px.Sudo)
 	if err != nil {
 		return nil, fmt.Errorf("Error processing tasks - %s", err.Error())
 	}

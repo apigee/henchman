@@ -46,8 +46,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 			for _, task := range plan.Tasks {
 				// copy of task.Vars. It'll be different for each machine
 				vars := make(VarsMap)
-				MergeMap(task.Vars, vars, true)
+				MergeMap(plan.Vars, vars, true)
 				MergeMap(machine.Vars, vars, true)
+				MergeMap(task.Vars, vars, true)
 				if task.Local == true {
 					actualMachine = local
 				} else {
@@ -67,7 +68,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					return
 				}
 
-				log.Println(taskResult.Output)
+				log.Println(taskResult)
 				/*
 					fmt.Printf("State: %v\n", taskResult.State)
 					fmt.Printf("Msg: %v\n", taskResult.Msg)

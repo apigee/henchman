@@ -52,6 +52,7 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	regMap["name"] = "Task 2"
 
 	for _, task := range plan.Tasks {
+		MergeMap(plan.Vars, task.Vars, false)
 		err = task.Render(task.Vars, regMap)
 		require.NoError(t, err)
 	}
@@ -89,6 +90,22 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	assert.Equal(t, false, proceed, "When should evaluate to false")
 }
 
+/*
+func TestSandboxRendering(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/sandboxPongo2.yaml")
+	require.NoError(t, err, "Could not read sandboxPongo2.yaml")
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.NoError(t, err)
+
+	regMap := make(RegMap)
+	err = plan.Tasks[0].Render(plan.Vars, regMap)
+	require.NoError(t, err)
+	fmt.Println("HIHIHIH")
+	fmt.Println(plan.Tasks[0].Name)
+}
+*/
 //func TestingInvalidRendering(t *testing.T) {
 //	buf, err := ioutil.ReadFile("test/plan/invalid/invalidPongo2.yaml")
 //	require.NoError(t, err, "Could not read invalidPongo2.yaml")
