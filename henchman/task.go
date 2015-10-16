@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path"
 	"strconv"
 
@@ -212,15 +211,10 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if !present {
 				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
 			}
-			curDir, err := os.Getwd()
-			if err != nil {
-				return &TaskResult{}, err
-			}
 			_, srcFile := path.Split(srcPath)
 			dstPath := path.Join(remoteModDir, srcFile)
-			completeSrcPath := path.Join(curDir, srcPath)
 
-			err = machine.Transport.Put(completeSrcPath, dstPath, "file")
+			err = machine.Transport.Put(srcPath, dstPath, "file")
 
 			if err != nil {
 				return &TaskResult{}, err
