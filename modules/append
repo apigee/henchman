@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+# append modules
+# Appends a line to a given file
+# Params,
+# file: The file
+# line: The line which has to be appended to the file
+# unique: true/false. If set to true, doesn't append the line if it's
+#         already present. Returns a skipped state if that's the case
+#         Is great for property files.
+#         default: true
 import sys
 import json
 import os
@@ -6,29 +15,31 @@ import subprocess
 
 params = json.loads(sys.stdin.read())
 
-# file is already copied if it comes till here
-#
-result = {}
-try:
-    f = params.get("file","")
-    l = params.get("line", "")
-    if not f:
-        raise "Missing file"
-    if not l:
-        raise "Missing line"
-    source = open(f)
-    lines = source.readlines()
-    source.close()
-    lines.append(l + "\n")
-    destination = open(f, "w")
-    for l in lines:
-        destination.write(l)
-    destination.close()
-    result["status"] = "changed"
-    result["msg"] = "Appended line"
-except Exception as e:
-    result["status"] = "error"
-    result["msg"] = str(e)
+def append_line(params):
+    result = {}
+    try:
+        f = params.get("file","")
+        l = params.get("line", "").strip()
+        unique = params.get("unique", "false")
+        if not f:
+            raise "Missing file"
+            if not l:
+                raise "Missing line"
+        if unique in ["true", "t"]:
+            with open(f) as source:
+                for line in source.xreadlines():
+                    if line.strip() == l:
+                        result["status"] = "skipped"
+                        result["msg"] = "Line already present"
+                        return result
+        with open(f, "a") as source:
+            source.write(l + "\n")
+        result["status"] = "ok"
+        result["msg"] = "Appended line"
+    except Exception as e:
+        result["status"] = "error"
+        result["msg"] = str(e)
+    return result
 
-print json.dumps(result)
+print json.dumps(append_line(params))
              
