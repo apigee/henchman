@@ -112,7 +112,6 @@ func executePlan(c *cli.Context) {
 	inventoryConfig := make(henchman.InventoryConfig)
 	inventoryConfig["path"] = inventoryPath
 	inventorySource := new(henchman.YAMLInventory)
-
 	tc := make(henchman.TransportConfig)
 	tc["username"] = user
 	tc["keyfile"] = keyfile

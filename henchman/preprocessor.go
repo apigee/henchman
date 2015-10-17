@@ -75,7 +75,6 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err != nil {
 		return err
 	}
-
 	for field, val := range tmap {
 		switch field {
 		case "name":
@@ -133,7 +132,6 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if !found {
 				return ErrWrongType(field, val, "string")
 			}
-
 			if numModule > 0 {
 				return fmt.Errorf("\"%v\" is an extra Module.  Can only have one module per task.", field)
 			}
@@ -286,7 +284,6 @@ func filterInventory(groups []string, fullInventory Inventory) Inventory {
 		filtered := Inventory{}
 		filtered.Groups = make(map[string]HostGroup)
 		//filtered.HostVars = fullInventory.HostVars
-		//log.Println(fullInventory)
 		for _, group := range groups {
 			machines, present := fullInventory.Groups[group]
 			if present {

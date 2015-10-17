@@ -42,8 +42,8 @@ func parseModuleArgs(args string) (map[string]string, error) {
 		seps := []byte{'"', '\''}
 		for _, sep := range seps {
 			if len(tokenParts) > 1 && tokenParts[1][0] == sep && tokenParts[1][len(tokenParts[1])-1] != sep {
-				remainingToken, err := getRemainingToken(data[(advance-1):], sep)
 				//get the remaining token
+				remainingToken, err := getRemainingToken(data[(advance-1):], sep)
 				if err == nil {
 					token = append(nextToken, remainingToken...)
 					break
@@ -59,10 +59,21 @@ func parseModuleArgs(args string) (map[string]string, error) {
 	// Validate the input
 	for scanner.Scan() {
 		text := scanner.Text()
-		if strings.Contains(text, "=") {
+		if extraArgsHasText(extraArgs, text) {
+			continue
+		} else if strings.Contains(text, "=") {
 			splitValues := strings.Split(text, "=")
+			//this may happen for cases where '=' is in the string
+			if len(splitValues) > 2 {
+				buffer := bytes.NewBufferString(splitValues[1])
+				for i := 2; i < len(splitValues); i++ {
+					buffer.WriteString("=")
+					buffer.WriteString(splitValues[i])
+				}
+				splitValues[1] = buffer.String()
+			}
 			extraArgs[splitValues[0]] = splitValues[1]
-		} else if !extraArgsHasText(extraArgs, text) {
+		} else {
 			// this check takes care of 2nd part of " def'" part of 'abc def'
 			return nil, errors.New("Module args are invalid")
 		}
