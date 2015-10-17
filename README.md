@@ -127,5 +127,4 @@ Params:
 
 ## Contributing
 
-Just clone or fork from [https://github.com/apigee/henchman](https://github.com/apigee/henchman) and off you go!
-Or you can help by creating more modules.  Look at the modules section for more details.
+Just clone or fork from [https://github.com/apigee/henchman](https://github.com/apigee/henchman) and off you go! Fixing issues marked `easy` in the issue tracker is a great way to get started. Or you can help by creating more modules.  Look at the modules section for more details.
