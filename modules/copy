@@ -1,4 +1,15 @@
 #!/usr/bin/env python
+# copy module
+# Copies a file over to the node over a given transport
+# This module is a special case and the bulk of the work is done
+# in the henchman engine. This module however ensures that the permissions
+# are satisfied
+# Params for this module
+# owner: The owner of the file (optional)
+# group: The group of the file (optional)
+# mode:  The file mode (default: 644)
+# dest:  The destination (required)
+
 import sys
 import json
 import os
@@ -6,10 +17,9 @@ import subprocess
 
 params = json.loads(sys.stdin.read())
 
-# file is already copied if it comes till here
-#
 result = {}
 try:
+        
     owner = params.get("owner","root")
     group = params.get("group","root")
     mode = params.get("mode","0644")
