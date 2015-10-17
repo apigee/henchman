@@ -36,7 +36,7 @@ params = json.loads(sys.stdin.read())
 result = {}
 possible_states = ["absent", "present", "latest"]
 try:
-    name = params.get('name') # .strip("'")
+    name = params.get('name')
     state = params.get('state')
     # check if state provided is valid
     valid_state = [s for s in possible_states if state == s]
@@ -53,7 +53,7 @@ try:
             result['msg'] = "Package %s already present" % name
             result['status'] = "ok"
     else:
-        if state == "present":
+        if state == "present" or state == "latest":
             command = ["yum", "install", "-y", "%s" % name]
         else:
             result['msg'] = "Package %s absent" % name
