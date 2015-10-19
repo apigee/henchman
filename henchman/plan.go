@@ -11,7 +11,7 @@ import (
 // For ANSI color codes
 var statuses = map[string]string{
 	"reset":   ansi.ColorCode("reset"),
-	"success": ansi.ColorCode("green"),
+	"ok":      ansi.ColorCode("green"),
 	"changed": ansi.ColorCode("yellow"),
 	"failure": ansi.ColorCode("red"),
 	"error":   ansi.ColorCode("red"),
