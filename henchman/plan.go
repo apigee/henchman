@@ -1,10 +1,22 @@
 package henchman
 
 import (
-	//"fmt"
+	"fmt"
 	"log"
 	"sync"
+
+	"github.com/mgutz/ansi"
 )
+
+// For ANSI color codes
+var statuses = map[string]string{
+	"reset":   ansi.ColorCode("reset"),
+	"success": ansi.ColorCode("green"),
+	"changed": ansi.ColorCode("yellow"),
+	"failure": ansi.ColorCode("red"),
+	"error":   ansi.ColorCode("red"),
+	"ignored": ansi.ColorCode("cyan"),
+}
 
 type VarsMap map[interface{}]interface{}
 type RegMap map[string]interface{}
@@ -32,7 +44,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 	log.Printf("Executing plan `%s' on %d machines\n", plan.Name, len(machines))
 
-	// FIXME: Don't use localhost
+	resetCode := statuses["reset"]
 	wg := new(sync.WaitGroup)
 	for _, _machine := range machines {
 		machine := _machine
@@ -67,13 +79,11 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					log.Println(err)
 					return
 				}
-
-				log.Println(taskResult)
-				/*
-					fmt.Printf("State: %v\n", taskResult.State)
-					fmt.Printf("Msg: %v\n", taskResult.Msg)
-					fmt.Printf("Output: %v\n", taskResult.Output)
-				*/
+				colorCode := statuses[taskResult.State]
+				fmt.Printf("%s[%s]: %s - %s %s\n", colorCode, actualMachine.Hostname, taskResult.State, taskResult.Msg, taskResult.Output+resetCode)
+				if (taskResult.State == "error" || taskResult.State == "failure") && (!task.IgnoreErrors) {
+					break
+				}
 			}
 		}()
 	}

@@ -1,13 +1,39 @@
+// FIXME: Can't test plan reliably till we fix #19,
+
 package henchman
 
-//func TestGetHenchmanVars(t *testing.T) {
-//	vars := VarsMap{
-//		"ulimit":        100,
-//		"henchman_user": "hello",
-//		"henchman_pass": "hi",
-//	}
-//	henchmanVars := GetHenchmanVars(vars)
-//	assert.Equal(t, 2, len(henchmanVars), "Length of henchmanVars was expected to be 2")
-//	assert.Equal(t, "hello", henchmanVars["user"], "Length of henchmanVars was expected to be 2")
-//	assert.Equal(t, "hi", henchmanVars["pass"], "Length of henchmanVars was expected to be 2")
-//}
+// import (
+// 	"testing"
+
+// 	_ "github.com/stretchr/testify/assert"
+// 	"github.com/stretchr/testify/require"
+// )
+
+// func TestPlanExecute(t *testing.T) {
+// 	inventory, err := loadValidInventory()
+// 	require.NoError(t, err)
+// 	// Just one task
+// 	task := Task{}
+// 	m, err := NewModule("test", "foo=bar")
+// 	require.NoError(t, err)
+
+// 	task.Id = "f"
+// 	task.Sudo = false
+// 	task.Name = "testTask"
+// 	task.Module = m
+// 	task.Local = false
+
+// 	p := Plan{}
+// 	p.Name = "Test Plan"
+// 	p.Inventory = inventory
+// 	p.Vars = make(VarsMap)
+// 	p.Tasks = append(p.Tasks, &task)
+
+// 	tc := make(TransportConfig)
+// 	tc["username"] = "foobar"
+// 	machines, err := inventory.GetMachines(tc)
+// 	require.NoError(t, err)
+
+// 	err = p.Execute(machines)
+// 	require.NoError(t, err)
+// }

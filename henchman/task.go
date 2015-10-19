@@ -249,6 +249,11 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		}
 	}
 
+	// Set to status to ignored if the result is a failure
+	if task.IgnoreErrors && (taskResult.State != "ok") {
+		taskResult.State = "ignored"
+	}
+
 	if task.Register != "" {
 		registerMap[task.Register] = taskResult
 	}

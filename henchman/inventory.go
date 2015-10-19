@@ -147,6 +147,8 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 			tcCurr[k.(string)] = v.(string)
 		}
 		log.Println("Transport Config for machine", machine.Hostname, ": ", tcCurr)
+		// FIXME: This is frigging wrong
+		// See #47
 		ssht, err := NewSSH(&tcCurr)
 		if err != nil {
 			return nil, err
