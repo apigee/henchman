@@ -3,7 +3,7 @@ package require
 import (
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/apigee/henchman/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 type TestingT interface {
