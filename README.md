@@ -91,7 +91,7 @@ If you are using Vagrant to spin up vms
 
 ## Modules
 All modules will return a struct with the fields: Msg, Output, State 
-('ok' , 'changed', 'skipped', 'failed', 'unreachable')
+('ok' , 'changed', 'skipped', 'failure', 'error', 'unreachable')
 
 #### copy
 Copy the specified file to the destination.  
