@@ -14,14 +14,24 @@ import sys
 import json
 import os
 import subprocess
+import pwd
 
 params = json.loads(sys.stdin.read())
 
 result = {}
 try:
-        
-    owner = params.get("owner","root")
-    group = params.get("group","root")
+    owner = ""
+    group = ""
+    if not owner in params: 
+        owner = pwd.getpwuid( os.getuid() ).pw_name
+    else:
+        owner = params.get("owner")
+    if not group in params: 
+        group = pwd.getpwuid( os.getuid() ).pw_name
+    else:
+        group = params.get("owner")
+    result["owner"] = owner
+    result["group"] = group
     mode = params.get("mode","0644")
     dest = params.get("dest")
 
