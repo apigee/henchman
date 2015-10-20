@@ -20,20 +20,12 @@ params = json.loads(sys.stdin.read())
 
 result = {}
 try:
-    owner = ""
-    group = ""
-    if not owner in params: 
-        owner = pwd.getpwuid( os.getuid() ).pw_name
-    else:
-        owner = params.get("owner")
-    if not group in params: 
-        group = pwd.getpwuid( os.getuid() ).pw_name
-    else:
-        group = params.get("owner")
-    result["owner"] = owner
-    result["group"] = group
+    owner = params.get("owner",pwd.getpwuid( os.getuid() ).pw_name)
+    group = params.get("owner",pwd.getpwuid( os.getuid() ).pw_name)
     mode = params.get("mode","0644")
     dest = params.get("dest")
+    result["owner"] = owner
+    result["group"] = group
 
     command = ["/bin/chown","-R","%s:%s" % (owner,group), "%s" % dest]
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

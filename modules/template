@@ -10,8 +10,8 @@ params = json.loads(sys.stdin.read())
 #
 result = {}
 try:
-    owner = params.get("owner","root")
-    group = params.get("group","root")
+    owner = params.get("owner",pwd.getpwuid( os.getuid() ).pw_name)
+    group = params.get("group",pwd.getpwuid( os.getuid() ).pw_name)
     mode = params.get("mode","0644")
     dest = params.get("dest")
 
