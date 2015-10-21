@@ -3,6 +3,7 @@ package henchman
 import (
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -22,6 +23,7 @@ type PlanProxy struct {
 // Include is the file name for the included Tasks list
 type TaskProxy struct {
 	Task        `yaml:",inline"`
+	SudoState   string `yaml:omitempty`
 	Include     string
 	IncludeVars VarsMap `yaml:"vars"`
 }
@@ -87,6 +89,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if !found {
 				return ErrWrongType(field, val, "bool")
 			}
+			tp.SudoState = strconv.FormatBool(tp.Sudo)
 		case "ignore_errors":
 			tp.IgnoreErrors, found = val.(bool)
 			if !found {
@@ -218,10 +221,12 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen strin
 				task.Vars = prevVars
 			}
 			task.Sudo = sudo
-			if tp.Sudo {
-				task.Sudo = tp.Sudo
+			if tp.SudoState != "" {
+				var err error
+				if task.Sudo, err = strconv.ParseBool(tp.SudoState); err != nil {
+					return nil, err
+				}
 			}
-
 			tasks = append(tasks, &task)
 		}
 	}
@@ -336,7 +341,6 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 		}
 	}
 	plan.Vars = vars
-
 	tasks, err := PreprocessTasks(px.TaskProxies, px.Sudo)
 	if err != nil {
 		return nil, fmt.Errorf("Error processing tasks - %s", err.Error())

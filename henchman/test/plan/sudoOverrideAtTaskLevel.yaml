@@ -1,0 +1,9 @@
+---
+name: "Sample plan"
+sudo: true
+tasks:
+  - name: First task
+    action: cmd="ls"
+  - name: Second task
+    action: cmd="echo"
+    sudo: false

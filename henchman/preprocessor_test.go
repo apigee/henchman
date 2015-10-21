@@ -165,6 +165,27 @@ func TestPreprocessWithSudoAtTheTaskLevel(t *testing.T) {
 	}
 }
 
+func TestPreprocessWithSudoOverrideAtTheTaskLevel(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/sudoOverrideAtTaskLevel.yaml")
+	require.NoError(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.NoError(t, err)
+
+	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "Sample plan", plan.Name, "Plan name wasn't unmarshalled")
+	for _, task := range plan.Tasks {
+		if task.Name == "First task" {
+			assert.True(t, task.Sudo, "First task should have sudo priviledges")
+		}
+
+		if task.Name == "Second task" {
+			assert.False(t, task.Sudo, "Second task should not have sudo priviledges")
+		}
+	}
+}
+
 func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeWithSudoAtTaskLevel.yaml")

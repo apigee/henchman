@@ -10,4 +10,3 @@ tasks:
     sudo: true
   - name: Another task
     action: cmd="test"
-    sudo: true
