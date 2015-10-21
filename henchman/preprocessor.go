@@ -23,7 +23,7 @@ type PlanProxy struct {
 // Include is the file name for the included Tasks list
 type TaskProxy struct {
 	Task        `yaml:",inline"`
-	SudoState   string `yaml:omitempty`
+	SudoState   string
 	Include     string
 	IncludeVars VarsMap `yaml:"vars"`
 }
