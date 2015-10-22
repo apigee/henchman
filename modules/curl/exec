@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+# do standard http requests
+# be able to show status codes for now
+# Currently only supported for RESTful HTTP requests
+# Allow for redirects
+# 
+# params:
+#   user (optional)
+#   pswd (optional)
+#   http (required)
+#   url (required)
+#   headers "key:value,key:value"
+#   data "key:value,key:value"
+
+# NOTE: if only we could use the requests module
+# NOTE: pycurl isn't stdlid for python
+# NOTE: urllib2 and urllib do not have support for anything other than GET or POST 
+import sys
+import json
+import os
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/requests")
+import requests
+
+params = {}
+result = {}
+
+def convertKeyVal(vals):
+  tmp = {}
+  if vals != "":
+    for pair in vals.split(","):
+      key_val = pair.split(":")
+      if len(key_val) != 2:
+        raise Exception("Invalid key value format")
+      tmp[key_val[0]] = key_val[1]
+   
+  return tmp
+
+try:
+  url = params.get("url", "http://dicks-api.herokuapp.com/dicks/4")
+  http = params.get("http", "GET").upper()
+  headers = convertKeyVal(params.get("headers", ""))
+  data = convertKeyVal(params.get("data", ""))
+
+  if http == "POST":
+    r = requests.post(url, data=data, headers=headers)
+  elif http == "PUT":
+    r = requests.put(url, data=data, headers=headers)
+  elif http == "DELETE":
+    r = requests.delete(url, data=data, headers=headers)
+  elif http == "OPTIONS":
+    r = requests.options(url, data=data, headers=headers)
+  else:
+    r = requests.get(url, data=data, headers=headers)
+  
+  result["status"] = "ok"
+  result["msg"] = "http request successfully processed"
+  # FIXME: find a way to serialize r.headers
+  result["output"] = {'status': r.status_code, 'headers': str(r.headers), 'body': r.text}
+except Exception as e:
+  result["status"] = "error"
+  result["msg"] = str(e)
+
+print json.dumps(result)
