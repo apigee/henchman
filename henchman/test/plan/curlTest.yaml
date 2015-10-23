@@ -1,0 +1,11 @@
+name: "Plan with curl"
+vars:
+   service: iptables
+hosts:
+  - individual
+tasks:
+  - name: "Test Curl"
+    curl: url="http://httpbin.org/ip" http="GET"
+    register: first
+  - name: "Print Curl"
+    shell: cmd="echo {{ first.output }}"

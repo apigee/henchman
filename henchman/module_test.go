@@ -103,7 +103,7 @@ func TestModuleResolve(t *testing.T) {
 	fullPath, err = mod.Resolve()
 
 	require.NoError(t, err)
-	assert.Equal(t, "/tmp/curl/exec", fullPath, "Got incorrect fullPath")
+	assert.Equal(t, "/tmp/curl", fullPath, "Got incorrect fullPath")
 }
 
 func setupTestShellModule() (*Module, error) {

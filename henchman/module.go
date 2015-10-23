@@ -127,17 +127,14 @@ func (module *Module) Resolve() (modulePath string, err error) {
 		fullPath := path.Join(dir, module.Name)
 		finfo, err := os.Stat(fullPath)
 		if finfo != nil {
-			// checks if the module is a standalone script
-			// else checks the module dir if there is a file named exec
-			if !finfo.IsDir() {
-				return fullPath, err
-			} else {
-				fullPath = path.Join(fullPath, "exec")
-				finfo, err = os.Stat(fullPath)
-				if finfo != nil && !finfo.IsDir() {
-					return fullPath, err
+			if finfo.IsDir() {
+				tmpPath := path.Join(fullPath, "exec")
+				finfo, err = os.Stat(tmpPath)
+				if finfo == nil || finfo.IsDir() {
+					return "", fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name)
 				}
 			}
+			return fullPath, err
 		}
 	}
 	return "", fmt.Errorf("Module %s couldn't be resolved", module.Name)
@@ -147,7 +144,9 @@ func (module *Module) ExecOrder() ([]string, error) {
 	execOrder := map[string][]string{"default": []string{"create_dir", "put_module", "exec_module"},
 		"copy": []string{"create_dir", "put_module", "put_file", "copy_remote", "exec_module"},
 		"template": []string{"create_dir", "put_module", "process_template", "put_file", "copy_remote",
-			"reset_src", "exec_module"}}
+			"reset_src", "exec_module"},
+		"curl": []string{"create_dir", "tar_module", "put_tar_module", "untar_module", "exec_tar_module"},
+	}
 
 	var defaultOrder []string
 	for moduleType, order := range execOrder {

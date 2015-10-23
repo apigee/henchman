@@ -13,9 +13,6 @@
 #   headers "key:value,key:value"
 #   data "key:value,key:value"
 
-# NOTE: if only we could use the requests module
-# NOTE: pycurl isn't stdlid for python
-# NOTE: urllib2 and urllib do not have support for anything other than GET or POST 
 import sys
 import json
 import os
@@ -23,7 +20,7 @@ import os
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/requests")
 import requests
 
-params = {}
+params = json.loads(sys.stdin.read())
 result = {}
 
 def convertKeyVal(vals):
@@ -57,7 +54,9 @@ try:
   result["status"] = "ok"
   result["msg"] = "http request successfully processed"
   # FIXME: find a way to serialize r.headers
-  result["output"] = {'status': r.status_code, 'headers': str(r.headers), 'body': r.text}
+  # FIXME: change back to standard json stuff when issue is fixed
+  #result["output"] = {'status': r.status_code, 'headers': str(r.headers), 'body': r.text}
+  result["output"] = str(r.status_code)
 except Exception as e:
   result["status"] = "error"
   result["msg"] = str(e)

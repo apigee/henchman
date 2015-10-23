@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os/exec"
 	"path"
 	"strconv"
 
@@ -138,6 +139,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		log.Printf("Error while creating remote module path\n")
 		return &TaskResult{}, err
 	}
+
 	remoteModDir := "${HOME}/.henchman"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 	log.Println("exec order", execOrder)
@@ -160,7 +162,58 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, err
 			}
+		case "tar_module":
+			// creates a tar of the module
+			cmd := "tar"
+			args := []string{"-cvf", modPath + ".tar", modPath}
+			if err := exec.Command(cmd, args...).Run(); err != nil {
+				return &TaskResult{}, err
+			}
+		case "put_tar_module":
+			// copies module from local location to remote location
+			err = machine.Transport.Put(modPath+".tar", remoteModDir, "dir")
+			if err != nil {
+				return &TaskResult{}, err
+			}
 
+			// deletes module.tar from local modules folder
+			cmd := "rm"
+			args := []string{modPath + ".tar"}
+			if err := exec.Command(cmd, args...).Run(); err != nil {
+				return &TaskResult{}, err
+			}
+		case "untar_module":
+			// untars the module
+			cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModPath+".tar", remoteModDir)
+			_, err := machine.Transport.Exec(cmd, nil, task.Sudo)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+
+			cmd = fmt.Sprintf("/bin/rm %s", remoteModPath+".tar")
+			_, err = machine.Transport.Exec(cmd, nil, task.Sudo)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+		case "exec_tar_module":
+			// executes module by calling the copied module remotely
+			// NOTE: may want to just change the way remoteModPath is created
+			newModPath := remoteModDir + "/modules/" + task.Module.Name + "/exec"
+			log.Printf("Executing script - %s\n", newModPath)
+			jsonParams, err := json.Marshal(moduleParams)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			buf, err := machine.Transport.Exec(newModPath, jsonParams, task.Sudo)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			//This should not be empty
+			err = setTaskResult(&taskResult, buf)
+			if err != nil {
+				return &TaskResult{}, err
+			}
+			log.Println("here 2")
 		case "exec_module":
 			// executes module by calling the copied module remotely
 			log.Printf("Executing script - %s\n", remoteModPath)
