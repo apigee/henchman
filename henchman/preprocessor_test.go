@@ -3,23 +3,11 @@ package henchman
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func writeTempFile(buf []byte, fname string) string {
-	fpath := path.Join("/tmp", fname)
-	ioutil.WriteFile(fpath, buf, 0644)
-	return fpath
-}
-
-func rmTempFile(fpath string) {
-	os.Remove(fpath)
-}
 
 func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	inv, _ := loadValidInventory()

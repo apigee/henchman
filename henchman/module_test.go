@@ -1,6 +1,7 @@
 package henchman
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -86,6 +87,23 @@ func TestModuleResolve(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "/tmp/shell", fullPath, "Got incorrect fullPath")
+
+	err = os.Mkdir("/tmp/curl", 0777)
+	assert.NoError(t, err)
+
+	err = ioutil.WriteFile("/tmp/curl/exec", []byte("ls -al"), 0644)
+	assert.NoError(t, err)
+	defer os.RemoveAll("/tmp/curl")
+
+	mod, err = NewModule("curl", "foo=bar")
+	//mod, err := setupTestShellModule()
+	require.NoError(t, err)
+	require.NotNil(t, mod)
+
+	fullPath, err = mod.Resolve()
+
+	require.NoError(t, err)
+	assert.Equal(t, "/tmp/curl/exec", fullPath, "Got incorrect fullPath")
 }
 
 func setupTestShellModule() (*Module, error) {

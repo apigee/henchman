@@ -126,11 +126,21 @@ func (module *Module) Resolve() (modulePath string, err error) {
 	for _, dir := range ModuleSearchPath {
 		fullPath := path.Join(dir, module.Name)
 		finfo, err := os.Stat(fullPath)
-		if finfo != nil && !finfo.IsDir() {
-			return fullPath, err
+		if finfo != nil {
+			// checks if the module is a standalone script
+			// else checks the module dir if there is a file named exec
+			if !finfo.IsDir() {
+				return fullPath, err
+			} else {
+				fullPath = path.Join(fullPath, "exec")
+				finfo, err = os.Stat(fullPath)
+				if finfo != nil && !finfo.IsDir() {
+					return fullPath, err
+				}
+			}
 		}
 	}
-	return "", fmt.Errorf("Module couldn't be resolved")
+	return "", fmt.Errorf("Module %s couldn't be resolved", module.Name)
 }
 
 func (module *Module) ExecOrder() ([]string, error) {
