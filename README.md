@@ -22,21 +22,7 @@ Henchman allows the modules to be written in any programming language as long as
 Henchman executes a plan (a collection of tasks) on a given set of machines.  Each plan will run the list of tasks by SSHing into a machine, and generally copy over the module specified by the task and execute it.  
 
 ## Plan
-A plan is a collection of tasks written in YAML notation.
-
-Insert a fat Plan example here with all features
-Insert pratical use case here
-
-### Hosts
-Explain features of hosts section.  Include Examples  
-When there is no host section, the full inventory is loaded in  
-
-### Vars
-Explain all aspects and features of Vars here.  Include Examples
-
-### Tasks
-Explain all features of tasks.  Include Examples
-
+For details of a plan, go [here](https://github.com/apigee/henchman/wiki/Plans)
 ## Inventories
 Inventory takes 2 keys at the top: 'groups' and 'hostvars'.
 Under 'groups', you can specify various group names and they in turn can have 'hosts' and 'vars' applicable to the group of hosts
@@ -90,8 +76,12 @@ If you are using Vagrant to spin up vms
 `bin/henchman exec plan.yml --inventory inv.yaml --user vagrant --keyfile <  >`
 
 ## Modules
-All modules will return a struct with the fields: Msg, Output, State 
-('ok' , 'changed', 'skipped', 'failure', 'error', 'unreachable')
+For more details on how to build modules, go [here](https://github.com/apigee/henchman/wiki/Modules).  
+
+All modules will return a struct with the fields: Msg, Output, State   
+('ok' , 'changed', 'skipped', 'failure', 'error', 'unreachable').  
+  
+Here are a list of core modules available:
 
 #### copy
 Copy the specified file to the destination.  
