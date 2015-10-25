@@ -8,4 +8,5 @@ tasks:
     curl: url="http://httpbin.org/ip" http="GET"
     register: first
   - name: "Print Curl"
-    shell: cmd="echo {{ first.output }}"
+    shell: cmd="echo {{ first.Output.headers.Date }}" loglevel=debug
+    when: first.Output.body.origin == "97.86.135.152"

@@ -28,9 +28,9 @@ type Task struct {
 }
 
 type TaskResult struct {
-	State  string `json:"status"`
-	Output string `json:"output,omitempty"`
-	Msg    string `json:"msg"`
+	State  string      `json:"status"`
+	Output interface{} `json:"output,omitempty"`
+	Msg    string      `json:"msg"`
 }
 
 func getTaskResult(buf *bytes.Buffer) (*TaskResult, error) {
@@ -213,7 +213,6 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, err
 			}
-			log.Println("here 2")
 		case "exec_module":
 			// executes module by calling the copied module remotely
 			log.Printf("Executing script - %s\n", remoteModPath)

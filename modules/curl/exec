@@ -16,11 +16,14 @@
 import sys
 import json
 import os
+import ast
+
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/requests")
 import requests
 
-params = {}
+params = json.loads(sys.stdin.read())
+#params = {}
 result = {}
 
 def convertKeyVal(vals):
@@ -35,7 +38,7 @@ def convertKeyVal(vals):
   return tmp
 
 try:
-  url = params.get("url", "")
+  url = params.get("url", "http://httpbin.org/ip")
   http = params.get("http", "GET").upper()
   headers = convertKeyVal(params.get("headers", ""))
   data = convertKeyVal(params.get("data", ""))
@@ -54,9 +57,9 @@ try:
   result["status"] = "ok"
   result["msg"] = "http request successfully processed"
   # FIXME: find a way to serialize r.headers
-  # FIXME: change back to standard json stuff when issue is fixed
-  #result["output"] = {'status': r.status_code, 'headers': str(r.headers), 'body': r.text}
-  result["output"] = str(r.status_code)
+  # changes unicode to dictionary
+  payload = ast.literal_eval(r.text)
+  result["output"] = {'status': r.status_code, 'headers': dict(r.headers), 'body': payload}
 except Exception as e:
   result["status"] = "error"
   result["msg"] = str(e)
