@@ -174,6 +174,27 @@ func TestPreprocessWithSudoOverrideAtTheTaskLevel(t *testing.T) {
 	}
 }
 
+func TestPreprocessWithIgnoreErrorsAtTheTaskLevel(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/ignoreErrsAtTaskLevel.yaml")
+	require.NoError(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.NoError(t, err)
+
+	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "Sample plan", plan.Name, "Plan name wasn't unmarshalled")
+	for _, task := range plan.Tasks {
+		if task.Name == "First task" {
+			assert.True(t, task.IgnoreErrors, "First task should ignore errors")
+		}
+
+		if task.Name == "Second task" {
+			assert.False(t, task.IgnoreErrors, "Second task should not ignore errors")
+		}
+	}
+}
+
 func TestPreprocessWithSudoInTheIncludeTask(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/includeWithSudoAtTaskLevel.yaml")

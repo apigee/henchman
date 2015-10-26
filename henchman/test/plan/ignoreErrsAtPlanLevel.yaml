@@ -1,0 +1,11 @@
+---
+name: "Sample plan"
+ignore_errors: true
+hosts:
+  - "127.0.0.1:22"
+  - 192.168.1.2
+tasks:
+  - name: Sample task that does nothing
+    action: cmd="ls"
+  - name: Another task
+    action: cmd="test"

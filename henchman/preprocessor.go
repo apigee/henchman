@@ -154,9 +154,10 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // whether if it's an include value or a normal task.  If it's a normal task
 // it appends it as a standard task, otherwise it recursively expands the include
 // statement
-// NOTE: task.Vars should only be valid for include taskProxies
-func PreprocessTasks(taskSection []*TaskProxy, sudo bool) ([]*Task, error) {
-	tasksList, err := parseTaskProxies(taskSection, nil, "", sudo)
+// NOTE: making this a function of PlanProxy in case we want to have more plan level variables
+//       in the future.  Removes the need to pass each variable as a parameter.
+func (px PlanProxy) PreprocessTasks() ([]*Task, error) {
+	tasksList, err := parseTaskProxies(&px, nil, "")
 	if err != nil {
 		return nil, err
 	}
@@ -164,19 +165,29 @@ func PreprocessTasks(taskSection []*TaskProxy, sudo bool) ([]*Task, error) {
 	return tasksList, nil
 }
 
-func preprocessTasksHelper(buf []byte, prevVars VarsMap, prevWhen string, sudo bool) ([]*Task, error) {
-	var px PlanProxy
-	err := yaml.Unmarshal(buf, &px)
+// handles the include statements
+func preprocessTasksHelper(taskFileName string, prevVars VarsMap, prevWhen string, px *PlanProxy) ([]*Task, error) {
+	buf, err := ioutil.ReadFile(taskFileName)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseTaskProxies(px.TaskProxies, prevVars, prevWhen, sudo)
+	var tmpPx PlanProxy
+	err = yaml.Unmarshal(buf, &tmpPx)
+	if err != nil {
+		return nil, fmt.Errorf("Unmarshalling \"%s\" - %s", taskFileName, err.Error())
+	}
+
+	// since it's using the included task file proxy
+	// gotta assign the original plan level variables
+	tmpPx.Sudo = px.Sudo
+	return parseTaskProxies(&tmpPx, prevVars, prevWhen)
 }
 
-func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen string, sudo bool) ([]*Task, error) {
+// Majority of the work done here.  Assigns and creates the Task list
+func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task, error) {
 	var tasks []*Task
-	for _, tp := range taskProxies {
+	for _, tp := range px.TaskProxies {
 		task := Task{}
 		// links when paramter
 		// put out here b/c every task can have a when
@@ -187,16 +198,12 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen strin
 		}
 
 		if tp.Include != "" {
-			buf, err := ioutil.ReadFile(tp.Include)
-			if err != nil {
-				return nil, err
-			}
-
 			// links previous vars
 			if prevVars != nil {
 				MergeMap(prevVars, tp.IncludeVars, false)
 			}
-			includedTasks, err := preprocessTasksHelper(buf, tp.IncludeVars, tp.When, sudo)
+
+			includedTasks, err := preprocessTasksHelper(tp.Include, tp.IncludeVars, tp.When, px)
 			if err != nil {
 				return nil, err
 			}
@@ -212,15 +219,17 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen strin
 			task.Local = tp.Local
 			task.Register = tp.Register
 			task.When = tp.When
+
 			// NOTE: plan.Vars is merged in plan.execute(...) before Render
-			// Creates an empty map for later use if there are no
-			// included vars
+			// Creates an empty map for later use if there are no included vars
 			if prevVars == nil {
 				task.Vars = make(VarsMap)
 			} else {
 				task.Vars = prevVars
 			}
-			task.Sudo = sudo
+
+			// takes plan sudo, changes it to task Sudo if there is one
+			task.Sudo = px.Sudo
 			if tp.SudoState != "" {
 				var err error
 				if task.Sudo, err = strconv.ParseBool(tp.SudoState); err != nil {
@@ -239,12 +248,11 @@ func parseTaskProxies(taskProxies []*TaskProxy, prevVars VarsMap, prevWhen strin
 // And any repeat vars in the includes will be a FCFS priority
 // NOTE: if the user has multipl include blocks it'll grab the one closest to
 //       the bottom
-
-func PreprocessVars(vars VarsMap) (VarsMap, error) {
-	newVars := vars
+func (px PlanProxy) PreprocessVars() (VarsMap, error) {
+	newVars := px.VarsProxy.Vars
 
 	// parses include statements in vars
-	if fileList, present := vars["include"]; present {
+	if fileList, present := px.VarsProxy.Vars["include"]; present {
 		for _, fName := range fileList.([]interface{}) {
 			tempVars, err := preprocessVarsHelper(fName)
 			if err != nil {
@@ -335,13 +343,13 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	//common vars processing
 	vars := make(VarsMap)
 	if px.VarsProxy != nil {
-		vars, err = PreprocessVars(px.VarsProxy.Vars)
+		vars, err = px.PreprocessVars()
 		if err != nil {
 			return nil, fmt.Errorf("Error processing vars - %s", err.Error())
 		}
 	}
 	plan.Vars = vars
-	tasks, err := PreprocessTasks(px.TaskProxies, px.Sudo)
+	tasks, err := px.PreprocessTasks()
 	if err != nil {
 		return nil, fmt.Errorf("Error processing tasks - %s", err.Error())
 	}

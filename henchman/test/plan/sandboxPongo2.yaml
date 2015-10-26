@@ -1,0 +1,14 @@
+---
+name: "Test random pongo2 templating stuff"
+hosts:
+  - individual
+vars:
+  service: iptables
+  key: abcd123
+tasks:
+  - name: "{{ vars.all_hosts }}"
+    shell: cmd="echo {{ vars.test[1] }}" loglevel="debug"
+    local: true
+  - name: "Task 2"
+    shell: cmd="echo {{ vars.service }}" loglevel="debug"
+    local: true

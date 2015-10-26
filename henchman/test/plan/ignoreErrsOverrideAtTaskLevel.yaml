@@ -1,0 +1,9 @@
+---
+name: "Sample plan"
+ignore_errors: true
+tasks:
+  - name: First task
+    action: cmd="ls"
+  - name: Second task
+    action: cmd="echo"
+    ignore_errors: false
