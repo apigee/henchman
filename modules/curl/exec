@@ -26,7 +26,7 @@ params = json.loads(sys.stdin.read())
 #params = {}
 result = {}
 
-def convertKeyVal(vals):
+def convert_key_val(vals):
   tmp = {}
   if vals != "":
     for pair in vals.split(","):
@@ -56,7 +56,6 @@ try:
   
   result["status"] = "ok"
   result["msg"] = "http request successfully processed"
-  # FIXME: find a way to serialize r.headers
   # changes unicode to dictionary
   payload = ast.literal_eval(r.text)
   result["output"] = {'status': r.status_code, 'headers': dict(r.headers), 'body': payload}
