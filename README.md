@@ -2,7 +2,7 @@
 
 # henchman [![Circle CI](https://circleci.com/gh/apigee/henchman/tree/master.svg?style=svg)](https://circleci.com/gh/apigee/henchman/tree/master)
 ## What is Henchman
-Henchman is a non-agent based orchestration and automation tool created in Go, and inspired by Ansible.
+Check out the [wiki](https://github.com/apigee/henchman/wiki).
 
 ## Why Go?
 Although, python and ruby are awesome as systems languages, runtime dependencies are generally an issue where users have to install and maintain gems/pip modules. System tools should never enforce the headache of having to manage multiple runtime dependencies and as the number of machines managed increases, it becomes an additional overhead to take care of. With Golang there is no such overhead and a single static binary file can be shipped for use.
