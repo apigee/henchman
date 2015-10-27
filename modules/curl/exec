@@ -40,8 +40,8 @@ def convert_key_val(vals):
 try:
   url = params.get("url", "http://httpbin.org/ip")
   http = params.get("http", "GET").upper()
-  headers = convertKeyVal(params.get("headers", ""))
-  data = convertKeyVal(params.get("data", ""))
+  headers = convert_key_val(params.get("headers", ""))
+  data = convert_key_val(params.get("data", ""))
 
   if http == "POST":
     r = requests.post(url, data=data, headers=headers)
