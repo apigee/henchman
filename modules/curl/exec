@@ -20,7 +20,9 @@ import ast
 
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/requests")
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/xmltodict")
 import requests
+import xmltodict
 
 params = json.loads(sys.stdin.read())
 #params = {}
@@ -38,10 +40,14 @@ def convert_key_val(vals):
   return tmp
 
 try:
-  url = params.get("url", "http://httpbin.org/ip")
+  url = params.get("url", "")
+  #url = "http://ci.apigeng.com/v1/data/1k.xml"
   http = params.get("http", "GET").upper()
   headers = convert_key_val(params.get("headers", ""))
   data = convert_key_val(params.get("data", ""))
+  
+  if not url:
+    raise Exception("Url parameter is required")
 
   if http == "POST":
     r = requests.post(url, data=data, headers=headers)
@@ -56,8 +62,16 @@ try:
   
   result["status"] = "ok"
   result["msg"] = "http request successfully processed"
-  # changes unicode to dictionary
-  payload = ast.literal_eval(r.text)
+
+  c_type = dict(r.headers)['Content-Type']
+  if "xml" in c_type:
+    payload = xmltodict.parse(r.text)
+  elif "json" in c_type:
+    payload = ast.literal_eval(r.text)
+  else:
+    result["msg"] += ". Content-Type %s is not supported" % c_type
+    payload = str(r.text)
+
   result["output"] = {'status': r.status_code, 'headers': dict(r.headers), 'body': payload}
 except Exception as e:
   result["status"] = "error"

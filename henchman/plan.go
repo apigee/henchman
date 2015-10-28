@@ -80,10 +80,15 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					return
 				}
 				colorCode := statuses[taskResult.State]
-				fmt.Printf("%s[%s]: %s - %s]\n", colorCode, actualMachine.Hostname, taskResult.State, taskResult.Msg)
+				fmt.Printf("%s[%s]: %s - %s\n", colorCode, actualMachine.Hostname, taskResult.State, taskResult.Msg)
 				// print only when --debug is on
-				fmt.Printf("%s[%s]: Task: \"%s\" Output - %v", colorCode, actualMachine.Hostname, task.Name, taskResult.Output)
+				//fmt.Printf("%s[%s]: Task: \"%s\" Output - %v", colorCode, actualMachine.Hostname, task.Name, taskResult.Output)
+				err = printOutput(colorCode, actualMachine.Hostname, task.Name, taskResult.Output)
 				fmt.Printf("%s\n", resetCode)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 				if (taskResult.State == "error" || taskResult.State == "failure") && (!task.IgnoreErrors) {
 					break
 				}

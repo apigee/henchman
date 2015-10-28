@@ -8,5 +8,14 @@ tasks:
     curl: url="http://httpbin.org/ip" http="GET"
     register: first
   - name: "Print Curl"
-    shell: cmd="echo {{ first.Output.headers.Date }}" loglevel=debug
-    when: first.Output.body.origin == "97.86.135.152"
+    shell: cmd="echo {{ first.Output.body.origin }}" loglevel=debug
+  - name: "Test xml Curl"
+    curl: url="http://ci.apigeng.com/v1/data/1k.xml" http="GET"
+    register: second
+  - name: "Print xml Curl"
+    shell: cmd="echo {{ second.Output.body }}" loglevel=debug
+  - name: "Test json Curl"
+    curl: url="http://ci.apigeng.com/v1/data/1k.json" http="GET"
+    register: third
+  - name: "Print josn Curl"
+    shell: cmd="echo {{ second.Output.body }}" loglevel=debug

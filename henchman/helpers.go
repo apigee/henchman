@@ -1,6 +1,8 @@
 package henchman
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -32,4 +34,19 @@ func writeTempFile(buf []byte, fname string) string {
 
 func rmTempFile(fpath string) {
 	os.Remove(fpath)
+}
+
+func printOutput(coloCode string, hostname string, taskName string, output interface{}) error {
+	fmt.Printf("Task: \"%s\"\n", taskName)
+	fmt.Println("Output: ")
+	switch output.(type) {
+	default:
+		convOutput, err := json.MarshalIndent(output, "", "  ")
+		if err != nil {
+			fmt.Errorf("Error printing output - %s", err.Error())
+		}
+		fmt.Println(string(convOutput))
+	}
+
+	return nil
 }
