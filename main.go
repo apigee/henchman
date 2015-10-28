@@ -52,6 +52,10 @@ func gatherCommands() []cli.Command {
 		Value: currentUsername(),
 		Usage: "Remote user executing this plan",
 	}
+	debugFlag := cli.BoolFlag{
+		Name:  "debug",
+		Usage: "Allows indepth output.  E.G the register map after every task",
+	}
 	// FIXME: Should this come from the transport instead.
 	// Different transports can come up with their own set of flags
 	// For now our world is just ssh
@@ -68,7 +72,7 @@ func gatherCommands() []cli.Command {
 			Name:   "exec",
 			Usage:  "Execute a plan on the given group in the inventory",
 			Action: executePlan,
-			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag),
+			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag, debugFlag),
 		},
 	}
 }
@@ -95,6 +99,9 @@ func executePlan(c *cli.Context) {
 		// FIXME: Just print out the usage info?
 		log.Fatalf("Missing path to the plan")
 	}
+	// Step 0: Set global variables
+	henchman.Debug = c.Bool("debug")
+
 	// Step 1: Validate Modules path and see if it exists
 	modulesPath := c.String("modules")
 	user := c.String("user")
