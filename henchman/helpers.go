@@ -1,8 +1,9 @@
 package henchman
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
+	//"github.com/kr/pretty"
 	"io/ioutil"
 	"os"
 	"path"
@@ -36,17 +37,51 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
-func printOutput(coloCode string, hostname string, taskName string, output interface{}) error {
-	fmt.Printf("Task: \"%s\"\n", taskName)
-	fmt.Println("Output: ")
+// recursively print a map.  Only issue is everything is out of order in a map.  Still prints nicely though
+func printRecurse(output interface{}, padding string) {
 	switch output.(type) {
-	default:
-		convOutput, err := json.MarshalIndent(output, "", "  ")
-		if err != nil {
-			fmt.Errorf("Error printing output - %s", err.Error())
+	case map[string]interface{}:
+		for key, val := range output.(map[string]interface{}) {
+			switch val.(type) {
+			case map[string]interface{}:
+				fmt.Printf("%s%v:\n", padding, key)
+				printRecurse(val, padding+"  ")
+			default:
+				fmt.Printf("%s%v: %v\n", padding, key, val)
+			}
 		}
-		fmt.Println(string(convOutput))
+	default:
+		fmt.Printf("%s%v\n", padding, output)
 	}
-
-	return nil
 }
+
+func printOutput(taskName string, output interface{}) {
+	fmt.Printf("Task: \"%s\"\n", taskName)
+	fmt.Println("Output: \n--------------------")
+	/*
+		switch output.(type) {
+		default:
+			convOutput, err := json.MarshalIndent(output, "", "  ")
+			if err != nil {
+				fmt.Errorf("Error printing output - %s", err.Error())
+			}
+			fmt.Printf(string(convOutput))
+		}
+	*/
+
+	printRecurse(output, "")
+}
+
+/*
+func printTask(task *Task, output interface{}) {
+	fmt.Printf("Task: \"%s\"\n", task.Name)
+	fmt.Println("Output: \n--------------------")
+
+	val, ok := task.Module.Params["loglevel"]
+	if ok && val == "debug" {
+		fmt.Printf("% v\n", pretty.Formatter(output))
+	} else {
+		fmt.Printf("%# v\n", pretty.Formatter(output))
+	}
+}
+*/

@@ -4,18 +4,12 @@ vars:
 hosts:
   - individual
 tasks:
+  - name: "Test xml Curl"
+    curl: url="http://ci.apigeng.com/v1/data/1k.xml" http="GET" loglevel=debug
+    register: second
+  - name: "Test json Curl"
+    curl: url="http://ci.apigeng.com/v1/data/1k.json" http="GET" 
+    register: third
   - name: "Test Curl"
     curl: url="http://httpbin.org/ip" http="GET"
     register: first
-  - name: "Print Curl"
-    shell: cmd="echo {{ first.Output.body.origin }}" loglevel=debug
-  - name: "Test xml Curl"
-    curl: url="http://ci.apigeng.com/v1/data/1k.xml" http="GET"
-    register: second
-  - name: "Print xml Curl"
-    shell: cmd="echo {{ second.Output.body }}" loglevel=debug
-  - name: "Test json Curl"
-    curl: url="http://ci.apigeng.com/v1/data/1k.json" http="GET"
-    register: third
-  - name: "Print josn Curl"
-    shell: cmd="echo {{ second.Output.body }}" loglevel=debug

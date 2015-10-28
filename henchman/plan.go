@@ -83,13 +83,11 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				fmt.Printf("%s[%s]: %s - %s\n", colorCode, actualMachine.Hostname, taskResult.State, taskResult.Msg)
 				// print only when --debug is on
 				if Debug {
-					err = printOutput(colorCode, actualMachine.Hostname, task.Name, taskResult.Output)
+					printOutput(task.Name, taskResult.Output)
+					//printTask(task, taskResult.Output)
 				}
 				fmt.Printf("%s\n", resetCode)
-				if err != nil {
-					log.Println(err)
-					return
-				}
+
 				if (taskResult.State == "error" || taskResult.State == "failure") && (!task.IgnoreErrors) {
 					break
 				}

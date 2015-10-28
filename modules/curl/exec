@@ -41,10 +41,11 @@ def convert_key_val(vals):
 
 try:
   url = params.get("url", "")
-  #url = "http://ci.apigeng.com/v1/data/1k.xml"
+  url = "http://ci.apigeng.com/v1/data/1k.json"
   http = params.get("http", "GET").upper()
   headers = convert_key_val(params.get("headers", ""))
   data = convert_key_val(params.get("data", ""))
+  loglevel = params.get("loglevel", "")
   
   if not url:
     raise Exception("Url parameter is required")
@@ -64,12 +65,14 @@ try:
   result["msg"] = "http request successfully processed"
 
   c_type = dict(r.headers)['Content-Type']
-  if "xml" in c_type:
+  if loglevel == "debug":
+    payload = str(r.text)
+  elif "xml" in c_type:
     payload = xmltodict.parse(r.text)
   elif "json" in c_type:
     payload = ast.literal_eval(r.text)
   else:
-    result["msg"] += ". Content-Type %s is not supported" % c_type
+    result["msg"] += ". Content-Type %s is not supported.  Payload stored as a string." % c_type
     payload = str(r.text)
 
   result["output"] = {'status': r.status_code, 'headers': dict(r.headers), 'body': payload}
