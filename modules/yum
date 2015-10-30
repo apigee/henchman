@@ -24,7 +24,7 @@ import subprocess
 # package: package name that will be installed via yum
 # loglevel: if debug, it shows you the entire output as part of 'output' key
 def is_installed(name):
-    command = ["yum","list","installed","%s" % name]
+    command = ["yum","list","installed"] + name.split()
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, err = p.communicate()
     if "No matching Packages" in err:
@@ -48,13 +48,13 @@ try:
     command = ""
     if installed:
         if state == "absent":
-            command = ["yum", "remove", "-y", "%s" % name]
+            command = ["yum", "remove", "-y"] + name.split()
         else:
             result['msg'] = "Package %s already present" % name
             result['status'] = "ok"
     else:
         if state == "present" or state == "latest":
-            command = ["yum", "install", "-y", "%s" % name]
+            command = ["yum", "install", "-y"] + name.split()
         else:
             result['msg'] = "Package %s absent" % name
             result['status'] = "ok"
