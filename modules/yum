@@ -41,7 +41,7 @@ try:
     # check if state provided is valid
     valid_state = [s for s in possible_states if state == s]
     if valid_state == []:
-        raise Exception("Valid states are one of %s ", ','.join(possible_states))
+        raise Exception("Valid states are one of %s " % ','.join(possible_states))
 
     # check if package is already installed
     installed = is_installed(name)
