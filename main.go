@@ -1,8 +1,8 @@
 package main
 
 import (
+	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 
@@ -17,7 +17,7 @@ func currentUsername() string {
 	// FIXME: Do we even care for Windows?
 	currUser := os.Getenv("USER")
 	if currUser == "" {
-		log.Println("Couldn't get current username. Assuming root")
+		log.Warn("Couldn't get current username. Assuming root")
 		return "root"
 	}
 	return currUser
@@ -97,7 +97,7 @@ func executePlan(c *cli.Context) {
 	args := c.Args()
 	if len(args) == 0 {
 		// FIXME: Just print out the usage info?
-		log.Fatalf("Missing path to the plan")
+		log.Fatal("Missing path to the plan")
 	}
 	// Step 0: Set global variables
 	henchman.Debug = c.Bool("debug")
@@ -108,7 +108,10 @@ func executePlan(c *cli.Context) {
 	keyfile := c.String("keyfile")
 	_, err := os.Stat(modulesPath)
 	if err != nil {
-		log.Fatalf("Error when validating the modules directory - %s\n", err.Error())
+		log.WithFields(log.Fields{
+			"mod path": modulesPath,
+			"error":    err.Error(),
+		}).Fatal("Error Validating Modules Dir")
 	}
 	henchman.ModuleSearchPath = append(henchman.ModuleSearchPath, modulesPath)
 
@@ -125,25 +128,34 @@ func executePlan(c *cli.Context) {
 
 	inv, err := inventorySource.Load(inventoryConfig)
 	if err != nil {
-		log.Fatalf("Error loading inventory - %s\n", err.Error())
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Fatal("Error Loading inventory", "error", err.Error())
 	}
 
 	// Step 3: Read the planFile
 	planFile := args[0]
 	planBuf, err := ioutil.ReadFile(planFile)
 	if err != nil {
-		log.Fatalf("Error when reading plan `%s': %s", planFile, err.Error())
+		log.WithFields(log.Fields{
+			"plan":  planFile,
+			"error": err.Error(),
+		}).Fatal("Error Reading plan")
 	}
 	invGroups, err := henchman.GetInventoryGroups(planBuf)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Fatal("Error Getting Inv Groups")
 	}
 	inventory := inv.GetInventoryForGroups(invGroups)
 	machines, err := inventory.GetMachines(tc)
 
 	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Fatal("Error Preprocessing Plan")
 	}
 
 	setInventoryVars(plan, inv)
@@ -151,6 +163,7 @@ func executePlan(c *cli.Context) {
 }
 
 func main() {
+	log.SetLevel(log.DebugLevel)
 	app := cli.NewApp()
 	app.Name = "henchman"
 	app.Usage = "Orchestration framework"

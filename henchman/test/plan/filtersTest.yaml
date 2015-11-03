@@ -1,0 +1,14 @@
+name: "Filter test plan"
+vars:
+  service:
+    - "iptables"
+    - "jello"
+    - "hello"
+    - "ok"
+hosts:
+  - individual
+tasks:
+  - name: "Task One"
+    shell: cmd="echo hello" loglevel=debug
+    when: '"hello" not in vars.service'
+    local: true

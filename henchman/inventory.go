@@ -2,8 +2,8 @@ package henchman
 
 import (
 	"fmt"
+	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
-	"log"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -146,7 +146,10 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		for k, v := range henchmanVars {
 			tcCurr[k.(string)] = v.(string)
 		}
-		log.Println("Transport Config for machine", machine.Hostname, ": ", tcCurr)
+		log.WithFields(log.Fields{
+			"host":   machine.Hostname,
+			"config": tcCurr,
+		}).Info("Transport Config for machine")
 		// FIXME: This is frigging wrong
 		// See #47
 		ssht, err := NewSSH(&tcCurr)

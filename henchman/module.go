@@ -83,8 +83,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 	extraArgs = stripQuotes(extraArgs)
 
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("Invalid input: %s", err)
-		return extraArgs, err
+		return extraArgs, fmt.Errorf("Invalid input: %s", err)
 	}
 	return extraArgs, nil
 }
