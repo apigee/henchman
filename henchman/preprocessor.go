@@ -136,12 +136,12 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				return ErrWrongType(field, val, "string")
 			}
 			if numModule > 0 {
-				return fmt.Errorf("\"%v\" is an extra Module.  Can only have one module per task.", field)
+				return fmt.Errorf("'%v' is an extra Module.  Can only have one module per task.", field)
 			}
 
 			tp.Module, err = NewModule(field, params)
 			if err != nil {
-				return fmt.Errorf("Module %v: %s", field, err.Error())
+				return fmt.Errorf("Module %v - %s", field, err.Error())
 			}
 			numModule++
 		}
@@ -175,7 +175,7 @@ func preprocessTasksHelper(taskFileName string, prevVars VarsMap, prevWhen strin
 	var tmpPx PlanProxy
 	err = yaml.Unmarshal(buf, &tmpPx)
 	if err != nil {
-		return nil, fmt.Errorf("Unmarshalling \"%s\" - %s", taskFileName, err.Error())
+		return nil, fmt.Errorf("Unmarshalling '%s' - %s", taskFileName, err.Error())
 	}
 
 	// since it's using the included task file proxy
