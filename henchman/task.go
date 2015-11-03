@@ -127,7 +127,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		return &TaskResult{State: "skipped"}, nil
 	}
 
-	modPath, _, err := task.Module.Resolve()
+	modPath, err := task.Module.Resolve()
 	if err != nil {
 		return &TaskResult{}, fmt.Errorf("Module Path :: %s", err.Error())
 	}
