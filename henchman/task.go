@@ -3,10 +3,9 @@ package henchman
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
-	"log"
 	"os/exec"
 	"path"
 	"strconv"
@@ -57,8 +56,7 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 func renderValue(value string, varsMap VarsMap, registerMap map[string]interface{}) (string, error) {
 	tmpl, err := pongo2.FromString(value)
 	if err != nil {
-		log.Println("tmpl error")
-		return "", err
+		return "", fmt.Errorf("Templating :: %s", err.Error())
 	}
 
 	ctxt := pongo2.Context{"vars": varsMap}
@@ -66,8 +64,7 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 
 	out, err := tmpl.Execute(ctxt)
 	if err != nil {
-		log.Println("execute error")
-		return "", err
+		return "", fmt.Errorf("Executing :: %s", err.Error())
 	}
 	return out, nil
 }
@@ -131,18 +128,25 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 	modPath, err := task.Module.Resolve()
 	if err != nil {
-		return &TaskResult{}, err
+		return &TaskResult{}, fmt.Errorf("Module Path :: %s", err.Error())
 	}
 
 	execOrder, err := task.Module.ExecOrder()
+	// currently err will always be nil
 	if err != nil {
-		log.Printf("Error while creating remote module path\n")
-		return &TaskResult{}, err
+		return &TaskResult{}, fmt.Errorf("Exec Order :: %s", err.Error())
 	}
 
 	remoteModDir := "${HOME}/.henchman"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
-	log.Println("exec order", execOrder)
+	// NOTE: Info or Debug level
+	if Debug {
+		log.WithFields(log.Fields{
+			"task":   task.Name,
+			"module": task.Module.Name,
+			"order":  execOrder,
+		}).Debug("Exec Order")
+	}
 
 	var taskResult TaskResult
 	for _, execStep := range execOrder {
@@ -152,77 +156,83 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
 				nil, false)
 			if err != nil {
-				log.Printf("Error while creating remote module path\n")
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Creating Mod Path :: %s", err.Error())
 			}
 
 		case "put_module":
 			// copies module from local location to remote location
 			err = machine.Transport.Put(modPath, remoteModDir, "dir")
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Putting Module :: %s", err.Error())
 			}
+
 		case "tar_module":
 			// creates a tar of the module
 			cmd := "tar"
 			args := []string{"-cvf", modPath + ".tar", modPath}
 			if err := exec.Command(cmd, args...).Run(); err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Tarring Module :: %s", err.Error())
 			}
 		case "put_tar_module":
 			// copies module from local location to remote location
 			err = machine.Transport.Put(modPath+".tar", remoteModDir, "dir")
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Putting Tar Module :: %s", err.Error())
 			}
 
 			// deletes module.tar from local modules folder
 			cmd := "rm"
 			args := []string{modPath + ".tar"}
 			if err := exec.Command(cmd, args...).Run(); err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Putting Tar Module :: %s", err.Error())
 			}
 		case "untar_module":
 			// untars the module
 			cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModPath+".tar", remoteModDir)
 			_, err := machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Untar Module :: %s", err.Error())
 			}
 
 			cmd = fmt.Sprintf("/bin/rm %s", remoteModPath+".tar")
 			_, err = machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Untar Module :: %s", err.Error())
 			}
 		case "exec_tar_module":
 			// executes module by calling the copied module remotely
 			// NOTE: may want to just change the way remoteModPath is created
 			newModPath := remoteModDir + "/modules/" + task.Module.Name + "/exec"
-			log.Printf("Executing script - %s\n", newModPath)
+			log.WithFields(log.Fields{
+				"mod path": newModPath,
+			}).Info("Executing Script")
+
 			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Exec Tar Module :: Json :: %s", err.Error())
 			}
 			buf, err := machine.Transport.Exec(newModPath, jsonParams, task.Sudo)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Exec Tar Module :: %s", err.Error())
 			}
+
 			//This should not be empty
 			err = setTaskResult(&taskResult, buf)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Exec Tar Module :: %s", err.Error())
 			}
 		case "exec_module":
 			// executes module by calling the copied module remotely
-			log.Printf("Executing script - %s\n", remoteModPath)
+			log.WithFields(log.Fields{
+				"mod path": remoteModPath,
+			}).Info("Executing Script")
 			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Exec Module :: Json :: %s", err.Error())
 			}
 			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Exec Module :: %s", err.Error())
 			}
 			//This should not be empty
 			err = setTaskResult(&taskResult, buf)
@@ -234,12 +244,12 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			//copies file from remote .henchman location to expected location
 			remoteSrcPath, present := moduleParams["src"]
 			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
+				return &TaskResult{}, fmt.Errorf("Unable to find 'src' parameter")
 			}
 
 			dstPath, present := moduleParams["dest"]
 			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'dest' parameter")
+				return &TaskResult{}, fmt.Errorf("Unable to find 'dest' parameter")
 			}
 
 			_, localSrcFile := path.Split(remoteSrcPath)
@@ -255,13 +265,13 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 				if err != nil {
 					return &TaskResult{}, err
 				}
-				log.Println(taskResult)
+				//log.Println(taskResult)
 			}
 		case "put_file":
 			//scp's file from local location to remote location
 			srcPath, present := moduleParams["src"]
 			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
+				return &TaskResult{}, fmt.Errorf("Unable to find 'src' parameter")
 			}
 			_, srcFile := path.Split(srcPath)
 			dstPath := path.Join(remoteModDir, srcFile)
@@ -269,21 +279,22 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			err = machine.Transport.Put(srcPath, dstPath, "file")
 
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Putting File :: %s", err.Error())
 			}
 
 		case "process_template":
 			srcPath, present := moduleParams["src"]
 			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
+				return &TaskResult{}, fmt.Errorf("Unable to find 'src' parameter")
 			}
+
 			tpl, err := pongo2.FromFile(srcPath)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Process Template :: %s", err.Error())
 			}
 			out, err := tpl.Execute(pongo2.Context{"vars": vars})
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Process Template :: %s", err.Error())
 			}
 			tmpDir, srcFile := path.Split(srcPath)
 			srcFile = srcFile + "_" + machine.Hostname
@@ -292,7 +303,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			err = ioutil.WriteFile(tmpFile, []byte(out), 0644)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, fmt.Errorf("Process Template :: %s", err.Error())
 			}
 			moduleParams["srcOrig"] = srcPath
 			moduleParams["src"] = tmpFile

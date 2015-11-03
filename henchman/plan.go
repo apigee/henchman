@@ -1,8 +1,7 @@
 package henchman
 
 import (
-	"fmt"
-	"log"
+	log "gopkg.in/Sirupsen/logrus.v0"
 	"sync"
 
 	"github.com/mgutz/ansi"
@@ -42,7 +41,10 @@ func localhost() *Machine {
 func (plan *Plan) Execute(machines []*Machine) error {
 	local := localhost()
 
-	log.Printf("Executing plan `%s' on %d machines\n", plan.Name, len(machines))
+	log.WithFields(log.Fields{
+		"plan":         plan.Name,
+		"num machines": len(machines),
+	}).Info("Executing plan")
 
 	resetCode := statuses["reset"]
 	wg := new(sync.WaitGroup)
@@ -71,22 +73,38 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				err := task.Render(vars, registerMap)
 
 				if err != nil {
-					log.Printf("Error Rendering Task: %v.  Received: %v\n", task.Name, err.Error())
+					log.WithFields(log.Fields{
+						"task":  task.Name,
+						"error": err.Error(),
+					}).Error("Error Rendering Task")
+
 					return
 				}
+
 				taskResult, err := task.Run(actualMachine, vars, registerMap)
 				if err != nil {
-					log.Println(err)
+					log.WithFields(log.Fields{
+						"task":  task.Name,
+						"error": err.Error(),
+					}).Error("Error Running Task")
+
 					return
 				}
+
 				colorCode := statuses[taskResult.State]
-				fmt.Printf("%s[%s]: %s - %s\n", colorCode, actualMachine.Hostname, taskResult.State, taskResult.Msg)
+
+				//NOTE: make a color code create function
+				log.WithFields(log.Fields{
+					"task":  task.Name,
+					"host":  actualMachine.Hostname,
+					"state": colorCode + taskResult.State + resetCode,
+					"msg":   taskResult.Msg,
+				}).Info("Task Complete")
+
 				// print only when --debug is on
 				if Debug {
 					printOutput(task.Name, taskResult.Output)
-					//printTask(task, taskResult.Output)
 				}
-				fmt.Printf("%s\n", resetCode)
 
 				if (taskResult.State == "error" || taskResult.State == "failure") && (!task.IgnoreErrors) {
 					break

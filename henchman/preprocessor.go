@@ -318,10 +318,12 @@ func newPlanProxy(buf []byte) (PlanProxy, error) {
 	return px, nil
 }
 
+// FIXME: it'll return a false error if there's an error parsing plan
+// NOTE: for now throwing in a hardcoded error
 func GetInventoryGroups(buf []byte) ([]string, error) {
 	px, err := newPlanProxy(buf)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not find inventory groups")
 	}
 	return px.InventoryGroups, nil
 

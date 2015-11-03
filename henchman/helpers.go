@@ -3,10 +3,12 @@ package henchman
 import (
 	//"encoding/json"
 	"fmt"
+	log "gopkg.in/Sirupsen/logrus.v0"
 	//"github.com/kr/pretty"
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 )
 
 // source values will override dest values if override is true
@@ -38,26 +40,34 @@ func rmTempFile(fpath string) {
 }
 
 // recursively print a map.  Only issue is everything is out of order in a map.  Still prints nicely though
-func printRecurse(output interface{}, padding string) {
+func printRecurse(output interface{}, padding string, retVal string) string {
+	tmpVal := retVal
 	switch output.(type) {
 	case map[string]interface{}:
 		for key, val := range output.(map[string]interface{}) {
 			switch val.(type) {
 			case map[string]interface{}:
-				fmt.Printf("%s%v:\n", padding, key)
-				printRecurse(val, padding+"  ")
+				tmpVal += fmt.Sprintf("%s%v:\n", padding, key)
+				//log.Debug("%s%v:\n", padding, key)
+				tmpVal += printRecurse(val, padding+"  ", "")
 			default:
-				fmt.Printf("%s%v: %v\n", padding, key, val)
+				tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
+				//log.Debug("%s%v: %v\n", padding, key, val)
 			}
 		}
 	default:
-		fmt.Printf("%s%v\n", padding, output)
+		tmpVal += fmt.Sprintf("%s%v (%s)\n", padding, output, reflect.TypeOf(output))
+		//log.Debug("%s%v\n", padding, output)
 	}
+
+	return tmpVal
 }
 
 func printOutput(taskName string, output interface{}) {
-	fmt.Printf("Task: \"%s\"\n", taskName)
-	fmt.Println("Output: \n--------------------")
+	log.WithFields(log.Fields{
+		"name":   taskName,
+		"output": printRecurse(output, "", "\n"),
+	}).Debug("Task Output")
 	/*
 		switch output.(type) {
 		default:
@@ -65,11 +75,9 @@ func printOutput(taskName string, output interface{}) {
 			if err != nil {
 				fmt.Errorf("Error printing output - %s", err.Error())
 			}
-			fmt.Printf(string(convOutput))
+			log.Debug(string(convOutput))
 		}
 	*/
-
-	printRecurse(output, "")
 }
 
 /*
