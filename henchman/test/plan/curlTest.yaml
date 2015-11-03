@@ -2,7 +2,7 @@ name: "Plan with curl"
 vars:
    service: iptables
 hosts:
-  - all
+  - second
 tasks:
   - name: "Test xml Curl"
     curl: url="http://ci.apigeng.com/v1/data/1k.xml" http="GET" loglevel=debug

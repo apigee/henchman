@@ -204,6 +204,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			newModPath := remoteModDir + "/modules/" + task.Module.Name + "/exec"
 			log.WithFields(log.Fields{
 				"mod path": newModPath,
+				"host":     task.Vars["current_host"],
 				"task":     task.Name,
 				"module":   task.Module.Name,
 			}).Info("Executing Module in Task")
@@ -226,6 +227,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			// executes module by calling the copied module remotely
 			log.WithFields(log.Fields{
 				"mod path": remoteModPath,
+				"hosts":    task.Vars["current_host"],
 				"task":     task.Name,
 				"module":   task.Module.Name,
 			}).Info("Executing Module in Task")
