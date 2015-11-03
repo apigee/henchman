@@ -205,7 +205,9 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			newModPath := remoteModDir + "/modules/" + task.Module.Name + "/exec"
 			log.WithFields(log.Fields{
 				"mod path": newModPath,
-			}).Info("Executing Script")
+				"task":     task.Name,
+				"module":   task.Module.Name,
+			}).Info("Executing Module in Task")
 
 			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
@@ -225,7 +227,10 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			// executes module by calling the copied module remotely
 			log.WithFields(log.Fields{
 				"mod path": remoteModPath,
-			}).Info("Executing Script")
+				"task":     task.Name,
+				"module":   task.Module.Name,
+			}).Info("Executing Module in Task")
+
 			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
 				return &TaskResult{}, fmt.Errorf("Exec Module :: Json :: %s", err.Error())

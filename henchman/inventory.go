@@ -60,7 +60,7 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 
 	for key, val := range yi.Groups {
 		if key == "hosts" {
-			return Inventory{}, fmt.Errorf("\"hosts\" is not a valid group name")
+			return Inventory{}, fmt.Errorf("'hosts' is not a valid group name")
 		}
 		if val.Hosts == nil {
 			return Inventory{}, fmt.Errorf("%v requires a hosts field.  Refer to README.md for proper formatting", key)
@@ -146,10 +146,12 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		for k, v := range henchmanVars {
 			tcCurr[k.(string)] = v.(string)
 		}
-		log.WithFields(log.Fields{
-			"host":   machine.Hostname,
-			"config": tcCurr,
-		}).Info("Transport Config for machine")
+		if Debug {
+			log.WithFields(log.Fields{
+				"host":   machine.Hostname,
+				"config": tcCurr,
+			}).Debug("Transport Config for machine")
+		}
 		// FIXME: This is frigging wrong
 		// See #47
 		ssht, err := NewSSH(&tcCurr)

@@ -75,16 +75,23 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				if err != nil {
 					log.WithFields(log.Fields{
 						"task":  task.Name,
+						"host":  actualMachine.Hostname,
 						"error": err.Error(),
 					}).Error("Error Rendering Task")
 
 					return
 				}
 
+				log.WithFields(log.Fields{
+					"task": task.Name,
+					"host": actualMachine.Hostname,
+				}).Info("Starting Task")
+
 				taskResult, err := task.Run(actualMachine, vars, registerMap)
 				if err != nil {
 					log.WithFields(log.Fields{
 						"task":  task.Name,
+						"host":  actualMachine.Hostname,
 						"error": err.Error(),
 					}).Error("Error Running Task")
 

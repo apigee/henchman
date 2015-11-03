@@ -51,9 +51,11 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 	sshTransport.Host = _config["hostname"]
 	port, parseErr := strconv.ParseUint(_config["port"], 10, 16)
 	if parseErr != nil || port == 0 {
-		if Debug {
-			log.Debug("Assuming default port to be 22")
-		}
+		/*
+			if Debug {
+				log.Debug("Assuming default port to be 22")
+			}
+		*/
 		sshTransport.Port = 22
 	} else {
 		sshTransport.Port = uint16(port)
@@ -112,7 +114,7 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 		TTY_OP_OSPEED: 14400,
 	}
 	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
-		return nil, fmt.Errorf("request for psuedo terminal failed: ", err.Error())
+		return nil, fmt.Errorf("request for psuedo terminal failed: %s", err.Error())
 	}
 	session.Stdout = &b
 	if err := session.Run(cmd); err != nil {
@@ -134,10 +136,11 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 	}
 
 	cmd = fmt.Sprintf("echo '%s' | %s", stdin, cmd)
-	if Debug {
-		log.Debug(cmd)
-	}
-
+	/*
+		if Debug {
+			log.Debug(cmd)
+		}
+	*/
 	return sshTransport.execCmd(session, cmd)
 }
 

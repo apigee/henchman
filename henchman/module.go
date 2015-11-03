@@ -1,10 +1,9 @@
 package henchman
 
 import (
-	//"errors"
 	"bufio"
 	"bytes"
-	"errors"
+	//"errors"
 	"fmt"
 	"os"
 	"path"
@@ -75,7 +74,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 			extraArgs[splitValues[0]] = splitValues[1]
 		} else {
 			// this check takes care of 2nd part of " def'" part of 'abc def'
-			return nil, errors.New("Module args are invalid")
+			return nil, fmt.Errorf("Module args are invalid")
 		}
 	}
 	// remove all quotes. Value for the respective key
@@ -83,7 +82,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 	extraArgs = stripQuotes(extraArgs)
 
 	if err := scanner.Err(); err != nil {
-		return extraArgs, fmt.Errorf("Invalid input: %s", err)
+		return extraArgs, fmt.Errorf("Invalid input - %s", err)
 	}
 	return extraArgs, nil
 }
