@@ -1,5 +1,5 @@
 package henchman
 
 var (
-	Debug bool
+	DebugFlag bool
 )

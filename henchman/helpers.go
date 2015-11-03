@@ -39,6 +39,13 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
+// wrapper for debug
+func Debug(fields log.Fields, msg string) {
+	if DebugFlag {
+		log.WithFields(fields).Debug(msg)
+	}
+}
+
 // recursively print a map.  Only issue is everything is out of order in a map.  Still prints nicely though
 func printRecurse(output interface{}, padding string, retVal string) string {
 	tmpVal := retVal
@@ -79,17 +86,3 @@ func printOutput(taskName string, output interface{}) {
 		}
 	*/
 }
-
-/*
-func printTask(task *Task, output interface{}) {
-	fmt.Printf("Task: \"%s\"\n", task.Name)
-	fmt.Println("Output: \n--------------------")
-
-	val, ok := task.Module.Params["loglevel"]
-	if ok && val == "debug" {
-		fmt.Printf("% v\n", pretty.Formatter(output))
-	} else {
-		fmt.Printf("%# v\n", pretty.Formatter(output))
-	}
-}
-*/

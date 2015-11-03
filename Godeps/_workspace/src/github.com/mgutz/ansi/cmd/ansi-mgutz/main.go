@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mattn/go-colorable"
-	"github.com/apigee/henchman/Godeps/_workspace/src/github.com/mgutz/ansi"
+	"github.com/mgutz/ansi"
 )
 
 func main() {

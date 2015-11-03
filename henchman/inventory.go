@@ -146,12 +146,12 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		for k, v := range henchmanVars {
 			tcCurr[k.(string)] = v.(string)
 		}
-		if Debug {
-			log.WithFields(log.Fields{
-				"host":   machine.Hostname,
-				"config": tcCurr,
-			}).Debug("Transport Config for machine")
-		}
+
+		Debug(log.Fields{
+			"host":   machine.Hostname,
+			"config": tcCurr,
+		}, "Transport Config for machine")
+
 		// FIXME: This is frigging wrong
 		// See #47
 		ssht, err := NewSSH(&tcCurr)

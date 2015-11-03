@@ -8,13 +8,13 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/subtle"
 	"crypto/rand"
+	"crypto/subtle"
 	"errors"
 	"io"
 	"math/big"
 
-	"github.com/apigee/henchman/Godeps/_workspace/src/golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/curve25519"
 )
 
 const (

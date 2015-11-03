@@ -140,13 +140,12 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 	remoteModDir := "${HOME}/.henchman"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 	// NOTE: Info or Debug level
-	if Debug {
-		log.WithFields(log.Fields{
-			"task":   task.Name,
-			"module": task.Module.Name,
-			"order":  execOrder,
-		}).Debug("Exec Order")
-	}
+	Debug(log.Fields{
+		"task":   task.Name,
+		"host":   task.Vars["current_host"],
+		"module": task.Module.Name,
+		"order":  execOrder,
+	}, "Exec Order")
 
 	var taskResult TaskResult
 	for _, execStep := range execOrder {
