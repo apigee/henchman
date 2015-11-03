@@ -100,7 +100,7 @@ func executePlan(c *cli.Context) {
 		log.Fatal("Missing path to the plan")
 	}
 	// Step 0: Set global variables
-	henchman.Debug = c.Bool("debug")
+	henchman.DebugFlag = c.Bool("debug")
 
 	// Step 1: Validate Modules path and see if it exists
 	modulesPath := c.String("modules")

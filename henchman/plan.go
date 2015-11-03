@@ -59,17 +59,19 @@ func (plan *Plan) Execute(machines []*Machine) error {
 			var actualMachine *Machine
 			for _, task := range plan.Tasks {
 				// copy of task.Vars. It'll be different for each machine
-				vars := make(VarsMap)
-				MergeMap(plan.Vars, vars, true)
-				MergeMap(machine.Vars, vars, true)
-				MergeMap(task.Vars, vars, true)
 				if task.Local == true {
 					actualMachine = local
 				} else {
 					actualMachine = machine
 				}
 
-				vars["current_host"] = actualMachine.Hostname
+				vars := make(VarsMap)
+				MergeMap(plan.Vars, vars, true)
+				MergeMap(machine.Vars, vars, true)
+
+				task.Vars["current_host"] = actualMachine.Hostname
+				MergeMap(task.Vars, vars, true)
+
 				err := task.Render(vars, registerMap)
 
 				if err != nil {
@@ -109,9 +111,11 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				}).Info("Task Complete")
 
 				// print only when --debug is on
-				if Debug {
-					printOutput(task.Name, taskResult.Output)
-				}
+				Debug(log.Fields{
+					"task":   task.Name,
+					"host":   actualMachine.Hostname,
+					"output": printRecurse(taskResult.Output, "", "\n"),
+				}, "Task Output")
 
 				if (taskResult.State == "error" || taskResult.State == "failure") && (!task.IgnoreErrors) {
 					break
