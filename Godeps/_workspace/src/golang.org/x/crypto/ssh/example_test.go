@@ -12,8 +12,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/apigee/henchman/Godeps/_workspace/src/golang.org/x/crypto/ssh"
-	"github.com/apigee/henchman/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func ExampleNewServerConn() {

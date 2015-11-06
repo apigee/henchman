@@ -312,8 +312,7 @@ func newPlanProxy(buf []byte) (PlanProxy, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
-		fmt.Errorf("Error processing plan - %s", err.Error())
-		return px, err
+		return px, fmt.Errorf("Error processing plan - %s", err.Error())
 	}
 	return px, nil
 }

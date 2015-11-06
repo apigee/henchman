@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/apigee/henchman/Godeps/_workspace/src/golang.org/x/crypto/ssh/testdata"
+	"golang.org/x/crypto/ssh/testdata"
 )
 
 func rawKey(pub PublicKey) interface{} {
