@@ -139,11 +139,11 @@ func (module *Module) Resolve() (modulePath string, err error) {
 }
 
 func (module *Module) ExecOrder() ([]string, error) {
-	execOrder := map[string][]string{"default": []string{"create_dir", "put_module", "exec_module"},
-		"copy": []string{"create_dir", "put_module", "put_file", "copy_remote", "exec_module"},
-		"template": []string{"create_dir", "put_module", "process_template", "put_file", "copy_remote",
+	execOrder := map[string][]string{"default": []string{"exec_module"},
+		"copy": []string{"put_file", "copy_remote", "exec_module"},
+		"template": []string{"process_template", "put_file", "copy_remote",
 			"reset_src", "exec_module"},
-		"curl": []string{"create_dir", "tar_module", "put_tar_module", "untar_module", "exec_tar_module"},
+		"curl": []string{"exec_tar_module"},
 	}
 
 	var defaultOrder []string

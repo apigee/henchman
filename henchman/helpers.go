@@ -2,9 +2,10 @@ package henchman
 
 import (
 	//"encoding/json"
+	"archive/tar"
 	"fmt"
 	log "gopkg.in/Sirupsen/logrus.v0"
-	//"github.com/kr/pretty"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -70,19 +71,53 @@ func printRecurse(output interface{}, padding string, retVal string) string {
 	return tmpVal
 }
 
-func printOutput(taskName string, output interface{}) {
-	log.WithFields(log.Fields{
-		"name":   taskName,
-		"output": printRecurse(output, "", "\n"),
-	}).Debug("Task Output")
-	/*
-		switch output.(type) {
-		default:
-			convOutput, err := json.MarshalIndent(output, "", "  ")
-			if err != nil {
-				fmt.Errorf("Error printing output - %s", err.Error())
+func tarFile(fName string, tarball *tar.Writer) error {
+	info, err := os.Stat(fName)
+	if err != nil {
+		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+	}
+
+	header, err := tar.FileInfoHeader(info, info.Name())
+	if err != nil {
+		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+	}
+	header.Name = fName
+
+	if err := tarball.WriteHeader(header); err != nil {
+		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+	}
+
+	file, err := os.Open(fName)
+	if err != nil {
+		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(tarball, file); err != nil {
+		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+	}
+	return nil
+}
+
+// recursively iterates through directories to tar
+func tarDir(fName string, tarball *tar.Writer) error {
+	infos, err := ioutil.ReadDir(fName)
+	if err != nil {
+		return fmt.Errorf("Tarring :: %s", fName, err.Error())
+	}
+
+	for _, info := range infos {
+		newPath := path.Join(fName, info.Name())
+		if info.IsDir() {
+			if err := tarDir(newPath, tarball); err != nil {
+				return err
 			}
-			log.Debug(string(convOutput))
+		} else {
+			if err := tarFile(newPath, tarball); err != nil {
+				return err
+			}
 		}
-	*/
+	}
+
+	return nil
 }

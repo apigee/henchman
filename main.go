@@ -99,6 +99,7 @@ func executePlan(c *cli.Context) {
 		// FIXME: Just print out the usage info?
 		log.Fatal("Missing path to the plan")
 	}
+
 	// Step 0: Set global variables
 	henchman.DebugFlag = c.Bool("debug")
 
@@ -150,6 +151,7 @@ func executePlan(c *cli.Context) {
 	}
 	inventory := inv.GetInventoryForGroups(invGroups)
 	machines, err := inventory.GetMachines(tc)
+	//_, err = inventory.GetMachines(tc)
 
 	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
@@ -159,6 +161,10 @@ func executePlan(c *cli.Context) {
 	}
 
 	setInventoryVars(plan, inv)
+	if err = plan.Setup(machines); err != nil {
+		log.Fatal(err.Error())
+	}
+
 	plan.Execute(machines)
 }
 

@@ -152,21 +152,6 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 	for _, execStep := range execOrder {
 		switch execStep {
 		// Exec Order for Default
-		case "create_dir":
-			// creates remote .henchman location
-			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
-				nil, false)
-			if err != nil {
-				return &TaskResult{}, fmt.Errorf("Creating Mod Path :: %s", err.Error())
-			}
-
-		case "put_module":
-			// copies module from local location to remote location
-			err = machine.Transport.Put(modPath, remoteModDir, "dir")
-			if err != nil {
-				return &TaskResult{}, fmt.Errorf("Putting Module :: %s", err.Error())
-			}
-
 		case "exec_module":
 			// executes module by calling the copied module remotely
 			log.WithFields(log.Fields{
