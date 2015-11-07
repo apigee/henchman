@@ -103,7 +103,7 @@ func tarFile(fName string, tarball *tar.Writer) error {
 func tarDir(fName string, tarball *tar.Writer) error {
 	infos, err := ioutil.ReadDir(fName)
 	if err != nil {
-		return fmt.Errorf("Tarring :: %s", fName, err.Error())
+		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
 	}
 
 	for _, info := range infos {
