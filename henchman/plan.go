@@ -42,28 +42,69 @@ func localhost() *Machine {
 	return &localhost
 }
 
+func transferUntarModules(machine *Machine, remoteModDir string, target string) {
+	// create dir
+	if _, err := machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
+		nil, false); err != nil {
+		log.WithFields(log.Fields{
+			"process":    "Creating Remote Module Dir",
+			"remotePath": remoteModDir,
+			"error":      err.Error(),
+			"host":       machine.Hostname,
+		}).Fatal("Error in plan setup")
+	}
+
+	// throw a check the check sum stuff in here somewhere
+	// transfer tar module
+	if err := machine.Transport.Put(target, remoteModDir, "dir"); err != nil {
+		log.WithFields(log.Fields{
+			"process":    "Putting tar module in remote path",
+			"remotePath": remoteModDir,
+			"error":      err.Error(),
+			"host":       machine.Hostname,
+		}).Fatal("Error in plan setup")
+	}
+
+	// untar the modules
+	cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModDir+target, remoteModDir)
+	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
+		log.WithFields(log.Fields{
+			"process":    "Untarring module in remote path",
+			"remotePath": remoteModDir,
+			"error":      err.Error(),
+			"host":       machine.Hostname,
+		}).Fatal("Error in plan setup")
+	}
+
+	// remove tar file
+	cmd = fmt.Sprintf("/bin/rm %s", remoteModDir+target)
+	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
+		log.WithFields(log.Fields{
+			"process":    "Removing tar file in remote path",
+			"remotePath": remoteModDir,
+			"error":      err.Error(),
+			"host":       machine.Hostname,
+		}).Fatal("Error in plan setup")
+	}
+}
+
 // Moves all modules to each host
-func (plan *Plan) Setup(machines []*Machine) error {
-	// initialize two sets to hold module names
-	modSet := make(map[string]struct{})
-	localSet := make(map[string]struct{})
+func (plan *Plan) Setup(machines []*Machine) {
+	log.WithFields(log.Fields{
+		"plan":         plan.Name,
+		"num machines": len(machines),
+	}).Info("Setting up plan")
+
+	// initialize set to hold module names
+	modSet := make(map[string]bool)
 
 	// get the curdir and move to location of modules
-	// NOTE:  make sure to check every search path
 	curDir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("Plan Setup :: GetWd :: %s", err.Error())
-	}
-	os.Chdir("modules")
-
-	// gather all modules needed
-	// NOTE: just transfer everything to local too?
-	for _, task := range plan.Tasks {
-		if _, ok := localSet[task.Module.Name]; !ok && task.Local {
-			localSet[task.Module.Name] = struct{}{}
-		} else if _, ok := modSet[task.Module.Name]; !ok {
-			modSet[task.Module.Name] = struct{}{}
-		}
+		log.WithFields(log.Fields{
+			"process": "os.Getwd()",
+			"error":   err.Error(),
+		}).Fatal("Error in plan setup")
 	}
 
 	// create the tar file to be filled
@@ -71,68 +112,91 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	target := "modules.tar"
 	tarfile, err := os.Create(target)
 	if err != nil {
-		return err
+		log.WithFields(log.Fields{
+			"process": "creating target file modules.tar",
+			"error":   err.Error(),
+		}).Fatal("Error in plan setup")
 	}
 	tarball := tar.NewWriter(tarfile)
 
-	// tars all modules needed
+	// gather all modules needed and verify they exist
+	// NOTE: just transfer everything to local
+	for _, task := range plan.Tasks {
+		/*
+			if _, ok := localSet[task.Module.Name]; !ok && task.Local {
+				localSet[task.Module.Name] = struct{}{}
+			} else if _, ok := modSet[task.Module.Name]; !ok {
+		*/
+		if _, ok := modSet[task.Module.Name]; !ok {
+			if _, err := task.Module.Resolve(); err != nil {
+				log.Fatal(err.Error())
+			}
+			modSet[task.Module.Name] = false
+		}
+	}
+
+	// tars all modules needed on remote machines
 	// NOTE: maybe we gotta zip them too
-	for key, _ := range modSet {
-		info, err := os.Stat(key)
-		if err != nil {
-			return fmt.Errorf("%s :: %s", key, err.Error())
+	for _, modPath := range ModuleSearchPath {
+
+		// change to mod path
+		os.Chdir(modPath)
+
+		// add all modules in every search path
+		for modName, added := range modSet {
+
+			// if module has not been tarred add it
+			if !added {
+				info, err := os.Stat(modName)
+				if err != nil {
+					Debug(log.Fields{
+						"process": "getting module info",
+						"modPath": modPath,
+						"module":  modName,
+						"error":   err.Error(),
+					}, "Module not found")
+				} else {
+					if info.IsDir() {
+						if err = tarDir(modName, tarball); err != nil {
+							log.WithFields(log.Fields{
+								"process": "tarring dir",
+								"module":  modName,
+								"error":   err.Error(),
+							}).Fatal("Error in plan setup")
+						}
+					} else {
+						if err = tarFile(modName, tarball); err != nil {
+							log.WithFields(log.Fields{
+								"process": "tarring file",
+								"module":  modName,
+								"error":   err.Error(),
+							}).Fatal("Error in plan setup")
+						}
+					}
+
+					// set module added to be true
+					modSet[modName] = true
+				}
+			}
 		}
 
-		if info.IsDir() {
-			if err = tarDir(key, tarball); err != nil {
-				return fmt.Errorf("Plan Setup :: %s", err.Error())
-			}
-		} else {
-			if err = tarFile(key, tarball); err != nil {
-				return fmt.Errorf("Plan Setup :: %s", err.Error())
-			}
-		}
+		// go back to dir where modules.tar is
+		os.Chdir(curDir)
 	}
 
 	// don't defer closing it will ruin the .tar file
 	tarball.Close()
 	tarfile.Close()
 
-	// transport tar to all machines
-	// first create the dir
-	// then check if md5sum is present
-	// compare md5sums
-	// then repeat biatch
+	// transport modules.tar to all machines
 	remoteModDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
-		// create dir
-		if _, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
-			nil, false); err != nil {
-			return fmt.Errorf("Plan Setup :: Creating Mod Path :: %s", err.Error())
-		}
-		// throw a check the check sum crap in here somewhere
-		// transfer tar module
-		if err = machine.Transport.Put(target, remoteModDir, "dir"); err != nil {
-			return fmt.Errorf("Plan Setup :: Putting Tar Module :: %s", err.Error())
-		}
-
-		// untar the modules
-		cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModDir+target, remoteModDir)
-		if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-			return fmt.Errorf("Plan Setup[%s] :: Untar Module :: %s", machine.Hostname, err.Error())
-		}
-
-		// remove tar file
-		cmd = fmt.Sprintf("/bin/rm %s", remoteModDir+target)
-		if _, err = machine.Transport.Exec(cmd, nil, false); err != nil {
-			return fmt.Errorf("Plan Setup :: Removing Tar :: %s", err.Error())
-		}
+		transferUntarModules(machine, remoteModDir, target)
 	}
+	transferUntarModules(localhost(), remoteModDir, target)
 
+	// remove unnecessary modules.tar
 	os.Remove("modules.tar")
-	os.Chdir(curDir)
-
-	return nil
 }
 
 func (plan *Plan) Execute(machines []*Machine) error {

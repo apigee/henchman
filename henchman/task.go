@@ -6,8 +6,6 @@ import (
 	"fmt"
 	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
-	"os"
-	"os/exec"
 	"path"
 	"strconv"
 
@@ -127,11 +125,6 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		return &TaskResult{State: "skipped"}, nil
 	}
 
-	modPath, err := task.Module.Resolve()
-	if err != nil {
-		return &TaskResult{}, fmt.Errorf("Module Path :: %s", err.Error())
-	}
-
 	execOrder, err := task.Module.ExecOrder()
 	// currently err will always be nil
 	if err != nil {
@@ -174,54 +167,6 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, err
 			}
-
-			// Exec Order for dependencies
-		case "tar_module":
-			// check if the local tar module exists
-			// else create the local tar of the module
-			if _, err := os.Stat(modPath + ".tar"); os.IsNotExist(err) {
-				curDir, err := os.Getwd()
-				if err != nil {
-					return &TaskResult{}, fmt.Errorf("Tarring Module :: GetWd :: %s", err.Error())
-				}
-
-				os.Chdir(modPath)
-				os.Chdir("../")
-				cmd := "tar"
-				args := []string{"-cvf", task.Module.Name + ".tar", task.Module.Name}
-				if err := exec.Command(cmd, args...).Run(); err != nil {
-					return &TaskResult{}, fmt.Errorf("Tarring Module :: %s", err.Error())
-				}
-				os.Chdir(curDir)
-			}
-		case "put_tar_module":
-			// copies module from local location to remote location
-			err = machine.Transport.Put(modPath+".tar", remoteModDir, "dir")
-			if err != nil {
-				return &TaskResult{}, fmt.Errorf("Putting Tar Module :: %s", err.Error())
-			}
-
-			// deletes module.tar from local modules folder
-			/*
-				cmd := "rm"
-				args := []string{modPath + ".tar"}
-				if err := exec.Command(cmd, args...).Run(); err != nil {
-					return &TaskResult{}, fmt.Errorf("Putting Tar Module :: %s", err.Error())
-				}
-			*/
-		case "untar_module":
-			// untars the module
-			cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModPath+".tar", remoteModDir)
-			_, err := machine.Transport.Exec(cmd, nil, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, fmt.Errorf("Untar Module :: %s", err.Error())
-			}
-
-			cmd = fmt.Sprintf("/bin/rm %s", remoteModPath+".tar")
-			_, err = machine.Transport.Exec(cmd, nil, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, fmt.Errorf("Untar Module :: %s", err.Error())
-			}
 		case "exec_tar_module":
 			// executes module by calling the copied module remotely
 			// NOTE: may want to just change the way remoteModPath is created
@@ -246,6 +191,20 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			err = setTaskResult(&taskResult, buf)
 			if err != nil {
 				return &TaskResult{}, fmt.Errorf("Exec Tar Module :: %s", err.Error())
+			}
+		case "put_file":
+			//scp's file from local location to remote location
+			srcPath, present := moduleParams["src"]
+			if !present {
+				return &TaskResult{}, fmt.Errorf("Unable to find 'src' parameter")
+			}
+			_, srcFile := path.Split(srcPath)
+			dstPath := path.Join(remoteModDir, srcFile)
+
+			err = machine.Transport.Put(srcPath, dstPath, "file")
+
+			if err != nil {
+				return &TaskResult{}, fmt.Errorf("Putting File :: %s", err.Error())
 			}
 		case "copy_remote":
 			//copies file from remote .henchman location to expected location
@@ -274,21 +233,6 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 				}
 				//log.Println(taskResult)
 			}
-		case "put_file":
-			//scp's file from local location to remote location
-			srcPath, present := moduleParams["src"]
-			if !present {
-				return &TaskResult{}, fmt.Errorf("Unable to find 'src' parameter")
-			}
-			_, srcFile := path.Split(srcPath)
-			dstPath := path.Join(remoteModDir, srcFile)
-
-			err = machine.Transport.Put(srcPath, dstPath, "file")
-
-			if err != nil {
-				return &TaskResult{}, fmt.Errorf("Putting File :: %s", err.Error())
-			}
-
 		case "process_template":
 			srcPath, present := moduleParams["src"]
 			if !present {

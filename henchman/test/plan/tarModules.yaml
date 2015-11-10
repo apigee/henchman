@@ -12,4 +12,3 @@ tasks:
     yum: package="apt"
   - name: "Task Four"
     rpm: url="www.tmp.com"
-

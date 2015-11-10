@@ -13,3 +13,5 @@ tasks:
   - name: "Test Curl"
     curl: url="http://httpbin.org/ip" http="GET"
     register: first
+  - name: "Test Shell"
+    shell: cmd="echo hello"

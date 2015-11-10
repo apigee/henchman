@@ -161,9 +161,8 @@ func executePlan(c *cli.Context) {
 	}
 
 	setInventoryVars(plan, inv)
-	if err = plan.Setup(machines); err != nil {
-		log.Fatal(err.Error())
-	}
+
+	plan.Setup(machines)
 
 	plan.Execute(machines)
 }

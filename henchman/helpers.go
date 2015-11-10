@@ -71,6 +71,7 @@ func printRecurse(output interface{}, padding string, retVal string) string {
 	return tmpVal
 }
 
+// Tar a file
 func tarFile(fName string, tarball *tar.Writer) error {
 	info, err := os.Stat(fName)
 	if err != nil {
@@ -99,7 +100,7 @@ func tarFile(fName string, tarball *tar.Writer) error {
 	return nil
 }
 
-// recursively iterates through directories to tar
+// recursively iterates through directories to tar files
 func tarDir(fName string, tarball *tar.Writer) error {
 	infos, err := ioutil.ReadDir(fName)
 	if err != nil {
