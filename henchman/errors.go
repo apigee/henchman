@@ -2,7 +2,32 @@ package henchman
 
 import (
 	"fmt"
+	log "gopkg.in/Sirupsen/logrus.v0"
 )
+
+type HenchmanError struct {
+	Err    error
+	Fields log.Fields
+	msg    string
+}
+
+func (he *HenchmanError) Error() string {
+	return he.msg
+}
+
+func HenchErr(err error, fields log.Fields) error {
+	switch err.(type) {
+	case *HenchmanError:
+		MergeMap(fields, err.Fields, false)
+		return err
+	default:
+		return &HenchmanError{
+			Err:    err,
+			Fields: fields,
+			msg:    err.Error(),
+		}
+	}
+}
 
 type CustomUnmarshalError struct {
 	Err error
