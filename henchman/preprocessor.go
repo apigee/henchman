@@ -13,6 +13,7 @@ import (
 type PlanProxy struct {
 	Name            string       `yaml:"name"`
 	Sudo            bool         `yaml:"sudo"`
+	Debug           bool         `yaml:"debug"`
 	TaskProxies     []*TaskProxy `yaml:"tasks"`
 	VarsProxy       *VarsProxy   `yaml:"vars"`
 	InventoryGroups []string     `yaml:"hosts"`
@@ -25,6 +26,7 @@ type PlanProxy struct {
 type TaskProxy struct {
 	Task        `yaml:",inline"`
 	SudoState   string
+	DebugState  string
 	Include     string
 	IncludeVars VarsMap `yaml:"vars"`
 }
@@ -108,6 +110,15 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				}, "")
 			}
 			tp.SudoState = strconv.FormatBool(tp.Sudo)
+		case "debug":
+			tp.Debug, found = val.(bool)
+			if !found {
+				return HenchErr(ErrWrongType(field, val, "bool"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
+			}
+			tp.DebugState = strconv.FormatBool(tp.Debug)
 		case "ignore_errors":
 			tp.IgnoreErrors, found = val.(bool)
 			if !found {
@@ -239,6 +250,7 @@ func preprocessTasksHelper(taskFileName string, prevVars VarsMap, prevWhen strin
 	// since it's using the included task file proxy
 	// gotta assign the original plan level variables
 	tmpPx.Sudo = px.Sudo
+	tmpPx.Debug = px.Debug
 	return parseTaskProxies(&tmpPx, prevVars, prevWhen)
 }
 
@@ -293,6 +305,7 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 			}
 
 			// takes plan sudo, changes it to task Sudo if there is one
+			// does the same for Debug
 			task.Sudo = px.Sudo
 			if tp.SudoState != "" {
 				var err error
@@ -302,6 +315,19 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 						"task":          tp.Name,
 						"while_parsing": "sudo",
 						"solution":      "Verify the 'sudo' field is a boolean",
+					}, "")
+				}
+			}
+
+			task.Debug = px.Debug
+			if tp.DebugState != "" {
+				var err error
+				task.Debug, err = strconv.ParseBool(tp.DebugState)
+				if err != nil {
+					return nil, HenchErr(err, log.Fields{
+						"task":          tp.Name,
+						"while_parsing": "debug",
+						"solution":      "Verify the 'debug' field is a boolean",
 					}, "")
 				}
 			}
@@ -393,17 +419,6 @@ func newPlanProxy(buf []byte) (PlanProxy, error) {
 		return px, err
 	}
 	return px, nil
-}
-
-// FIXME: it'll return a false error if there's an error parsing plan
-// NOTE: for now throwing in a hardcoded error
-func GetInventoryGroups(buf []byte) ([]string, error) {
-	px, err := newPlanProxy(buf)
-	if err != nil {
-		return nil, HenchErr(err, nil, "Could not find inventory groups")
-	}
-	return px.InventoryGroups, nil
-
 }
 
 // For Plan

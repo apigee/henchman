@@ -19,7 +19,7 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	tc["username"] = "foobar"
 	tc["password"] = "bar"
 
-	invGroups, err := GetInventoryGroups(buf)
+	invGroups, err := inv.GetInventoryGroups(buf)
 	inventory := inv.GetInventoryForGroups(invGroups)
 	plan, err := PreprocessPlan(buf, inventory)
 

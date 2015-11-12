@@ -23,6 +23,7 @@ type Task struct {
 	When         string
 	Register     string
 	Vars         VarsMap
+	Debug        bool
 }
 
 type TaskResult struct {

@@ -2,5 +2,5 @@
 name: "Fail plan"
 tasks:
   - name: "Bad task"
-    shell: okay=wut
-    mod: wut=mutt
+    shell: cmd="echo <10nc2290><*) blloper"
+    debug: true

@@ -264,19 +264,27 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				colorCode := statuses[taskResult.State]
 
 				//NOTE: make a color code create function
-				log.WithFields(log.Fields{
+				fields := log.Fields{
 					"task":  task.Name,
 					"host":  actualMachine.Hostname,
 					"state": colorCode + taskResult.State + resetCode,
 					"msg":   taskResult.Msg,
-				}).Info("Task Complete")
+				}
+
+				if task.Debug {
+					fields["output"] = printRecurse(taskResult.Output, "", "\n")
+				}
+
+				log.WithFields(fields).Info("Task Complete")
 
 				// print only when --debug is on
-				Debug(log.Fields{
-					"task":   task.Name,
-					"host":   actualMachine.Hostname,
-					"output": printRecurse(taskResult.Output, "", "\n"),
-				}, "Task Output")
+				/*
+					Debug(log.Fields{
+						"task":   task.Name,
+						"host":   actualMachine.Hostname,
+						"output": printRecurse(taskResult.Output, "", "\n"),
+					}, "Task Output")
+				*/
 
 				if (taskResult.State == "error" || taskResult.State == "failure") && (!task.IgnoreErrors) {
 					break
