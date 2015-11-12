@@ -82,6 +82,21 @@ func (inv *Inventory) MergeHostVars(hostname string, taskVars map[interface{}]in
 	}
 }
 
+func (inv *Inventory) GetInventoryGroups(planBuf []byte) ([]string, error) {
+	hostsProxy := struct {
+		Groups []string `yaml:"hosts"`
+	}{}
+
+	err := yaml.Unmarshal(planBuf, &hostsProxy)
+	if err != nil {
+		return nil, HenchErr(err, log.Fields{
+			"solution": "Generally double check if spaces are tabs",
+		}, "In hosts section of plan file")
+	}
+
+	return hostsProxy.Groups, nil
+}
+
 func (inv *Inventory) GetInventoryForGroups(groups []string) Inventory {
 	// FIXME: Support globbing in the groups
 	// No groups? No problem. Just return the full inventory

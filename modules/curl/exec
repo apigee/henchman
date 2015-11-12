@@ -41,7 +41,7 @@ def convert_key_val(vals):
 
 try:
   url = params.get("url", "")
-  url = "http://ci.apigeng.com/v1/data/1k.json"
+  #url = "http://ci.apigeng.com/v1/data/1k.json"
   http = params.get("http", "GET").upper()
   headers = convert_key_val(params.get("headers", ""))
   data = convert_key_val(params.get("data", ""))

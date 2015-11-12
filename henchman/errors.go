@@ -15,16 +15,30 @@ func (he *HenchmanError) Error() string {
 	return he.msg
 }
 
-func HenchErr(err error, fields log.Fields) error {
-	switch err.(type) {
+func HenchErr(err error, fields log.Fields, extMsg string) error {
+	switch val := err.(type) {
 	case *HenchmanError:
-		MergeMap(fields, err.Fields, false)
+		if fields != nil {
+			MergeLogrusFields(fields, val.Fields, false)
+		}
+		if extMsg != "" {
+			val.msg = (extMsg + " :: " + val.msg)
+		}
 		return err
 	default:
+		var newFields log.Fields = fields
+		msg := err.Error()
+
+		if newFields == nil {
+			newFields = make(log.Fields)
+		}
+		if extMsg != "" {
+			msg = (extMsg + " :: " + msg)
+		}
 		return &HenchmanError{
 			Err:    err,
-			Fields: fields,
-			msg:    err.Error(),
+			Fields: newFields,
+			msg:    msg,
 		}
 	}
 }
@@ -38,15 +52,15 @@ func (cue *CustomUnmarshalError) Error() string {
 }
 
 func ErrWrongType(field interface{}, val interface{}, _type string) error {
-	return fmt.Errorf("For field \"%v\", \"%v\" is not of type %v", field, val, _type)
+	return fmt.Errorf("For field '%v', '%v' is not of type %v", field, val, _type)
 }
 
 func ErrNotValidVariable(val interface{}) error {
-	return fmt.Errorf("\"%v\" is not a valid variable name", val)
+	return fmt.Errorf("'%v' is not a valid variable name", val)
 }
 
 func ErrKeyword(val interface{}) error {
-	return fmt.Errorf("\"%v\" is a keyword", val)
+	return fmt.Errorf("'%v' is a keyword", val)
 }
 
 func isKeyword(val string) bool {

@@ -24,6 +24,16 @@ func MergeMap(src map[interface{}]interface{}, dst map[interface{}]interface{}, 
 	}
 }
 
+func MergeLogrusFields(src log.Fields, dst log.Fields, override bool) {
+	for variable, value := range src {
+		if override == true {
+			dst[variable] = value
+		} else if _, present := dst[variable]; !present {
+			dst[variable] = value
+		}
+	}
+}
+
 // used to make tmp files in *_test.go
 func createTempDir(folder string) string {
 	name, _ := ioutil.TempDir("/tmp", folder)

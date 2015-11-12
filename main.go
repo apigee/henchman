@@ -129,35 +129,41 @@ func executePlan(c *cli.Context) {
 
 	inv, err := inventorySource.Load(inventoryConfig)
 	if err != nil {
-		log.WithFields(log.Fields{
+		henchErr := henchman.HenchErr(err, log.Fields{
 			"error": err.Error(),
-		}).Fatal("Error Loading inventory", "error", err.Error())
+		}, "").(*henchman.HenchmanError)
+		log.WithFields(henchErr.Fields).Fatal("Error Loading Inventory")
 	}
 
 	// Step 3: Read the planFile
 	planFile := args[0]
 	planBuf, err := ioutil.ReadFile(planFile)
 	if err != nil {
-		log.WithFields(log.Fields{
+		henchErr := henchman.HenchErr(err, log.Fields{
 			"plan":  planFile,
 			"error": err.Error(),
-		}).Fatal("Error Reading plan")
+		}, "").(*henchman.HenchmanError)
+		log.WithFields(henchErr.Fields).Fatal("Error Reading Plan")
 	}
-	invGroups, err := henchman.GetInventoryGroups(planBuf)
+	groups, err := inv.GetInventoryGroups(planBuf)
 	if err != nil {
-		log.WithFields(log.Fields{
+		henchErr := henchman.HenchErr(err, log.Fields{
+			"plan":  planFile,
 			"error": err.Error(),
-		}).Fatal("Error Getting Inv Groups")
+		}, "").(*henchman.HenchmanError)
+		log.WithFields(henchErr.Fields).Fatal("Error Getting Inv Groups")
 	}
-	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory := inv.GetInventoryForGroups(groups)
 	machines, err := inventory.GetMachines(tc)
 	//_, err = inventory.GetMachines(tc)
 
 	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
-		log.WithFields(log.Fields{
+		henchErr := henchman.HenchErr(err, log.Fields{
+			"plan":  planFile,
 			"error": err.Error(),
-		}).Fatal("Error Preprocessing Plan")
+		}, "").(*henchman.HenchmanError)
+		log.WithFields(henchErr.Fields).Fatal("Error Preprocessing Plan")
 	}
 
 	setInventoryVars(plan, inv)

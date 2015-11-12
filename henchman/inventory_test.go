@@ -1,6 +1,7 @@
 package henchman
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,6 +30,17 @@ func TestLoadInvalidInventory(t *testing.T) {
 	ic["path"] = "test/inventory/invalidInventory.yaml"
 	_, err = yi.Load(ic)
 	require.Error(t, err)
+}
+
+func TestGetInventoryGroups(t *testing.T) {
+	inventory, err := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
+	require.NoError(t, err)
+
+	groups, err := inventory.GetInventoryGroups(buf)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(groups))
+	assert.Equal(t, []string{"nginx"}, groups)
 }
 
 func TestValidYAMLInventorygroup(t *testing.T) {

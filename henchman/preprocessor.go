@@ -2,6 +2,7 @@ package henchman
 
 import (
 	"fmt"
+	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -43,7 +44,10 @@ func (vp *VarsProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	err := unmarshal(&vMap)
 	if err != nil {
-		return err
+		return HenchErr(err,
+			log.Fields{
+				"solution": "Check for Yaml formatting errors.  Usually indentation with tabs",
+			}, "")
 	}
 
 	vp.Vars = make(VarsMap)
@@ -52,12 +56,17 @@ func (vp *VarsProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		case "include":
 			vp.Vars["include"], found = val.([]interface{})
 			if !found {
-				return ErrWrongType(field, val, "[]interface{}")
+				return HenchErr(ErrWrongType(field, val, "[]interface{}"), log.Fields{
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 
 			numInclude++
 			if numInclude > 1 {
-				return fmt.Errorf("Can only have one include statement at Vars level.")
+				return HenchErr(fmt.Errorf("Can only have one include statement at Vars level."),
+					log.Fields{
+						"solution": "remove extra include statements",
+					}, "")
 			}
 		default:
 			vp.Vars[field] = val
@@ -75,73 +84,117 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	err := unmarshal(&tmap)
 	if err != nil {
-		return err
+		return HenchErr(err,
+			log.Fields{
+				"solution": "Check for Yaml formatting errors.  Usually indentation with tabs",
+			}, "")
 	}
 	for field, val := range tmap {
 		switch field {
 		case "name":
 			tp.Name, found = val.(string)
 			if !found {
-				return ErrWrongType(field, val, "string")
+				return HenchErr(ErrWrongType(field, val, "string"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 		case "sudo":
 			tp.Sudo, found = val.(bool)
 			if !found {
-				return ErrWrongType(field, val, "bool")
+				return HenchErr(ErrWrongType(field, val, "bool"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 			tp.SudoState = strconv.FormatBool(tp.Sudo)
 		case "ignore_errors":
 			tp.IgnoreErrors, found = val.(bool)
 			if !found {
-				return ErrWrongType(field, val, "bool")
+				return HenchErr(ErrWrongType(field, val, "bool"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 		case "local":
 			tp.Local, found = val.(bool)
 			if !found {
-				return ErrWrongType(field, val, "bool")
+				return HenchErr(ErrWrongType(field, val, "bool"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 		case "when":
 			tp.When, found = val.(string)
 			if !found {
-				return ErrWrongType(field, val, "string")
+				return HenchErr(ErrWrongType(field, val, "string"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 			if strings.Contains(tp.When, "{{") || strings.Contains(tp.When, "}}") {
-				return fmt.Errorf("When field should not include {{ or }}")
+				return HenchErr(fmt.Errorf("When field should not include {{ or }}"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Remove {{ or }} from the when field",
+				}, "")
 			}
 		case "register":
 			tp.Register, found = val.(string)
 			if !found {
-				return ErrWrongType(field, val, "string")
+				return HenchErr(ErrWrongType(field, val, "string"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 			if len(strings.Fields(tp.Register)) > 1 {
-				return ErrNotValidVariable(tp.Register)
+				return HenchErr(ErrNotValidVariable(tp.Register), log.Fields{
+					"task":     tp.Name,
+					"solution": "Registers must be a single word w/o spaces",
+				}, "")
 			}
 			if isKeyword(tp.Register) {
-				return ErrKeyword(tp.Register)
+				return HenchErr(ErrKeyword(tp.Register), log.Fields{
+					"task":     tp.Name,
+					"solution": "Avoid the key words: vars, item",
+				}, "")
 			}
 		case "include":
 			tp.Include, found = val.(string)
 			if !found {
-				return ErrWrongType(field, val, "string")
+				return HenchErr(ErrWrongType(field, val, "string"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 		case "vars":
 			tp.IncludeVars, found = val.(map[interface{}]interface{})
 			if !found {
-				return ErrWrongType(field, val, "map[interface{}]interface{}")
+				return HenchErr(ErrWrongType(field, val, "map[interface{}]interface{}"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 		default:
 			// We have a module
 			params, found := val.(string)
 			if !found {
-				return ErrWrongType(field, val, "string")
+				return HenchErr(ErrWrongType(field, val, "string"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
 			}
 			if numModule > 0 {
-				return fmt.Errorf("'%v' is an extra Module.  Can only have one module per task.", field)
+				return HenchErr(fmt.Errorf("'%v' is an extra Module.", field), log.Fields{
+					"task":     tp.Name,
+					"solution": "There can only be one module per task",
+				}, "")
 			}
 
 			tp.Module, err = NewModule(field, params)
 			if err != nil {
-				return fmt.Errorf("Module %v - %s", field, err.Error())
+				return HenchErr(err, log.Fields{
+					"task": tp.Name,
+				}, fmt.Sprintf("Module '%v'", field))
 			}
 			numModule++
 		}
@@ -169,13 +222,18 @@ func (px PlanProxy) PreprocessTasks() ([]*Task, error) {
 func preprocessTasksHelper(taskFileName string, prevVars VarsMap, prevWhen string, px *PlanProxy) ([]*Task, error) {
 	buf, err := ioutil.ReadFile(taskFileName)
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, log.Fields{
+			"solution": "Verify the included task file exists",
+		}, "")
 	}
 
 	var tmpPx PlanProxy
 	err = yaml.Unmarshal(buf, &tmpPx)
 	if err != nil {
-		return nil, fmt.Errorf("Unmarshalling '%s' - %s", taskFileName, err.Error())
+		return nil, HenchErr(err, log.Fields{
+			"task_file": taskFileName,
+			"solution":  "Check for Yaml formatting errors.  Usually indentation with tabs",
+		}, "Unmarshalling Included Task")
 	}
 
 	// since it's using the included task file proxy
@@ -205,13 +263,19 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 
 			includedTasks, err := preprocessTasksHelper(tp.Include, tp.IncludeVars, tp.When, px)
 			if err != nil {
-				return nil, err
+				return nil, HenchErr(err, log.Fields{
+					"task":          tp.Name,
+					"while_parsing": "include",
+				}, "While checking Include")
 			}
 
 			tasks = append(tasks, includedTasks...)
 		} else {
 			if tp.Module == nil {
-				return nil, fmt.Errorf("This task doesn't have a valid module")
+				return nil, HenchErr(fmt.Errorf("This task doesn't have a valid module"), log.Fields{
+					"task":     tp.Name,
+					"solution": "Each task needs to have exactly one module",
+				}, "")
 			}
 			task.Name = tp.Name
 			task.Module = tp.Module
@@ -232,8 +296,13 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 			task.Sudo = px.Sudo
 			if tp.SudoState != "" {
 				var err error
-				if task.Sudo, err = strconv.ParseBool(tp.SudoState); err != nil {
-					return nil, err
+				task.Sudo, err = strconv.ParseBool(tp.SudoState)
+				if err != nil {
+					return nil, HenchErr(err, log.Fields{
+						"task":          tp.Name,
+						"while_parsing": "sudo",
+						"solution":      "Verify the 'sudo' field is a boolean",
+					}, "")
 				}
 			}
 			tasks = append(tasks, &task)
@@ -256,7 +325,7 @@ func (px PlanProxy) PreprocessVars() (VarsMap, error) {
 		for _, fName := range fileList.([]interface{}) {
 			tempVars, err := preprocessVarsHelper(fName)
 			if err != nil {
-				return nil, fmt.Errorf("While checking includes - %s", err.Error())
+				return nil, HenchErr(err, log.Fields{"while_parsing": "include"}, "While checking includes")
 			}
 			MergeMap(tempVars, newVars, false)
 		}
@@ -268,18 +337,26 @@ func (px PlanProxy) PreprocessVars() (VarsMap, error) {
 func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	newFName, found := fName.(string)
 	if !found {
-		return nil, ErrWrongType("Include", fName, "string")
+		return nil, HenchErr(ErrWrongType("Include", fName, "string"), log.Fields{
+			"solution": "Make sure it's not a map",
+		}, "")
 	}
 
 	buf, err := ioutil.ReadFile(newFName)
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, log.Fields{
+			"file":     newFName,
+			"solution": "verify if file exists",
+		}, "")
 	}
 
 	var px PlanProxy
 	err = yaml.Unmarshal(buf, &px)
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, log.Fields{
+			"vars_file": fName,
+			"solution":  "Check for Yaml formatting errors.  Usually indentation with tabs",
+		}, "Unmarshalling Included Vars")
 	}
 
 	return px.VarsProxy.Vars, nil
@@ -308,11 +385,11 @@ func filterInventory(groups []string, fullInventory Inventory) Inventory {
 	}
 }
 
+// Creates new plan proxy
 func newPlanProxy(buf []byte) (PlanProxy, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)
 	if err != nil {
-		fmt.Errorf("Error processing plan - %s", err.Error())
 		return px, err
 	}
 	return px, nil
@@ -323,7 +400,7 @@ func newPlanProxy(buf []byte) (PlanProxy, error) {
 func GetInventoryGroups(buf []byte) ([]string, error) {
 	px, err := newPlanProxy(buf)
 	if err != nil {
-		return nil, fmt.Errorf("Could not find inventory groups")
+		return nil, HenchErr(err, nil, "Could not find inventory groups")
 	}
 	return px.InventoryGroups, nil
 
@@ -335,7 +412,7 @@ func GetInventoryGroups(buf []byte) ([]string, error) {
 func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	px, err := newPlanProxy(buf)
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, nil, "")
 	}
 
 	plan := Plan{}
@@ -347,15 +424,20 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	if px.VarsProxy != nil {
 		vars, err = px.PreprocessVars()
 		if err != nil {
-			return nil, fmt.Errorf("Error processing vars - %s", err.Error())
+			return nil, HenchErr(err, log.Fields{
+				"while_processing": "vars",
+			}, "Error processing vars")
 		}
 	}
 	plan.Vars = vars
+
 	tasks, err := px.PreprocessTasks()
 	if err != nil {
-		return nil, fmt.Errorf("Error processing tasks - %s", err.Error())
+		return nil, HenchErr(err, log.Fields{
+			"while_processing": "tasks",
+		}, "Error processing tasks")
 	}
 	plan.Tasks = tasks
 
-	return &plan, err
+	return &plan, nil
 }
