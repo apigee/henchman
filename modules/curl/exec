@@ -45,7 +45,6 @@ try:
   http = params.get("http", "GET").upper()
   headers = convert_key_val(params.get("headers", ""))
   data = convert_key_val(params.get("data", ""))
-  loglevel = params.get("loglevel", "")
   
   if not url:
     raise Exception("Url parameter is required")
@@ -62,22 +61,20 @@ try:
     r = requests.get(url, data=data, headers=headers)
   
   result["status"] = "ok"
-  result["msg"] = "http request successfully processed"
+  result["msg"] = "Http request successfully processed."
 
   c_type = dict(r.headers)['Content-Type']
-  if loglevel == "debug":
-    payload = str(r.text)
-  elif "xml" in c_type:
+  if "xml" in c_type:
     payload = xmltodict.parse(r.text)
   elif "json" in c_type:
     payload = ast.literal_eval(r.text)
   else:
-    result["msg"] += ". Content-Type %s is not supported.  Payload stored as a string." % c_type
+    result["msg"] += "Content-Type %s is not supported.  Payload stored as a string." % c_type
     payload = str(r.text)
 
   result["output"] = {'status': r.status_code, 'headers': dict(r.headers), 'body': payload}
 except Exception as e:
   result["status"] = "error"
-  result["msg"] = str(e)
-
+  result["msg"] = "Http request unsuccessful."
+  result["output"] = str(e)
 print json.dumps(result)

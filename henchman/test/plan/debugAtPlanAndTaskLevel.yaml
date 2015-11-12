@@ -1,0 +1,13 @@
+name: "Plan with debug"
+debug: true
+vars:
+  service: iptables
+tasks:
+  - name: "Task One"
+    shell: cmd="echo hello"
+    debug: false
+  - name: "Task Two"
+    shell: cmd="echo goodbye"
+  - name: "Task Three"
+    shell: cmd="echo world"
+   

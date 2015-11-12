@@ -230,6 +230,20 @@ func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
 	assert.Nil(t, plan.Vars["bar"], "Variable 'bar' should be commented")
 }
 
+func TestPreprocessWithDebug(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/debugAtPlanAndTaskLevel.yaml")
+	require.NoError(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.NoError(t, err)
+
+	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, false, plan.Tasks[0].Debug, "Task debug override did not work")
+	assert.Equal(t, true, plan.Tasks[1].Debug, "Plan debug did not work")
+	assert.Equal(t, true, plan.Tasks[2].Debug, "Plan debug did not work")
+}
+
 // Table driven test for Invalids
 func TestInvalid(t *testing.T) {
 	var tests = []struct {
