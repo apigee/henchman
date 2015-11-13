@@ -31,6 +31,11 @@ func loadPEM(file string) (ssh.Signer, error) {
 
 func ClientKeyAuth(keyFile string) (ssh.AuthMethod, error) {
 	key, err := loadPEM(keyFile)
+	if err != nil {
+		return nil, HenchErr(err, log.Fields{
+			"key_file": keyFile,
+		}, "")
+	}
 	return ssh.PublicKeys(key), err
 }
 
@@ -61,11 +66,11 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 		sshTransport.Port = uint16(port)
 	}
 	if sshTransport.Host == "" {
-		return fmt.Errorf("Need a hostname")
+		return HenchErr(fmt.Errorf("Need a hostname"), nil, "SSH transport")
 	}
 	username := _config["username"]
 	if username == "" {
-		return fmt.Errorf("Need a username")
+		return HenchErr(fmt.Errorf("Need a username"), nil, "SSH transport")
 	}
 	var auth ssh.AuthMethod
 	var authErr error
@@ -74,7 +79,7 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 	if password == "" || !present {
 		keyfile, present := _config["keyfile"]
 		if !present {
-			return fmt.Errorf("Invalid SSH Keyfile")
+			return HenchErr(fmt.Errorf("Invalid SSH Keyfile"), nil, "SSH transport")
 		}
 		auth, authErr = ClientKeyAuth(keyfile)
 	} else {
@@ -82,7 +87,7 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 	}
 
 	if authErr != nil {
-		return authErr
+		return HenchErr(authErr, nil, "SSH transport auth error")
 	}
 	sshConfig := &ssh.ClientConfig{
 		User: username,
@@ -96,11 +101,11 @@ func (sshTransport *SSHTransport) getClientSession() (*ssh.Client, *ssh.Session,
 	address := fmt.Sprintf("%s:%d", sshTransport.Host, sshTransport.Port)
 	client, err := ssh.Dial("tcp", address, sshTransport.Config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, HenchErr(err, nil, "")
 	}
 	session, err := client.NewSession()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, HenchErr(err, nil, "")
 	}
 	return client, session, nil
 
@@ -114,11 +119,11 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 		TTY_OP_OSPEED: 14400,
 	}
 	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
-		return nil, fmt.Errorf("request for psuedo terminal failed: %s", err.Error())
+		return nil, HenchErr(err, nil, "request for psuedo terminal failed")
 	}
 	session.Stdout = &b
 	if err := session.Run(cmd); err != nil {
-		return nil, fmt.Errorf(b.String())
+		return nil, HenchErr(fmt.Errorf(b.String()), nil, "")
 	}
 	return &b, nil
 }
@@ -126,7 +131,9 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't dial in to %s :: %s", sshTransport.Host, err.Error())
+		return nil, HenchErr(err, log.Fields{
+			"host": sshTransport.Host,
+		}, fmt.Sprintf("Couldn't dial into %s", sshTransport.Host))
 	}
 
 	defer client.Close()
@@ -141,19 +148,27 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 			log.Debug(cmd)
 		}
 	*/
-	return sshTransport.execCmd(session, cmd)
+	bytesBuf, err := sshTransport.execCmd(session, cmd)
+	if err != nil {
+		return nil, HenchErr(err, nil, "While executing command")
+	}
+	return bytesBuf, nil
 }
 
 func (sshTransport *SSHTransport) Put(source, destination string, dstType string) error {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
-		return fmt.Errorf("Couldn't dial in to %s :: %s", sshTransport.Host, err.Error())
+		return HenchErr(err, log.Fields{
+			"host": sshTransport.Host,
+		}, fmt.Sprintf("Couldn't dial into %s", sshTransport.Host))
 	}
 	defer client.Close()
 	defer session.Close()
 	sourceBuf, err := ioutil.ReadFile(source)
 	if err != nil {
-		return fmt.Errorf("Error reading file - %s: %s\n", source, err.Error())
+		return HenchErr(err, log.Fields{
+			"file": source,
+		}, "")
 	}
 	_, sourcePath := path.Split(source)
 	go func() {
@@ -162,7 +177,6 @@ func (sshTransport *SSHTransport) Put(source, destination string, dstType string
 			log.WithFields(log.Fields{
 				"error": err.Error(),
 			}).Error("Error opening pipe")
-			return
 		}
 		defer pipe.Close()
 		buf := string(sourceBuf)
@@ -180,7 +194,9 @@ func (sshTransport *SSHTransport) Put(source, destination string, dstType string
 		remoteCommand = fmt.Sprintf("/usr/bin/scp -t %s", destination)
 	}
 	if err := session.Run(remoteCommand); err != nil {
-		return fmt.Errorf("Error doing scp :: %s", err.Error())
+		return HenchErr(err, log.Fields{
+			"host": sshTransport.Host,
+		}, "Error doing scp")
 	}
 	return nil
 }
