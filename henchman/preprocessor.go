@@ -166,6 +166,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if isKeyword(tp.Register) {
 				return HenchErr(ErrKeyword(tp.Register), log.Fields{
 					"task":     tp.Name,
+					"field":    "register",
 					"solution": "Avoid the key words: vars, item",
 				}, "")
 			}
@@ -440,6 +441,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 		vars, err = px.PreprocessVars()
 		if err != nil {
 			return nil, HenchErr(err, log.Fields{
+				"plan":             plan.Name,
 				"while_processing": "vars",
 			}, "Error processing vars")
 		}
@@ -449,6 +451,7 @@ func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	tasks, err := px.PreprocessTasks()
 	if err != nil {
 		return nil, HenchErr(err, log.Fields{
+			"plan":             plan.Name,
 			"while_processing": "tasks",
 		}, "Error processing tasks")
 	}

@@ -3,8 +3,8 @@ package henchman
 import (
 	"bufio"
 	"bytes"
-	//"errors"
 	"fmt"
+	log "gopkg.in/Sirupsen/logrus.v0"
 	"os"
 	"path"
 	"strings"
@@ -74,7 +74,10 @@ func parseModuleArgs(args string) (map[string]string, error) {
 			extraArgs[splitValues[0]] = splitValues[1]
 		} else {
 			// this check takes care of 2nd part of " def'" part of 'abc def'
-			return nil, fmt.Errorf("Module args are invalid")
+			return nil, HenchErr(fmt.Errorf("Module args are invalid"), log.Fields{
+				"args":     args,
+				"solution": "Refer to wiki on proper use of modules",
+			}, "")
 		}
 	}
 	// remove all quotes. Value for the respective key
@@ -82,7 +85,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 	extraArgs = stripQuotes(extraArgs)
 
 	if err := scanner.Err(); err != nil {
-		return extraArgs, fmt.Errorf("Invalid input - %s", err)
+		return extraArgs, HenchErr(err, nil, "Invalid input")
 	}
 	return extraArgs, nil
 }
@@ -114,7 +117,9 @@ func NewModule(name string, params string) (*Module, error) {
 	module.Name = name
 	paramTable, err := parseModuleArgs(params)
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, log.Fields{
+			"module": name,
+		}, "While parsing args")
 	}
 	module.Params = paramTable
 	return &module, nil
@@ -129,13 +134,19 @@ func (module *Module) Resolve() (modulePath string, err error) {
 				tmpPath := path.Join(fullPath, "exec")
 				finfo, err = os.Stat(tmpPath)
 				if finfo == nil || finfo.IsDir() {
-					return "", fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name)
+					return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name), log.Fields{
+						"module":   module.Name,
+						"solution": "Check if the non-standalone module has an exec.  Or the standalone module isn't in a folder",
+					}, "")
 				}
 			}
 			return fullPath, err
 		}
 	}
-	return "", fmt.Errorf("Module %s couldn't be resolved", module.Name)
+	return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), log.Fields{
+		"module":   module.Name,
+		"solution": "Check if module exists",
+	}, "")
 }
 
 func (module *Module) ExecOrder() ([]string, error) {

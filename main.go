@@ -160,7 +160,6 @@ func executePlan(c *cli.Context) {
 	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
 		henchErr := henchman.HenchErr(err, log.Fields{
-			"plan":  planFile,
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
 		log.WithFields(henchErr.Fields).Fatal("Error Preprocessing Plan")
@@ -168,9 +167,23 @@ func executePlan(c *cli.Context) {
 
 	setInventoryVars(plan, inv)
 
-	plan.Setup(machines)
+	if err := plan.Setup(machines); err != nil {
+		henchErr := henchman.HenchErr(err, log.Fields{
+			"error": err.Error(),
+		}, "").(*henchman.HenchmanError)
+		log.WithFields(henchErr.Fields).Fatal("Error in plan setup")
+	}
 
 	plan.Execute(machines)
+	// NOTE: use when we implement channels
+	/*
+		if err := plan.Execute(machines); err != nil {
+			henchErr := henchman.HenchErr(err, log.Fields{
+				"error": err.Error(),
+			}, "").(*henchman.HenchmanError)
+			log.WithFields(henchErr.Fields).Fatal("Error in executing plan")
+		}
+	*/
 }
 
 func main() {

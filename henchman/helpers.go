@@ -1,8 +1,8 @@
 package henchman
 
 import (
-	//"encoding/json"
 	"archive/tar"
+	_ "encoding/json"
 	"fmt"
 	log "gopkg.in/Sirupsen/logrus.v0"
 	"io"
@@ -66,16 +66,13 @@ func printRecurse(output interface{}, padding string, retVal string) string {
 			switch val.(type) {
 			case map[string]interface{}:
 				tmpVal += fmt.Sprintf("%s%v:\n", padding, key)
-				//log.Debug("%s%v:\n", padding, key)
 				tmpVal += printRecurse(val, padding+"  ", "")
 			default:
 				tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
-				//log.Debug("%s%v: %v\n", padding, key, val)
 			}
 		}
 	default:
 		tmpVal += fmt.Sprintf("%s%v (%s)\n", padding, output, reflect.TypeOf(output))
-		//log.Debug("%s%v\n", padding, output)
 	}
 
 	return tmpVal
@@ -85,27 +82,42 @@ func printRecurse(output interface{}, padding string, retVal string) string {
 func tarFile(fName string, tarball *tar.Writer) error {
 	info, err := os.Stat(fName)
 	if err != nil {
-		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "make sure file exists, correct permissions, or is not corrupted",
+		}, "Getting file info")
 	}
 
 	header, err := tar.FileInfoHeader(info, info.Name())
 	if err != nil {
-		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "Golang specific tar package.  Submit an issue starting with TAR HEADER",
+		}, "Adding info to tar header")
 	}
 	header.Name = fName
 
 	if err := tarball.WriteHeader(header); err != nil {
-		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "Golang specific tar package.  Submit an issue starting with TARBALL",
+		}, "Writing header to tar")
 	}
 
 	file, err := os.Open(fName)
 	if err != nil {
-		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "Make sure file is not corrupted",
+		}, "Opening File")
 	}
 	defer file.Close()
 
 	if _, err := io.Copy(tarball, file); err != nil {
-		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "make sure file exists, correct permissions, or is not corrupted",
+		}, "")
 	}
 	return nil
 }
@@ -114,7 +126,10 @@ func tarFile(fName string, tarball *tar.Writer) error {
 func tarDir(fName string, tarball *tar.Writer) error {
 	infos, err := ioutil.ReadDir(fName)
 	if err != nil {
-		return fmt.Errorf("Tarring %s :: %s", fName, err.Error())
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "make sure directory exists, correct permissions, or is not corrupted",
+		}, "Getting Dir info")
 	}
 
 	for _, info := range infos {

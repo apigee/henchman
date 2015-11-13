@@ -47,23 +47,39 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	}
 	buf, err := ioutil.ReadFile(fname)
 	if err != nil {
-		return Inventory{}, err
+		return Inventory{}, HenchErr(err, log.Fields{
+			"file":     fname,
+			"solution": "make sure directory exists, correct permissions, or is not corrupted",
+		}, "While Reading File")
 	}
 	err = yaml.Unmarshal(buf, &yi)
 	if err != nil {
-		return Inventory{}, err
+		return Inventory{}, HenchErr(err, log.Fields{
+			"file":     fname,
+			"solution": "Make sure inventory follows proper formatting.  Also check for tabs when there should be spaces.",
+		}, "While unmarshalling inventory")
 	}
 
 	if yi.Groups == nil {
-		return Inventory{}, fmt.Errorf("Groups field is required.  Refer to README.md for proper formatting")
+		return Inventory{}, HenchErr(fmt.Errorf("Groups field is required."), log.Fields{
+			"file":     fname,
+			"solution": "Refer to the wiki for proper formatting.",
+		}, "")
 	}
 
 	for key, val := range yi.Groups {
 		if key == "hosts" {
-			return Inventory{}, fmt.Errorf("'hosts' is not a valid group name")
+			return Inventory{}, HenchErr(fmt.Errorf("'hosts' is not a valid group name"), log.Fields{
+				"file":     fname,
+				"solution": "Change a group name away from hosts",
+			}, "")
 		}
 		if val.Hosts == nil {
-			return Inventory{}, fmt.Errorf("%v requires a hosts field.  Refer to README.md for proper formatting", key)
+			return Inventory{}, HenchErr(fmt.Errorf("%v requires a hosts field.", key), log.Fields{
+				"file":     fname,
+				"group":    key,
+				"solution": "Refet to the wiki for proper formatting.",
+			}, "")
 		}
 	}
 
@@ -90,8 +106,8 @@ func (inv *Inventory) GetInventoryGroups(planBuf []byte) ([]string, error) {
 	err := yaml.Unmarshal(planBuf, &hostsProxy)
 	if err != nil {
 		return nil, HenchErr(err, log.Fields{
-			"solution": "Generally double check if spaces are tabs",
-		}, "In hosts section of plan file")
+			"solution": "Check if hosts section exists",
+		}, "While unmarshalling hosts section")
 	}
 
 	return hostsProxy.Groups, nil

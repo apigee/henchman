@@ -5,7 +5,7 @@ import (
 	"fmt"
 	log "gopkg.in/Sirupsen/logrus.v0"
 	"os"
-	//"reflect"
+	_ "reflect"
 	"sync"
 
 	"github.com/mgutz/ansi"
@@ -42,54 +42,48 @@ func localhost() *Machine {
 	return &localhost
 }
 
-func transferUntarModules(machine *Machine, remoteModDir string, target string) {
+func transferUntarModules(machine *Machine, remoteModDir string, target string) error {
 	// create dir
 	if _, err := machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
 		nil, false); err != nil {
-		log.WithFields(log.Fields{
-			"process":    "Creating Remote Module Dir",
+		return HenchErr(err, log.Fields{
 			"remotePath": remoteModDir,
-			"error":      err.Error(),
 			"host":       machine.Hostname,
-		}).Fatal("Error in plan setup")
+		}, "While creating dir")
 	}
 
 	// throw a check the check sum stuff in here somewhere
 	// transfer tar module
 	if err := machine.Transport.Put(target, remoteModDir, "dir"); err != nil {
-		log.WithFields(log.Fields{
-			"process":    "Putting tar module in remote path",
+		return HenchErr(err, log.Fields{
 			"remotePath": remoteModDir,
-			"error":      err.Error(),
 			"host":       machine.Hostname,
-		}).Fatal("Error in plan setup")
+		}, "While transfering tar")
 	}
 
 	// untar the modules
 	cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModDir+target, remoteModDir)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-		log.WithFields(log.Fields{
-			"process":    "Untarring module in remote path",
+		return HenchErr(err, log.Fields{
 			"remotePath": remoteModDir,
-			"error":      err.Error(),
 			"host":       machine.Hostname,
-		}).Fatal("Error in plan setup")
+		}, "While untarring")
 	}
 
 	// remove tar file
 	cmd = fmt.Sprintf("/bin/rm %s", remoteModDir+target)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-		log.WithFields(log.Fields{
-			"process":    "Removing tar file in remote path",
+		return HenchErr(err, log.Fields{
 			"remotePath": remoteModDir,
-			"error":      err.Error(),
 			"host":       machine.Hostname,
-		}).Fatal("Error in plan setup")
+		}, "While removing tar in remote path")
 	}
+
+	return nil
 }
 
 // Moves all modules to each host
-func (plan *Plan) Setup(machines []*Machine) {
+func (plan *Plan) Setup(machines []*Machine) error {
 	log.WithFields(log.Fields{
 		"plan":         plan.Name,
 		"num machines": len(machines),
@@ -101,10 +95,9 @@ func (plan *Plan) Setup(machines []*Machine) {
 	// get the curdir and move to location of modules
 	curDir, err := os.Getwd()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"process": "os.Getwd()",
-			"error":   err.Error(),
-		}).Fatal("Error in plan setup")
+		return HenchErr(err, log.Fields{
+			"plan": plan.Name,
+		}, "")
 	}
 
 	// create the tar file to be filled
@@ -112,10 +105,10 @@ func (plan *Plan) Setup(machines []*Machine) {
 	target := "modules.tar"
 	tarfile, err := os.Create(target)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"process": "creating target file modules.tar",
-			"error":   err.Error(),
-		}).Fatal("Error in plan setup")
+		return HenchErr(err, log.Fields{
+			"plan":   plan.Name,
+			"target": target,
+		}, "")
 	}
 	tarball := tar.NewWriter(tarfile)
 
@@ -129,7 +122,10 @@ func (plan *Plan) Setup(machines []*Machine) {
 		*/
 		if _, ok := modSet[task.Module.Name]; !ok {
 			if _, err := task.Module.Resolve(); err != nil {
-				log.Fatal(err.Error())
+				return HenchErr(err, log.Fields{
+					"plan": plan.Name,
+					"task": task.Name,
+				}, "")
 			}
 			modSet[task.Module.Name] = false
 		}
@@ -158,19 +154,17 @@ func (plan *Plan) Setup(machines []*Machine) {
 				} else {
 					if info.IsDir() {
 						if err = tarDir(modName, tarball); err != nil {
-							log.WithFields(log.Fields{
-								"process": "tarring dir",
+							return HenchErr(err, log.Fields{
+								"modPath": modPath,
 								"module":  modName,
-								"error":   err.Error(),
-							}).Fatal("Error in plan setup")
+							}, "While Tarring Dir")
 						}
 					} else {
 						if err = tarFile(modName, tarball); err != nil {
-							log.WithFields(log.Fields{
-								"process": "tarring file",
+							return HenchErr(err, log.Fields{
+								"modPath": modPath,
 								"module":  modName,
-								"error":   err.Error(),
-							}).Fatal("Error in plan setup")
+							}, "While Tarring file")
 						}
 					}
 
@@ -191,12 +185,18 @@ func (plan *Plan) Setup(machines []*Machine) {
 	// transport modules.tar to all machines
 	remoteModDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
-		transferUntarModules(machine, remoteModDir, target)
+		if err := transferUntarModules(machine, remoteModDir, target); err != nil {
+			return err
+		}
 	}
-	transferUntarModules(localhost(), remoteModDir, target)
+	if err := transferUntarModules(localhost(), remoteModDir, target); err != nil {
+		return err
+	}
 
 	// remove unnecessary modules.tar
 	os.Remove("modules.tar")
+
+	return nil
 }
 
 func (plan *Plan) Execute(machines []*Machine) error {
@@ -215,6 +215,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 		//		machineVars := plan.Inventory.Groups[machine.Group].Vars
 		// NOTE: need individual registerMap for each machine
 		registerMap := make(RegMap)
+		// NOTE: returning errors requires channels.
+		// FIXME: create channels for stuff m8
 		go func() {
 			defer wg.Done()
 			var actualMachine *Machine
@@ -236,13 +238,21 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				err := task.Render(vars, registerMap)
 
 				if err != nil {
-					log.WithFields(log.Fields{
+					henchErr := HenchErr(err, log.Fields{
+						"plan":  plan.Name,
 						"task":  task.Name,
 						"host":  actualMachine.Hostname,
 						"error": err.Error(),
-					}).Error("Error Rendering Task")
-
+					}, "").(*HenchmanError)
+					log.WithFields(henchErr.Fields).Fatal("Error rendering task")
 					return
+					/*
+						return HenchErr(err, log.Fields{
+							"plan": plan.Name,
+							"task": task.Name,
+							"host": actualMachine.Hostname,
+						}, "Error rendering task")
+					*/
 				}
 
 				log.WithFields(log.Fields{
@@ -252,13 +262,21 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				taskResult, err := task.Run(actualMachine, vars, registerMap)
 				if err != nil {
-					log.WithFields(log.Fields{
+					henchErr := HenchErr(err, log.Fields{
+						"plan":  plan.Name,
 						"task":  task.Name,
 						"host":  actualMachine.Hostname,
 						"error": err.Error(),
-					}).Error("Error Running Task")
-
+					}, "").(*HenchmanError)
+					log.WithFields(henchErr.Fields).Fatal("Error running task")
 					return
+					/*
+						return HenchErr(err, log.Fields{
+							"plan": plan.Name,
+							"task": task.Name,
+							"host": actualMachine.Hostname,
+						}, "Error running task")
+					*/
 				}
 
 				colorCode := statuses[taskResult.State]
@@ -286,7 +304,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					}, "Task Output")
 				*/
 
-				if (taskResult.State == "error" || taskResult.State == "failure") && (!task.IgnoreErrors) {
+				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
+				if taskResult.State == "error" || taskResult.State == "failure" {
 					break
 				}
 			}

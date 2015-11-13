@@ -20,3 +20,9 @@ Henchman executes a plan (a collection of tasks) on a given set of machines.  Cu
 
 ## Contributing
 Just clone or fork from [https://github.com/apigee/henchman](https://github.com/apigee/henchman) and off you go! Fixing issues marked `easy` in the issue tracker is a great way to get started. Or you can help by creating more modules.  Look at the modules section for more details.
+
+### Creating HenchmanErrors
+HenchmanErrors can be created using the `HenchErr(err, log.Fields{}, "extension message")` call.  Creating a HenchmanError as opposed to a standard error allows the user to pass in extra information for logrus.  Here are a few key things to note when creating a HenchErr:
+* `err` - place any `error` in here
+* `log.Fields{}` - Is a map.  Place any information about the CURRENT function it's in.  For example, plan information, task information, what machine it's on
+* `extension message` - Is a string that is prefixed onto the base error message.  This extension message should contain information about the function that produced the error.  For example, if an err occurred while unmarshalling, the extension message would contain "While unmarshalling". 
