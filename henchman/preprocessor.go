@@ -91,6 +91,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				"solution": "Check for Yaml formatting errors.  Usually indentation with tabs",
 			}, "")
 	}
+
 	for field, val := range tmap {
 		switch field {
 		case "name":

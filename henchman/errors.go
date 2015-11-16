@@ -15,7 +15,7 @@ func (he *HenchmanError) Error() string {
 	return he.msg
 }
 
-func HenchErr(err error, fields log.Fields, extMsg string) error {
+func HenchErr(err error, fields map[string]interface{}, extMsg string) error {
 	switch val := err.(type) {
 	case *HenchmanError:
 		if fields != nil {

@@ -24,7 +24,7 @@ func MergeMap(src map[interface{}]interface{}, dst map[interface{}]interface{}, 
 	}
 }
 
-func MergeLogrusFields(src log.Fields, dst log.Fields, override bool) {
+func MergeLogrusFields(src map[string]interface{}, dst map[string]interface{}, override bool) {
 	for variable, value := range src {
 		if override == true {
 			dst[variable] = value
