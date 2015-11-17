@@ -24,15 +24,15 @@ try:
 
     p = subprocess.Popen(commands, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
-    if loglevel == 'debug':
-        result['output'] = output
-    if err != "":
-        raise Exception(err)
-    else:
-        result['status'] = "changed"
-        result['msg'] = "Successfully installed package %s" % url
+
+    if err or p.returncode > 0:
+      raise Exception(err)
+    result['status'] = "changed"
+    result['msg'] = "Successfully installed package %s" % url
+    result['output'] = output
 
 except Exception as e:
     result['status'] = "error"
-    result['msg'] = traceback.format_exc()
+    result['msg'] = "Error occurred while installing package %s" % url
+    result['output'] = traceback.format_exc()
 print json.dumps(result)
