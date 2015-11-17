@@ -57,6 +57,11 @@ func Debug(fields map[string]interface{}, msg string) {
 	}
 }
 
+// wrapper for Info
+func Info(fields map[string]interface{}, msg string) {
+	log.WithFields(fields).Info(msg)
+}
+
 // recursively print a map.  Only issue is everything is out of order in a map.  Still prints nicely though
 func printRecurse(output interface{}, padding string, retVal string) string {
 	tmpVal := retVal

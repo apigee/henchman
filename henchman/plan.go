@@ -182,12 +182,27 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		"num machines": len(machines),
 	}).Info("Setting up plan")
 
+	log.WithFields(log.Fields{
+		"plan":         plan.Name,
+		"num machines": len(machines),
+	}).Info("Creating modules.tar")
+
 	// creates and populates modules.tar
 	if err := createModulesTar(plan.Tasks); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
 		}, "While creating modules.tar")
 	}
+
+	log.WithFields(log.Fields{
+		"plan":         plan.Name,
+		"num machines": len(machines),
+	}).Info("Finished creating modules.tar")
+
+	log.WithFields(log.Fields{
+		"plan":         plan.Name,
+		"num machines": len(machines),
+	}).Info("Transporting modules.tar")
 
 	// transport modules.tar to all machines
 	remoteModDir := "${HOME}/.henchman/"
@@ -204,8 +219,18 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		}, "While trasnferring modules.tar")
 	}
 
+	log.WithFields(log.Fields{
+		"plan":         plan.Name,
+		"num machines": len(machines),
+	}).Info("Finished transporting modules.tar")
+
 	// remove unnecessary modules.tar
 	os.Remove("modules.tar")
+
+	log.WithFields(log.Fields{
+		"plan":         plan.Name,
+		"num machines": len(machines),
+	}).Info("Done setting up plan")
 
 	return nil
 }

@@ -10,8 +10,8 @@ type HenchmanError struct {
 	msg    string
 }
 
-func (he *HenchmanError) Error() string {
-	return he.msg
+func (henchError *HenchmanError) Error() string {
+	return henchError.msg
 }
 
 func HenchErr(err error, fields map[string]interface{}, extMsg string) error {
