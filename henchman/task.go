@@ -3,11 +3,9 @@ package henchman
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
-	"log"
-	"os/exec"
 	"path"
 	"strconv"
 
@@ -25,6 +23,7 @@ type Task struct {
 	When         string
 	Register     string
 	Vars         VarsMap
+	Debug        bool
 }
 
 type TaskResult struct {
@@ -38,7 +37,7 @@ func getTaskResult(buf *bytes.Buffer) (*TaskResult, error) {
 	resultInBytes := []byte(buf.String())
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
-		return &TaskResult{}, err
+		return &TaskResult{}, HenchErr(err, nil, "While unmarshalling task results")
 	}
 	return &taskResult, nil
 }
@@ -47,7 +46,7 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultInBytes := []byte(buf.String())
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
-		return err
+		return HenchErr(err, nil, "While unmarshalling task results")
 	}
 	return nil
 }
@@ -57,8 +56,10 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 func renderValue(value string, varsMap VarsMap, registerMap map[string]interface{}) (string, error) {
 	tmpl, err := pongo2.FromString(value)
 	if err != nil {
-		log.Println("tmpl error")
-		return "", err
+		return "", HenchErr(err, map[string]interface{}{
+			"value":    value,
+			"solution": "Refer to wiki for proper pongo2 formatting",
+		}, "While templating")
 	}
 
 	ctxt := pongo2.Context{"vars": varsMap}
@@ -66,8 +67,11 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 
 	out, err := tmpl.Execute(ctxt)
 	if err != nil {
-		log.Println("execute error")
-		return "", err
+		return "", HenchErr(err, map[string]interface{}{
+			"value":    value,
+			"context":  ctxt,
+			"solution": "Refer to wiki for proper pongo2 formatting",
+		}, "While executing")
 	}
 	return out, nil
 }
@@ -105,7 +109,10 @@ func (task *Task) ProcessWhen() (bool, error) {
 
 	result, err := strconv.ParseBool(task.When)
 	if err != nil {
-		return false, err
+		return false, HenchErr(err, map[string]interface{}{
+			"task_when": task.When,
+			"solution":  "make sure value is a bool",
+		}, "")
 	}
 
 	return result, nil
@@ -122,124 +129,102 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 	}
 	proceed, err := task.ProcessWhen()
 	if err != nil {
-		return &TaskResult{}, err
+		return &TaskResult{}, HenchErr(err, nil, "While processing when")
 	}
 
 	if proceed == false {
 		return &TaskResult{State: "skipped"}, nil
 	}
 
-	modPath, err := task.Module.Resolve()
-	if err != nil {
-		return &TaskResult{}, err
-	}
-
 	execOrder, err := task.Module.ExecOrder()
+	// currently err will always be nil
 	if err != nil {
-		log.Printf("Error while creating remote module path\n")
-		return &TaskResult{}, err
+		return &TaskResult{}, HenchErr(err, nil, "")
 	}
 
-	remoteModDir := "${HOME}/.henchman"
+	remoteModDir := "${HOME}/.henchman/"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
-	log.Println("exec order", execOrder)
+	// NOTE: Info or Debug level
+	Debug(map[string]interface{}{
+		"task":   task.Name,
+		"host":   task.Vars["current_host"],
+		"module": task.Module.Name,
+		"order":  execOrder,
+	}, "Exec Order")
 
 	var taskResult TaskResult
 	for _, execStep := range execOrder {
 		switch execStep {
-		case "create_dir":
-			// creates remote .henchman location
-			_, err = machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
-				nil, false)
-			if err != nil {
-				log.Printf("Error while creating remote module path\n")
-				return &TaskResult{}, err
-			}
+		// Exec Order for Default
+		case "exec_module":
+			// executes module by calling the copied module remotely
+			log.WithFields(log.Fields{
+				"mod path": remoteModPath,
+				"host":     task.Vars["current_host"],
+				"task":     task.Name,
+				"module":   task.Module.Name,
+			}).Info("Executing Module in Task")
 
-		case "put_module":
-			// copies module from local location to remote location
-			err = machine.Transport.Put(modPath, remoteModDir, "dir")
+			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "In exec_module while json marshalling")
 			}
-		case "tar_module":
-			// creates a tar of the module
-			cmd := "tar"
-			args := []string{"-cvf", modPath + ".tar", modPath}
-			if err := exec.Command(cmd, args...).Run(); err != nil {
-				return &TaskResult{}, err
-			}
-		case "put_tar_module":
-			// copies module from local location to remote location
-			err = machine.Transport.Put(modPath+".tar", remoteModDir, "dir")
+			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
 			}
-
-			// deletes module.tar from local modules folder
-			cmd := "rm"
-			args := []string{modPath + ".tar"}
-			if err := exec.Command(cmd, args...).Run(); err != nil {
-				return &TaskResult{}, err
-			}
-		case "untar_module":
-			// untars the module
-			cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModPath+".tar", remoteModDir)
-			_, err := machine.Transport.Exec(cmd, nil, task.Sudo)
+			//This should not be empty
+			err = setTaskResult(&taskResult, buf)
 			if err != nil {
-				return &TaskResult{}, err
-			}
-
-			cmd = fmt.Sprintf("/bin/rm %s", remoteModPath+".tar")
-			_, err = machine.Transport.Exec(cmd, nil, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
 			}
 		case "exec_tar_module":
 			// executes module by calling the copied module remotely
 			// NOTE: may want to just change the way remoteModPath is created
-			newModPath := remoteModDir + "/modules/" + task.Module.Name + "/exec"
-			log.Printf("Executing script - %s\n", newModPath)
+			newModPath := remoteModDir + task.Module.Name + "/exec"
+			log.WithFields(log.Fields{
+				"mod path": newModPath,
+				"host":     task.Vars["current_host"],
+				"task":     task.Name,
+				"module":   task.Module.Name,
+			}).Info("Executing Module in Task")
 			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "In exec_tar_module while json marshalling")
 			}
 			buf, err := machine.Transport.Exec(newModPath, jsonParams, task.Sudo)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "While in exec_tar_module")
 			}
 			//This should not be empty
 			err = setTaskResult(&taskResult, buf)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "While in exec_tar_module")
 			}
-		case "exec_module":
-			// executes module by calling the copied module remotely
-			log.Printf("Executing script - %s\n", remoteModPath)
-			jsonParams, err := json.Marshal(moduleParams)
-			if err != nil {
-				return &TaskResult{}, err
+		case "put_file":
+			//scp's file from local location to remote location
+			srcPath, present := moduleParams["src"]
+			if !present {
+				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'src' parameter"), nil, "")
 			}
-			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, err
-			}
-			//This should not be empty
-			err = setTaskResult(&taskResult, buf)
-			if err != nil {
-				return &TaskResult{}, err
-			}
+			_, srcFile := path.Split(srcPath)
+			dstPath := path.Join(remoteModDir, srcFile)
 
+			err = machine.Transport.Put(srcPath, dstPath, "file")
+
+			if err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "Putting File")
+			}
 		case "copy_remote":
 			//copies file from remote .henchman location to expected location
 			remoteSrcPath, present := moduleParams["src"]
 			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
+				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'src' parameter"), nil, "")
 			}
 
 			dstPath, present := moduleParams["dest"]
 			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'dest' parameter")
+				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'dest' parameter"), nil, "")
 			}
 
 			_, localSrcFile := path.Split(remoteSrcPath)
@@ -248,42 +233,33 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			cmd := fmt.Sprintf("/bin/cp %s %s", srcPath, dstPath)
 			buf, err := machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "While copying file")
 			}
 			if len(buf.String()) != 0 {
 				err = setTaskResult(&taskResult, buf)
 				if err != nil {
-					return &TaskResult{}, err
+					return &TaskResult{}, HenchErr(err, nil, "Setting task result from copying file")
 				}
-				log.Println(taskResult)
 			}
-		case "put_file":
-			//scp's file from local location to remote location
-			srcPath, present := moduleParams["src"]
-			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
-			}
-			_, srcFile := path.Split(srcPath)
-			dstPath := path.Join(remoteModDir, srcFile)
-
-			err = machine.Transport.Put(srcPath, dstPath, "file")
-
-			if err != nil {
-				return &TaskResult{}, err
-			}
-
 		case "process_template":
 			srcPath, present := moduleParams["src"]
 			if !present {
-				return &TaskResult{}, errors.New("Unable to find 'src' parameter")
+				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'src' parameter"), nil, "")
 			}
+
 			tpl, err := pongo2.FromFile(srcPath)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, map[string]interface{}{
+					"file":     srcPath,
+					"solution": "Verify if src file has proper pongo2 formatting",
+				}, "While processing template file")
 			}
 			out, err := tpl.Execute(pongo2.Context{"vars": vars})
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, map[string]interface{}{
+					"file":     srcPath,
+					"solution": "Verify if src file has proper pongo2 formatting",
+				}, "While processing template file")
 			}
 			tmpDir, srcFile := path.Split(srcPath)
 			srcFile = srcFile + "_" + machine.Hostname
@@ -292,7 +268,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			err = ioutil.WriteFile(tmpFile, []byte(out), 0644)
 			if err != nil {
-				return &TaskResult{}, err
+				return &TaskResult{}, HenchErr(err, nil, "While processing template file")
 			}
 			moduleParams["srcOrig"] = srcPath
 			moduleParams["src"] = tmpFile
@@ -302,7 +278,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 	}
 
 	// Set to status to ignored if the result is a failure
-	if task.IgnoreErrors && (taskResult.State != "ok") {
+	if task.IgnoreErrors && (taskResult.State == "error" || taskResult.State == "failure") {
 		taskResult.State = "ignored"
 	}
 

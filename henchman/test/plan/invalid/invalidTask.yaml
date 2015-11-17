@@ -1,0 +1,8 @@
+name: "Invalid Task"
+vars:
+  service: iptables
+tasks:
+  - name: "valid shell"
+    shell: cmd="echo hello"
+  - name: "invalid shell"
+    shell: cmd "echo hello"

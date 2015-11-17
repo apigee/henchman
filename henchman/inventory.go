@@ -3,7 +3,6 @@ package henchman
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -47,23 +46,39 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	}
 	buf, err := ioutil.ReadFile(fname)
 	if err != nil {
-		return Inventory{}, err
+		return Inventory{}, HenchErr(err, map[string]interface{}{
+			"file":     fname,
+			"solution": "make sure directory exists, correct permissions, or is not corrupted",
+		}, "While Reading File")
 	}
 	err = yaml.Unmarshal(buf, &yi)
 	if err != nil {
-		return Inventory{}, err
+		return Inventory{}, HenchErr(err, map[string]interface{}{
+			"file":     fname,
+			"solution": "Make sure inventory follows proper formatting.  Also check for tabs when there should be spaces.",
+		}, "While unmarshalling inventory")
 	}
 
 	if yi.Groups == nil {
-		return Inventory{}, fmt.Errorf("Groups field is required.  Refer to README.md for proper formatting")
+		return Inventory{}, HenchErr(fmt.Errorf("Groups field is required."), map[string]interface{}{
+			"file":     fname,
+			"solution": "Refer to the wiki for proper formatting.",
+		}, "")
 	}
 
 	for key, val := range yi.Groups {
 		if key == "hosts" {
-			return Inventory{}, fmt.Errorf("\"hosts\" is not a valid group name")
+			return Inventory{}, HenchErr(fmt.Errorf("'hosts' is not a valid group name"), map[string]interface{}{
+				"file":     fname,
+				"solution": "Change a group name away from hosts",
+			}, "")
 		}
 		if val.Hosts == nil {
-			return Inventory{}, fmt.Errorf("%v requires a hosts field.  Refer to README.md for proper formatting", key)
+			return Inventory{}, HenchErr(fmt.Errorf("%v requires a hosts field.", key), map[string]interface{}{
+				"file":     fname,
+				"group":    key,
+				"solution": "Refet to the wiki for proper formatting.",
+			}, "")
 		}
 	}
 
@@ -80,6 +95,21 @@ func (inv *Inventory) MergeHostVars(hostname string, taskVars map[interface{}]in
 	if _, present := inv.HostVars[hostname]; present {
 		MergeMap(inv.HostVars[hostname], taskVars, true)
 	}
+}
+
+func (inv *Inventory) GetInventoryGroups(planBuf []byte) ([]string, error) {
+	hostsProxy := struct {
+		Groups []string `yaml:"hosts"`
+	}{}
+
+	err := yaml.Unmarshal(planBuf, &hostsProxy)
+	if err != nil {
+		return nil, HenchErr(err, map[string]interface{}{
+			"solution": "Check if hosts section exists",
+		}, "While unmarshalling hosts section")
+	}
+
+	return hostsProxy.Groups, nil
 }
 
 func (inv *Inventory) GetInventoryForGroups(groups []string) Inventory {
@@ -146,7 +176,12 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		for k, v := range henchmanVars {
 			tcCurr[k.(string)] = v.(string)
 		}
-		log.Println("Transport Config for machine", machine.Hostname, ": ", tcCurr)
+
+		Debug(map[string]interface{}{
+			"host":   machine.Hostname,
+			"config": tcCurr,
+		}, "Transport Config for machine")
+
 		// FIXME: This is frigging wrong
 		// See #47
 		ssht, err := NewSSH(&tcCurr)

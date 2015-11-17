@@ -2,14 +2,18 @@ name: "Plan with curl"
 vars:
    service: iptables
 hosts:
-  - individual
+  - test
 tasks:
   - name: "Test xml Curl"
     curl: url="http://ci.apigeng.com/v1/data/1k.xml" http="GET" loglevel=debug
     register: second
+    debug: true
   - name: "Test json Curl"
     curl: url="http://ci.apigeng.com/v1/data/1k.json" http="GET" 
     register: third
+    debug: true
   - name: "Test Curl"
     curl: url="http://httpbin.org/ip" http="GET"
     register: first
+  - name: "Test Shell"
+    shell: cmd="echo hello"

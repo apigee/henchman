@@ -1,17 +1,30 @@
 package henchman
 
 import (
-	//"encoding/json"
+	"archive/tar"
+	_ "encoding/json"
 	"fmt"
-	//"github.com/kr/pretty"
+	log "gopkg.in/Sirupsen/logrus.v0"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 )
 
 // source values will override dest values if override is true
 // else dest values will not be overridden
 func MergeMap(src map[interface{}]interface{}, dst map[interface{}]interface{}, override bool) {
+	for variable, value := range src {
+		if override == true {
+			dst[variable] = value
+		} else if _, present := dst[variable]; !present {
+			dst[variable] = value
+		}
+	}
+}
+
+func MergeLogrusFields(src map[string]interface{}, dst map[string]interface{}, override bool) {
 	for variable, value := range src {
 		if override == true {
 			dst[variable] = value
@@ -37,51 +50,105 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
+// wrapper for debug
+func Debug(fields map[string]interface{}, msg string) {
+	if DebugFlag {
+		log.WithFields(fields).Debug(msg)
+	}
+}
+
+// wrapper for Info
+func Info(fields map[string]interface{}, msg string) {
+	log.WithFields(fields).Info(msg)
+}
+
 // recursively print a map.  Only issue is everything is out of order in a map.  Still prints nicely though
-func printRecurse(output interface{}, padding string) {
+func printRecurse(output interface{}, padding string, retVal string) string {
+	tmpVal := retVal
 	switch output.(type) {
 	case map[string]interface{}:
 		for key, val := range output.(map[string]interface{}) {
 			switch val.(type) {
 			case map[string]interface{}:
-				fmt.Printf("%s%v:\n", padding, key)
-				printRecurse(val, padding+"  ")
+				tmpVal += fmt.Sprintf("%s%v:\n", padding, key)
+				tmpVal += printRecurse(val, padding+"  ", "")
 			default:
-				fmt.Printf("%s%v: %v\n", padding, key, val)
+				tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
 			}
 		}
 	default:
-		fmt.Printf("%s%v\n", padding, output)
+		tmpVal += fmt.Sprintf("%s%v (%s)\n", padding, output, reflect.TypeOf(output))
 	}
+
+	return tmpVal
 }
 
-func printOutput(taskName string, output interface{}) {
-	fmt.Printf("Task: \"%s\"\n", taskName)
-	fmt.Println("Output: \n--------------------")
-	/*
-		switch output.(type) {
-		default:
-			convOutput, err := json.MarshalIndent(output, "", "  ")
-			if err != nil {
-				fmt.Errorf("Error printing output - %s", err.Error())
+// Tar a file
+func tarFile(fName string, tarball *tar.Writer) error {
+	info, err := os.Stat(fName)
+	if err != nil {
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "make sure file exists, correct permissions, or is not corrupted",
+		}, "Getting file info")
+	}
+
+	header, err := tar.FileInfoHeader(info, info.Name())
+	if err != nil {
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "Golang specific tar package.  Submit an issue starting with TAR HEADER",
+		}, "Adding info to tar header")
+	}
+	header.Name = fName
+
+	if err := tarball.WriteHeader(header); err != nil {
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "Golang specific tar package.  Submit an issue starting with TARBALL",
+		}, "Writing header to tar")
+	}
+
+	file, err := os.Open(fName)
+	if err != nil {
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "Make sure file is not corrupted",
+		}, "Opening File")
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(tarball, file); err != nil {
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "make sure file exists, correct permissions, or is not corrupted",
+		}, "")
+	}
+	return nil
+}
+
+// recursively iterates through directories to tar files
+func tarDir(fName string, tarball *tar.Writer) error {
+	infos, err := ioutil.ReadDir(fName)
+	if err != nil {
+		return HenchErr(err, log.Fields{
+			"file":     fName,
+			"solution": "make sure directory exists, correct permissions, or is not corrupted",
+		}, "Getting Dir info")
+	}
+
+	for _, info := range infos {
+		newPath := path.Join(fName, info.Name())
+		if info.IsDir() {
+			if err := tarDir(newPath, tarball); err != nil {
+				return err
 			}
-			fmt.Printf(string(convOutput))
+		} else {
+			if err := tarFile(newPath, tarball); err != nil {
+				return err
+			}
 		}
-	*/
-
-	printRecurse(output, "")
-}
-
-/*
-func printTask(task *Task, output interface{}) {
-	fmt.Printf("Task: \"%s\"\n", task.Name)
-	fmt.Println("Output: \n--------------------")
-
-	val, ok := task.Module.Params["loglevel"]
-	if ok && val == "debug" {
-		fmt.Printf("% v\n", pretty.Formatter(output))
-	} else {
-		fmt.Printf("%# v\n", pretty.Formatter(output))
 	}
+
+	return nil
 }
-*/

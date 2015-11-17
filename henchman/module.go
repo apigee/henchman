@@ -1,10 +1,8 @@
 package henchman
 
 import (
-	//"errors"
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -75,7 +73,10 @@ func parseModuleArgs(args string) (map[string]string, error) {
 			extraArgs[splitValues[0]] = splitValues[1]
 		} else {
 			// this check takes care of 2nd part of " def'" part of 'abc def'
-			return nil, errors.New("Module args are invalid")
+			return nil, HenchErr(fmt.Errorf("Module args are invalid"), map[string]interface{}{
+				"args":     args,
+				"solution": "Refer to wiki on proper use of modules",
+			}, "")
 		}
 	}
 	// remove all quotes. Value for the respective key
@@ -83,8 +84,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 	extraArgs = stripQuotes(extraArgs)
 
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("Invalid input: %s", err)
-		return extraArgs, err
+		return extraArgs, HenchErr(err, nil, "Invalid input")
 	}
 	return extraArgs, nil
 }
@@ -116,7 +116,9 @@ func NewModule(name string, params string) (*Module, error) {
 	module.Name = name
 	paramTable, err := parseModuleArgs(params)
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, map[string]interface{}{
+			"module": name,
+		}, "While parsing args")
 	}
 	module.Params = paramTable
 	return &module, nil
@@ -131,21 +133,27 @@ func (module *Module) Resolve() (modulePath string, err error) {
 				tmpPath := path.Join(fullPath, "exec")
 				finfo, err = os.Stat(tmpPath)
 				if finfo == nil || finfo.IsDir() {
-					return "", fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name)
+					return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name), map[string]interface{}{
+						"module":   module.Name,
+						"solution": "Check if the non-standalone module has an exec.  Or the standalone module isn't in a folder",
+					}, "")
 				}
 			}
 			return fullPath, err
 		}
 	}
-	return "", fmt.Errorf("Module %s couldn't be resolved", module.Name)
+	return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), map[string]interface{}{
+		"module":   module.Name,
+		"solution": "Check if module exists",
+	}, "")
 }
 
 func (module *Module) ExecOrder() ([]string, error) {
-	execOrder := map[string][]string{"default": []string{"create_dir", "put_module", "exec_module"},
-		"copy": []string{"create_dir", "put_module", "put_file", "copy_remote", "exec_module"},
-		"template": []string{"create_dir", "put_module", "process_template", "put_file", "copy_remote",
+	execOrder := map[string][]string{"default": []string{"exec_module"},
+		"copy": []string{"put_file", "copy_remote", "exec_module"},
+		"template": []string{"process_template", "put_file", "copy_remote",
 			"reset_src", "exec_module"},
-		"curl": []string{"create_dir", "tar_module", "put_tar_module", "untar_module", "exec_tar_module"},
+		"curl": []string{"exec_tar_module"},
 	}
 
 	var defaultOrder []string

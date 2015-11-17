@@ -1,4 +1,9 @@
 groups:
+  all:
+    hosts:
+      - 192.168.33.10
+      - 192.168.33.11
+      - 192.168.33.12
   test:
     hosts:
       - 192.168.33.10
@@ -6,3 +11,9 @@ groups:
   individual:
     hosts:
       - 192.168.33.10
+  second:
+    hosts:
+      - 192.168.33.11
+  third:
+    hosts:
+      - 192.168.33.12

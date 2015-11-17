@@ -1,0 +1,11 @@
+---
+name: "Testing local == true"
+hosts:
+   - individual 
+tasks:
+   - name: "Task Standalone"
+     shell: cmd="echo hello {{ vars.current_host }}" loglevel="debug"
+     local: true
+   - name: "Task Dependencies"
+     curl: url="http://ci.apigeng.com/v1/data/1k.json" http="GET"
+     local: true

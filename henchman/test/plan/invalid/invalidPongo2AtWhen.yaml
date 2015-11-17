@@ -8,4 +8,5 @@ tasks:
      when: vars.service == "iptables"
    - name: "Task 2"
      shell: cmd=touch
-     when: {{ vars.service }} == "iptables" 
+     when: '"{{ vars.service }}" == "iptables"'
+

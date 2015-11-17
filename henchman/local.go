@@ -29,7 +29,10 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 	// FIXME: This is kinda dumb and can break for weird inputs. Make this more robust
 	commands, err := shlex.Split(cmdStr)
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, map[string]interface{}{
+			"command":  cmdStr,
+			"solution": "Submit an issue starting with SHLEX LOCAL EXEC",
+		}, "While Shlex'ing the cmd")
 	}
 	cmd := exec.Command(commands[0], commands[1:]...)
 	// We need to setup two sets of cmds for piping stdin into the command that
@@ -39,24 +42,32 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 		stdinPipe = exec.Command("echo", string(stdin))
 		cmd.Stdin, err = stdinPipe.StdoutPipe()
 		if err != nil {
-			return nil, err
+			return nil, HenchErr(err, map[string]interface{}{
+				"solution": "Sumbit an issue starting with STDIN PIPE LOCAL EXEC",
+			}, "While creating stdin pipe")
 		}
 	}
 	cmd.Stdout = &b
 	cmd.Stderr = &b
 	err = cmd.Start()
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, map[string]interface{}{
+			"solution": "Verify your local system has the right files/perms",
+		}, "While executing command")
 	}
 	if stdinPipe != nil {
 		err = stdinPipe.Run()
 		if err != nil {
-			return nil, err
+			return nil, HenchErr(err, map[string]interface{}{
+				"solution": "Verify your local system has the right files/perms",
+			}, "While executing stdinPipe.Run()")
 		}
 	}
 	err = cmd.Wait()
 	if err != nil {
-		return nil, err
+		return nil, HenchErr(err, map[string]interface{}{
+			"solution": "Verify your local system has the right files/perms",
+		}, "While executing cmd.Wait()")
 	}
 	return &b, err
 }

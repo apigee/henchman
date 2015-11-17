@@ -1,0 +1,14 @@
+name: "Just to Tar modules"
+vars:
+  service: iptables
+hosts:
+  - test
+tasks:
+  - name: "Task One"
+    shell: cmd="echo hello"
+  - name: "Task Two"
+    curl: url="http://ci.apigeng.com/v1/data/1k.json" http="GET" 
+  - name: "Task Three"
+    yum: package="apt"
+  - name: "Task Four"
+    rpm: url="www.tmp.com"

@@ -19,7 +19,7 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	tc["username"] = "foobar"
 	tc["password"] = "bar"
 
-	invGroups, err := GetInventoryGroups(buf)
+	invGroups, err := inv.GetInventoryGroups(buf)
 	inventory := inv.GetInventoryForGroups(invGroups)
 	plan, err := PreprocessPlan(buf, inventory)
 
@@ -228,6 +228,20 @@ func TestPreprocessWithCommentsAtTheTaskLevelAndVarsLevel(t *testing.T) {
 	assert.Equal(t, "Second task", plan.Tasks[0].Name, "Task name is wrong. Expected task name was 'second task'")
 	assert.Equal(t, "hello", plan.Vars["foo"], "Variable foo should have value hello")
 	assert.Nil(t, plan.Vars["bar"], "Variable 'bar' should be commented")
+}
+
+func TestPreprocessWithDebug(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/debugAtPlanAndTaskLevel.yaml")
+	require.NoError(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.NoError(t, err)
+
+	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, false, plan.Tasks[0].Debug, "Task debug override did not work")
+	assert.Equal(t, true, plan.Tasks[1].Debug, "Plan debug did not work")
+	assert.Equal(t, true, plan.Tasks[2].Debug, "Plan debug did not work")
 }
 
 // Table driven test for Invalids
