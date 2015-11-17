@@ -56,7 +56,7 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 func renderValue(value string, varsMap VarsMap, registerMap map[string]interface{}) (string, error) {
 	tmpl, err := pongo2.FromString(value)
 	if err != nil {
-		return "", HenchErr(err, log.Fields{
+		return "", HenchErr(err, map[string]interface{}{
 			"value":    value,
 			"solution": "Refer to wiki for proper pongo2 formatting",
 		}, "While templating")
@@ -67,7 +67,7 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 
 	out, err := tmpl.Execute(ctxt)
 	if err != nil {
-		return "", HenchErr(err, log.Fields{
+		return "", HenchErr(err, map[string]interface{}{
 			"value":    value,
 			"context":  ctxt,
 			"solution": "Refer to wiki for proper pongo2 formatting",
@@ -109,7 +109,7 @@ func (task *Task) ProcessWhen() (bool, error) {
 
 	result, err := strconv.ParseBool(task.When)
 	if err != nil {
-		return false, HenchErr(err, log.Fields{
+		return false, HenchErr(err, map[string]interface{}{
 			"task_when": task.When,
 			"solution":  "make sure value is a bool",
 		}, "")
@@ -145,7 +145,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 	remoteModDir := "${HOME}/.henchman/"
 	remoteModPath := path.Join(remoteModDir, task.Module.Name)
 	// NOTE: Info or Debug level
-	Debug(log.Fields{
+	Debug(map[string]interface{}{
 		"task":   task.Name,
 		"host":   task.Vars["current_host"],
 		"module": task.Module.Name,
@@ -249,14 +249,14 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			tpl, err := pongo2.FromFile(srcPath)
 			if err != nil {
-				return &TaskResult{}, HenchErr(err, log.Fields{
+				return &TaskResult{}, HenchErr(err, map[string]interface{}{
 					"file":     srcPath,
 					"solution": "Verify if src file has proper pongo2 formatting",
 				}, "While processing template file")
 			}
 			out, err := tpl.Execute(pongo2.Context{"vars": vars})
 			if err != nil {
-				return &TaskResult{}, HenchErr(err, log.Fields{
+				return &TaskResult{}, HenchErr(err, map[string]interface{}{
 					"file":     srcPath,
 					"solution": "Verify if src file has proper pongo2 formatting",
 				}, "While processing template file")

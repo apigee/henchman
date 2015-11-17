@@ -3,7 +3,6 @@ package henchman
 import (
 	"bytes"
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"os/exec"
 	"strings"
 
@@ -30,7 +29,7 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 	// FIXME: This is kinda dumb and can break for weird inputs. Make this more robust
 	commands, err := shlex.Split(cmdStr)
 	if err != nil {
-		return nil, HenchErr(err, log.Fields{
+		return nil, HenchErr(err, map[string]interface{}{
 			"command":  cmdStr,
 			"solution": "Submit an issue starting with SHLEX LOCAL EXEC",
 		}, "While Shlex'ing the cmd")
@@ -43,7 +42,7 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 		stdinPipe = exec.Command("echo", string(stdin))
 		cmd.Stdin, err = stdinPipe.StdoutPipe()
 		if err != nil {
-			return nil, HenchErr(err, log.Fields{
+			return nil, HenchErr(err, map[string]interface{}{
 				"solution": "Sumbit an issue starting with STDIN PIPE LOCAL EXEC",
 			}, "While creating stdin pipe")
 		}
@@ -52,21 +51,21 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 	cmd.Stderr = &b
 	err = cmd.Start()
 	if err != nil {
-		return nil, HenchErr(err, log.Fields{
+		return nil, HenchErr(err, map[string]interface{}{
 			"solution": "Verify your local system has the right files/perms",
 		}, "While executing command")
 	}
 	if stdinPipe != nil {
 		err = stdinPipe.Run()
 		if err != nil {
-			return nil, HenchErr(err, log.Fields{
+			return nil, HenchErr(err, map[string]interface{}{
 				"solution": "Verify your local system has the right files/perms",
 			}, "While executing stdinPipe.Run()")
 		}
 	}
 	err = cmd.Wait()
 	if err != nil {
-		return nil, HenchErr(err, log.Fields{
+		return nil, HenchErr(err, map[string]interface{}{
 			"solution": "Verify your local system has the right files/perms",
 		}, "While executing cmd.Wait()")
 	}

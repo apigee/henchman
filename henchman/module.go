@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"os"
 	"path"
 	"strings"
@@ -74,7 +73,7 @@ func parseModuleArgs(args string) (map[string]string, error) {
 			extraArgs[splitValues[0]] = splitValues[1]
 		} else {
 			// this check takes care of 2nd part of " def'" part of 'abc def'
-			return nil, HenchErr(fmt.Errorf("Module args are invalid"), log.Fields{
+			return nil, HenchErr(fmt.Errorf("Module args are invalid"), map[string]interface{}{
 				"args":     args,
 				"solution": "Refer to wiki on proper use of modules",
 			}, "")
@@ -117,7 +116,7 @@ func NewModule(name string, params string) (*Module, error) {
 	module.Name = name
 	paramTable, err := parseModuleArgs(params)
 	if err != nil {
-		return nil, HenchErr(err, log.Fields{
+		return nil, HenchErr(err, map[string]interface{}{
 			"module": name,
 		}, "While parsing args")
 	}
@@ -134,7 +133,7 @@ func (module *Module) Resolve() (modulePath string, err error) {
 				tmpPath := path.Join(fullPath, "exec")
 				finfo, err = os.Stat(tmpPath)
 				if finfo == nil || finfo.IsDir() {
-					return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name), log.Fields{
+					return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name), map[string]interface{}{
 						"module":   module.Name,
 						"solution": "Check if the non-standalone module has an exec.  Or the standalone module isn't in a folder",
 					}, "")
@@ -143,7 +142,7 @@ func (module *Module) Resolve() (modulePath string, err error) {
 			return fullPath, err
 		}
 	}
-	return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), log.Fields{
+	return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), map[string]interface{}{
 		"module":   module.Name,
 		"solution": "Check if module exists",
 	}, "")

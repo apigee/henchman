@@ -2,12 +2,11 @@ package henchman
 
 import (
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 )
 
 type HenchmanError struct {
 	Err    error
-	Fields log.Fields
+	Fields map[string]interface{}
 	msg    string
 }
 
@@ -26,11 +25,11 @@ func HenchErr(err error, fields map[string]interface{}, extMsg string) error {
 		}
 		return err
 	default:
-		var newFields log.Fields = fields
+		newFields := fields
 		msg := err.Error()
 
 		if newFields == nil {
-			newFields = make(log.Fields)
+			newFields = make(map[string]interface{})
 		}
 		if extMsg != "" {
 			msg = (extMsg + " :: " + msg)

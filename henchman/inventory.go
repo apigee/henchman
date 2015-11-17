@@ -2,7 +2,6 @@ package henchman
 
 import (
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
 	"strings"
 
@@ -47,21 +46,21 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	}
 	buf, err := ioutil.ReadFile(fname)
 	if err != nil {
-		return Inventory{}, HenchErr(err, log.Fields{
+		return Inventory{}, HenchErr(err, map[string]interface{}{
 			"file":     fname,
 			"solution": "make sure directory exists, correct permissions, or is not corrupted",
 		}, "While Reading File")
 	}
 	err = yaml.Unmarshal(buf, &yi)
 	if err != nil {
-		return Inventory{}, HenchErr(err, log.Fields{
+		return Inventory{}, HenchErr(err, map[string]interface{}{
 			"file":     fname,
 			"solution": "Make sure inventory follows proper formatting.  Also check for tabs when there should be spaces.",
 		}, "While unmarshalling inventory")
 	}
 
 	if yi.Groups == nil {
-		return Inventory{}, HenchErr(fmt.Errorf("Groups field is required."), log.Fields{
+		return Inventory{}, HenchErr(fmt.Errorf("Groups field is required."), map[string]interface{}{
 			"file":     fname,
 			"solution": "Refer to the wiki for proper formatting.",
 		}, "")
@@ -69,13 +68,13 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 
 	for key, val := range yi.Groups {
 		if key == "hosts" {
-			return Inventory{}, HenchErr(fmt.Errorf("'hosts' is not a valid group name"), log.Fields{
+			return Inventory{}, HenchErr(fmt.Errorf("'hosts' is not a valid group name"), map[string]interface{}{
 				"file":     fname,
 				"solution": "Change a group name away from hosts",
 			}, "")
 		}
 		if val.Hosts == nil {
-			return Inventory{}, HenchErr(fmt.Errorf("%v requires a hosts field.", key), log.Fields{
+			return Inventory{}, HenchErr(fmt.Errorf("%v requires a hosts field.", key), map[string]interface{}{
 				"file":     fname,
 				"group":    key,
 				"solution": "Refet to the wiki for proper formatting.",
@@ -105,7 +104,7 @@ func (inv *Inventory) GetInventoryGroups(planBuf []byte) ([]string, error) {
 
 	err := yaml.Unmarshal(planBuf, &hostsProxy)
 	if err != nil {
-		return nil, HenchErr(err, log.Fields{
+		return nil, HenchErr(err, map[string]interface{}{
 			"solution": "Check if hosts section exists",
 		}, "While unmarshalling hosts section")
 	}
@@ -178,7 +177,7 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 			tcCurr[k.(string)] = v.(string)
 		}
 
-		Debug(log.Fields{
+		Debug(map[string]interface{}{
 			"host":   machine.Hostname,
 			"config": tcCurr,
 		}, "Transport Config for machine")

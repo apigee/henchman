@@ -32,7 +32,7 @@ func loadPEM(file string) (ssh.Signer, error) {
 func ClientKeyAuth(keyFile string) (ssh.AuthMethod, error) {
 	key, err := loadPEM(keyFile)
 	if err != nil {
-		return nil, HenchErr(err, log.Fields{
+		return nil, HenchErr(err, map[string]interface{}{
 			"key_file": keyFile,
 		}, "")
 	}
@@ -131,7 +131,7 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
-		return nil, HenchErr(err, log.Fields{
+		return nil, HenchErr(err, map[string]interface{}{
 			"host": sshTransport.Host,
 		}, fmt.Sprintf("Couldn't dial into %s", sshTransport.Host))
 	}
@@ -158,7 +158,7 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 func (sshTransport *SSHTransport) Put(source, destination string, dstType string) error {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"host": sshTransport.Host,
 		}, fmt.Sprintf("Couldn't dial into %s", sshTransport.Host))
 	}
@@ -166,7 +166,7 @@ func (sshTransport *SSHTransport) Put(source, destination string, dstType string
 	defer session.Close()
 	sourceBuf, err := ioutil.ReadFile(source)
 	if err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"file": source,
 		}, "")
 	}
@@ -194,7 +194,7 @@ func (sshTransport *SSHTransport) Put(source, destination string, dstType string
 		remoteCommand = fmt.Sprintf("/usr/bin/scp -t %s", destination)
 	}
 	if err := session.Run(remoteCommand); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"host": sshTransport.Host,
 		}, "Error doing scp")
 	}

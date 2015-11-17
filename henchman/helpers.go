@@ -51,7 +51,7 @@ func rmTempFile(fpath string) {
 }
 
 // wrapper for debug
-func Debug(fields log.Fields, msg string) {
+func Debug(fields map[string]interface{}, msg string) {
 	if DebugFlag {
 		log.WithFields(fields).Debug(msg)
 	}

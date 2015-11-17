@@ -48,7 +48,7 @@ func transferUntarModules(machine *Machine, remoteModDir string) error {
 	// create dir
 	if _, err := machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
 		nil, false); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
 			"host":       machine.Hostname,
 		}, "While creating dir")
@@ -57,7 +57,7 @@ func transferUntarModules(machine *Machine, remoteModDir string) error {
 	// throw a check the check sum stuff in here somewhere
 	// transfer tar module
 	if err := machine.Transport.Put(TARGET, remoteModDir, "dir"); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
 			"host":       machine.Hostname,
 		}, "While transfering tar")
@@ -66,7 +66,7 @@ func transferUntarModules(machine *Machine, remoteModDir string) error {
 	// untar the modules
 	cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModDir+TARGET, remoteModDir)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
 			"host":       machine.Hostname,
 		}, "While untarring")
@@ -75,7 +75,7 @@ func transferUntarModules(machine *Machine, remoteModDir string) error {
 	// remove tar file
 	cmd = fmt.Sprintf("/bin/rm %s", remoteModDir+TARGET)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
 			"host":       machine.Hostname,
 		}, "While removing tar in remote path")
@@ -89,13 +89,13 @@ func tarModule(modName string, tarball *tar.Writer) error {
 	info, _ := os.Stat(modName)
 	if info.IsDir() {
 		if err := tarDir(modName, tarball); err != nil {
-			return HenchErr(err, log.Fields{
+			return HenchErr(err, map[string]interface{}{
 				"module": modName,
 			}, "While Tarring Dir")
 		}
 	} else {
 		if err := tarFile(modName, tarball); err != nil {
-			return HenchErr(err, log.Fields{
+			return HenchErr(err, map[string]interface{}{
 				"module": modName,
 			}, "While Tarring file")
 		}
@@ -118,7 +118,7 @@ func createModulesTar(tasks []*Task) error {
 	// os.Create will O_TRUNC the file if it exists
 	tarfile, err := os.Create(TARGET)
 	if err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"target": TARGET,
 		}, "")
 	}
@@ -131,7 +131,7 @@ func createModulesTar(tasks []*Task) error {
 	for _, task := range tasks {
 		if _, ok := modSet[task.Module.Name]; !ok {
 			if _, err := task.Module.Resolve(); err != nil {
-				return HenchErr(err, log.Fields{
+				return HenchErr(err, map[string]interface{}{
 					"task": task.Name,
 				}, "")
 			}
@@ -157,7 +157,7 @@ func createModulesTar(tasks []*Task) error {
 				// exist in this seach path
 				if err == nil {
 					if err := tarModule(modName, tarball); err != nil {
-						return HenchErr(err, log.Fields{
+						return HenchErr(err, map[string]interface{}{
 							"modPath": modPath,
 						}, "While populating modules.tar")
 					}
@@ -184,7 +184,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 
 	// creates and populates modules.tar
 	if err := createModulesTar(plan.Tasks); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
 		}, "While creating modules.tar")
 	}
@@ -193,13 +193,13 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	remoteModDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
 		if err := transferUntarModules(machine, remoteModDir); err != nil {
-			return HenchErr(err, log.Fields{
+			return HenchErr(err, map[string]interface{}{
 				"plan": plan.Name,
 			}, "While transferring modules.tar")
 		}
 	}
 	if err := transferUntarModules(localhost(), remoteModDir); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
 		}, "While trasnferring modules.tar")
 	}
@@ -249,7 +249,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				err := task.Render(vars, registerMap)
 
 				if err != nil {
-					henchErr := HenchErr(err, log.Fields{
+					henchErr := HenchErr(err, map[string]interface{}{
 						"plan":  plan.Name,
 						"task":  task.Name,
 						"host":  actualMachine.Hostname,
@@ -273,7 +273,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				taskResult, err := task.Run(actualMachine, vars, registerMap)
 				if err != nil {
-					henchErr := HenchErr(err, log.Fields{
+					henchErr := HenchErr(err, map[string]interface{}{
 						"plan":  plan.Name,
 						"task":  task.Name,
 						"host":  actualMachine.Hostname,
