@@ -4,7 +4,4 @@ hosts:
    - individual 
 tasks:
    - name: "Task 1"
-     copy: src="henchman/test/plan/localTest.yaml" dest="~/tmp.yaml"
-     sudo: true
-     local: true
-     register: second
+     copy: src="henchman/test/plan/localTest.yaml" dest="fldr/tmp.yaml"

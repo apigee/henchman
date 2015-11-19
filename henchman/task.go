@@ -223,14 +223,15 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			}
 
 			dstPath, present := moduleParams["dest"]
+			dstFldr := path.Dir(dstPath)
+
 			if !present {
 				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'dest' parameter"), nil, "")
 			}
 
-			_, localSrcFile := path.Split(remoteSrcPath)
-			srcPath := path.Join(remoteModDir, localSrcFile)
+			srcPath := path.Join(remoteModDir, path.Base(remoteSrcPath))
 
-			cmd := fmt.Sprintf("/bin/cp %s %s", srcPath, dstPath)
+			cmd := fmt.Sprintf("/bin/mkdir -p %s && /bin/cp -r %s %s", dstFldr, srcPath, dstPath)
 			buf, err := machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While copying file")

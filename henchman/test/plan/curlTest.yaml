@@ -7,13 +7,13 @@ tasks:
   - name: "Test xml Curl"
     curl: url="http://ci.apigeng.com/v1/data/1k.xml" http="GET" loglevel=debug
     register: second
-    debug: true
   - name: "Test json Curl"
     curl: url="http://ci.apigeng.com/v1/data/1k.json" http="GET" 
     register: third
-    debug: true
   - name: "Test Curl"
     curl: url="http://httpbin.org/ip" http="GET"
     register: first
+    debug: true
   - name: "Test Shell"
-    shell: cmd="echo hello"
+    shell: cmd="echo {{ vars.service }}"
+    debug: true
