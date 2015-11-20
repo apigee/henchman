@@ -249,10 +249,13 @@ func TestInvalid(t *testing.T) {
 	var tests = []struct {
 		fName string
 	}{
+		{"test/plan/invalid/invalidIncludeFileAtVarsLevel.yaml"},
 		{"test/plan/invalid/invalidIncludeFormatAtVarsLevel.yaml"},
 		{"test/plan/invalid/invalidRegisterKeyword.yaml"},
 		{"test/plan/invalid/invalidRegisterVariable.yaml"},
 		{"test/plan/invalid/invalidPongo2AtWhen.yaml"},
+		{"test/plan/invalid/invalidTask.yaml"},
+		{"test/plan/invalid/invalidTaskNoName.yaml"},
 	}
 	inv, _ := loadValidInventory()
 	for _, test := range tests {

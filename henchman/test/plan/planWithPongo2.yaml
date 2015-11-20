@@ -12,7 +12,8 @@ tasks:
   - name: "{{ name }} is valid"
     shell: cmd="{{ cmd }}" key=tmpKey
     when: vars.service == "iptables"
-  - include: test/tasks/withPongo2.yaml
+  - name: "included tasks" 
+    include: test/tasks/withPongo2.yaml
     when: vars.key == "abcd1234"
   - name: "When processing test"
     shell: cmd=ls

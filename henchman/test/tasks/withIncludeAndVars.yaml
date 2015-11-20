@@ -3,7 +3,8 @@ name: "To be include"
 tasks:
     - name: "included_task1"
       action: foo="bar"
-    - include: test/tasks/noInclude.yaml 
+    - name: "included tasks" 
+      include: test/tasks/noInclude.yaml 
       vars:
         foo: thumb
     - name: "included_task2"

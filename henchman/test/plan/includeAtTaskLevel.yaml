@@ -6,4 +6,5 @@ hosts:
 tasks:
   - name: task1
     action: cmd="ls -al"
-  - include: test/tasks/noInclude.yaml
+  - name: "include tasks"
+    include: test/tasks/noInclude.yaml

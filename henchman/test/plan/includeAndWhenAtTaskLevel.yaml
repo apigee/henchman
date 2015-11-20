@@ -4,5 +4,6 @@ tasks:
   - name: "task 1"
     shell: cmd=echo
     when: test == true
-  - include: test/tasks/withIncludeAndWhen.yaml
+  - name: "included tasks" 
+    include: test/tasks/withIncludeAndWhen.yaml
     when: test == false

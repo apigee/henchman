@@ -3,4 +3,5 @@ name: "Tasks With Includes"
 tasks:
   - name: "included_task1"
     shell: cmd=foo
-  - include: test/tasks/noInclude.yaml
+  - name: "included tasks" 
+    include: test/tasks/noInclude.yaml

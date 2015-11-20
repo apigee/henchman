@@ -4,5 +4,6 @@ tasks:
   - name: "include when 1"
     shell: cmd=echo
     when: hello == world
-  - include: test/tasks/noInclude.yaml
+  - name: "included tasks" 
+    include: test/tasks/noInclude.yaml
     when: goodbye == moon 

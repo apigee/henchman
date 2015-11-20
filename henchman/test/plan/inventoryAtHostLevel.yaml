@@ -8,4 +8,5 @@ tasks:
   - name: Second task
     action: cmd="echo"
     ignore_errors: true
-  - include: test/tasks/noInclude.yaml
+  - name: "included tasks" 
+    include: test/tasks/noInclude.yaml
