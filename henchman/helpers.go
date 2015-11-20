@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	_ "encoding/json"
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"io"
 	"io/ioutil"
 	"os"
@@ -50,22 +49,20 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
-// wrapper for debug
-func Debug(fields map[string]interface{}, msg string) {
-	if DebugFlag {
-		log.WithFields(fields).Debug(msg)
-	}
-}
-
-// wrapper for Info
-func Info(fields map[string]interface{}, msg string) {
-	log.WithFields(fields).Info(msg)
-}
-
 // recursively print a map.  Only issue is everything is out of order in a map.  Still prints nicely though
 func printRecurse(output interface{}, padding string, retVal string) string {
 	tmpVal := retVal
 	switch output.(type) {
+	case VarsMap:
+		for key, val := range output.(VarsMap) {
+			switch val.(type) {
+			case map[string]interface{}:
+				tmpVal += fmt.Sprintf("%s%v:\n", padding, key)
+				tmpVal += printRecurse(val, padding+"  ", "")
+			default:
+				tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
+			}
+		}
 	case map[string]interface{}:
 		for key, val := range output.(map[string]interface{}) {
 			switch val.(type) {
@@ -87,7 +84,7 @@ func printRecurse(output interface{}, padding string, retVal string) string {
 func tarFile(fName string, tarball *tar.Writer) error {
 	info, err := os.Stat(fName)
 	if err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"file":     fName,
 			"solution": "make sure file exists, correct permissions, or is not corrupted",
 		}, "Getting file info")
@@ -95,7 +92,7 @@ func tarFile(fName string, tarball *tar.Writer) error {
 
 	header, err := tar.FileInfoHeader(info, info.Name())
 	if err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"file":     fName,
 			"solution": "Golang specific tar package.  Submit an issue starting with TAR HEADER",
 		}, "Adding info to tar header")
@@ -103,7 +100,7 @@ func tarFile(fName string, tarball *tar.Writer) error {
 	header.Name = fName
 
 	if err := tarball.WriteHeader(header); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"file":     fName,
 			"solution": "Golang specific tar package.  Submit an issue starting with TARBALL",
 		}, "Writing header to tar")
@@ -111,7 +108,7 @@ func tarFile(fName string, tarball *tar.Writer) error {
 
 	file, err := os.Open(fName)
 	if err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"file":     fName,
 			"solution": "Make sure file is not corrupted",
 		}, "Opening File")
@@ -119,7 +116,7 @@ func tarFile(fName string, tarball *tar.Writer) error {
 	defer file.Close()
 
 	if _, err := io.Copy(tarball, file); err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"file":     fName,
 			"solution": "make sure file exists, correct permissions, or is not corrupted",
 		}, "")
@@ -131,7 +128,7 @@ func tarFile(fName string, tarball *tar.Writer) error {
 func tarDir(fName string, tarball *tar.Writer) error {
 	infos, err := ioutil.ReadDir(fName)
 	if err != nil {
-		return HenchErr(err, log.Fields{
+		return HenchErr(err, map[string]interface{}{
 			"file":     fName,
 			"solution": "make sure directory exists, correct permissions, or is not corrupted",
 		}, "Getting Dir info")

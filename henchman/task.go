@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
 	"path"
 	"strconv"
@@ -158,12 +157,12 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		// Exec Order for Default
 		case "exec_module":
 			// executes module by calling the copied module remotely
-			log.WithFields(log.Fields{
+			Info(map[string]interface{}{
 				"mod path": remoteModPath,
 				"host":     task.Vars["current_host"],
 				"task":     task.Name,
 				"module":   task.Module.Name,
-			}).Info("Executing Module in Task")
+			}, "Executing Module in Task")
 
 			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
@@ -182,12 +181,13 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			// executes module by calling the copied module remotely
 			// NOTE: may want to just change the way remoteModPath is created
 			newModPath := remoteModDir + task.Module.Name + "/exec"
-			log.WithFields(log.Fields{
+			Info(map[string]interface{}{
 				"mod path": newModPath,
 				"host":     task.Vars["current_host"],
 				"task":     task.Name,
 				"module":   task.Module.Name,
-			}).Info("Executing Module in Task")
+			}, "Executing Module in Task")
+
 			jsonParams, err := json.Marshal(moduleParams)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "In exec_tar_module while json marshalling")

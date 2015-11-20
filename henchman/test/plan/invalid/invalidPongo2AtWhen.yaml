@@ -1,5 +1,7 @@
 ---
 name: "invalid pongo2 at when"
+hosts:
+  - individual
 vars:
    service: "iptables"
 tasks:

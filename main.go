@@ -17,7 +17,7 @@ func currentUsername() string {
 	// FIXME: Do we even care for Windows?
 	currUser := os.Getenv("USER")
 	if currUser == "" {
-		log.Warn("Couldn't get current username. Assuming root")
+		henchman.Warn(nil, "Couldn't get current username. Assuming root")
 		return "root"
 	}
 	return currUser
@@ -97,7 +97,7 @@ func executePlan(c *cli.Context) {
 	args := c.Args()
 	if len(args) == 0 {
 		// FIXME: Just print out the usage info?
-		log.Fatal("Missing path to the plan")
+		henchman.Fatal(nil, "Missing path to the plan")
 	}
 
 	// Step 0: Set global variables
@@ -109,10 +109,10 @@ func executePlan(c *cli.Context) {
 	keyfile := c.String("keyfile")
 	_, err := os.Stat(modulesPath)
 	if err != nil {
-		log.WithFields(log.Fields{
+		henchman.Fatal(map[string]interface{}{
 			"mod path": modulesPath,
 			"error":    err.Error(),
-		}).Fatal("Error Validating Modules Dir")
+		}, "Error Validating Modules Dir")
 	}
 	henchman.ModuleSearchPath = append(henchman.ModuleSearchPath, modulesPath)
 
@@ -129,29 +129,29 @@ func executePlan(c *cli.Context) {
 
 	inv, err := inventorySource.Load(inventoryConfig)
 	if err != nil {
-		henchErr := henchman.HenchErr(err, log.Fields{
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
-		log.WithFields(henchErr.Fields).Fatal("Error Loading Inventory")
+		henchman.Fatal(henchErr.Fields, "Error Loading Inventory")
 	}
 
 	// Step 3: Read the planFile
 	planFile := args[0]
 	planBuf, err := ioutil.ReadFile(planFile)
 	if err != nil {
-		henchErr := henchman.HenchErr(err, log.Fields{
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
 			"plan":  planFile,
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
-		log.WithFields(henchErr.Fields).Fatal("Error Reading Plan")
+		henchman.Fatal(henchErr.Fields, "Error Reading Plan")
 	}
 	groups, err := inv.GetInventoryGroups(planBuf)
 	if err != nil {
-		henchErr := henchman.HenchErr(err, log.Fields{
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
 			"plan":  planFile,
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
-		log.WithFields(henchErr.Fields).Fatal("Error Getting Inv Groups")
+		henchman.Fatal(henchErr.Fields, "Error Getting Inv Groups")
 	}
 	inventory := inv.GetInventoryForGroups(groups)
 	machines, err := inventory.GetMachines(tc)
@@ -159,19 +159,19 @@ func executePlan(c *cli.Context) {
 
 	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
-		henchErr := henchman.HenchErr(err, log.Fields{
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
-		log.WithFields(henchErr.Fields).Fatal("Error Preprocessing Plan")
+		henchman.Fatal(henchErr.Fields, "Error Preprocessing Plan")
 	}
 
 	setInventoryVars(plan, inv)
 
 	if err := plan.Setup(machines); err != nil {
-		henchErr := henchman.HenchErr(err, log.Fields{
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
-		log.WithFields(henchErr.Fields).Fatal("Error in plan setup")
+		henchman.Fatal(henchErr.Fields, "Error in plan setup")
 	}
 
 	plan.Execute(machines)

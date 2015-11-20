@@ -1,0 +1,9 @@
+name: "invalid task no name"
+hosts:
+  - individual
+vars:
+  service: iptables
+tasks:
+  - name: "task one"
+    shell: cmd="echo hello"
+  - shell: cmd="echo goodbye"

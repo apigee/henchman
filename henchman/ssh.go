@@ -3,7 +3,6 @@ package henchman
 import (
 	"bytes"
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
 	"path"
 	"strconv"
@@ -174,9 +173,9 @@ func (sshTransport *SSHTransport) Put(source, destination string, dstType string
 	go func() {
 		pipe, err := session.StdinPipe()
 		if err != nil {
-			log.WithFields(log.Fields{
+			Error(map[string]interface{}{
 				"error": err.Error(),
-			}).Error("Error opening pipe")
+			}, "Error opening pipe")
 		}
 		defer pipe.Close()
 		buf := string(sourceBuf)

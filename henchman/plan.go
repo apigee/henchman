@@ -3,7 +3,6 @@ package henchman
 import (
 	"archive/tar"
 	"fmt"
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"os"
 	_ "reflect"
 	"sync"
@@ -177,15 +176,15 @@ func createModulesTar(tasks []*Task) error {
 
 // Moves all modules to each host
 func (plan *Plan) Setup(machines []*Machine) error {
-	log.WithFields(log.Fields{
+	Info(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Setting up plan")
+	}, "Setting up plan")
 
-	log.WithFields(log.Fields{
+	Debug(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Creating modules.tar")
+	}, "Creating modules.tar")
 
 	// creates and populates modules.tar
 	if err := createModulesTar(plan.Tasks); err != nil {
@@ -194,15 +193,15 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		}, "While creating modules.tar")
 	}
 
-	log.WithFields(log.Fields{
+	Debug(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Finished creating modules.tar")
+	}, "Finished creating modules.tar")
 
-	log.WithFields(log.Fields{
+	Debug(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Transporting modules.tar")
+	}, "Transporting modules.tar")
 
 	// transport modules.tar to all machines
 	remoteModDir := "${HOME}/.henchman/"
@@ -219,18 +218,18 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		}, "While trasnferring modules.tar")
 	}
 
-	log.WithFields(log.Fields{
+	Debug(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Finished transporting modules.tar")
+	}, "Finished transporting modules.tar")
 
 	// remove unnecessary modules.tar
 	os.Remove("modules.tar")
 
-	log.WithFields(log.Fields{
+	Info(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Done setting up plan")
+	}, "Done setting up plan")
 
 	return nil
 }
@@ -238,10 +237,10 @@ func (plan *Plan) Setup(machines []*Machine) error {
 func (plan *Plan) Execute(machines []*Machine) error {
 	local := localhost()
 
-	log.WithFields(log.Fields{
+	Info(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Executing plan")
+	}, "Executing plan")
 
 	resetCode := statuses["reset"]
 	wg := new(sync.WaitGroup)
@@ -266,7 +265,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				vars := make(VarsMap)
 				MergeMap(plan.Vars, vars, true)
+				Debug(map[string]interface{}{"vars": printRecurse(vars, "", "\n")}, "vars map")
 				MergeMap(machine.Vars, vars, true)
+				Debug(map[string]interface{}{"vars": printRecurse(machine.Vars, "", "\n")}, "machine vars map")
 
 				task.Vars["current_host"] = actualMachine.Hostname
 				MergeMap(task.Vars, vars, true)
@@ -280,7 +281,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						"host":  actualMachine.Hostname,
 						"error": err.Error(),
 					}, "").(*HenchmanError)
-					log.WithFields(henchErr.Fields).Fatal("Error rendering task")
+					Fatal(henchErr.Fields, "Error rendering task")
 					return
 					/*
 						return HenchErr(err, log.Fields{
@@ -291,10 +292,10 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					*/
 				}
 
-				log.WithFields(log.Fields{
+				Info(map[string]interface{}{
 					"task": task.Name,
 					"host": actualMachine.Hostname,
-				}).Info("Starting Task")
+				}, "Starting Task")
 
 				taskResult, err := task.Run(actualMachine, vars, registerMap)
 				if err != nil {
@@ -304,7 +305,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						"host":  actualMachine.Hostname,
 						"error": err.Error(),
 					}, "").(*HenchmanError)
-					log.WithFields(henchErr.Fields).Fatal("Error running task")
+					Fatal(henchErr.Fields, "Error running task")
 					return
 					/*
 						return HenchErr(err, log.Fields{
@@ -318,7 +319,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				colorCode := statuses[taskResult.State]
 
 				//NOTE: make a color code create function
-				fields := log.Fields{
+				fields := map[string]interface{}{
 					"task":  task.Name,
 					"host":  actualMachine.Hostname,
 					"state": colorCode + taskResult.State + resetCode,
@@ -329,7 +330,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					fields["output"] = printRecurse(taskResult.Output, "", "\n")
 				}
 
-				log.WithFields(fields).Info("Task Complete")
+				Info(fields, "Task Complete")
 
 				// print only when --debug is on
 				/*
@@ -349,9 +350,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 	}
 	wg.Wait()
 
-	log.WithFields(log.Fields{
+	Info(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}).Info("Plan Complete")
+	}, "Plan Complete")
 	return nil
 }

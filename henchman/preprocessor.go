@@ -91,16 +91,25 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}, "")
 	}
 
+	// every task needs to have a name. This also sets tp.Name for use when returning errors
+	val, ok := tmap["name"]
+	if !ok {
+		return HenchErr(fmt.Errorf("Every task needs a name"), tmap, "")
+	}
+
+	tp.Name, found = val.(string)
+	if !found {
+		return HenchErr(ErrWrongType("name", val, "string"), map[string]interface{}{
+			"task":     tp.Name,
+			"solution": "Make sure the field is of proper type",
+		}, "")
+	}
+
 	for field, val := range tmap {
 		switch field {
 		case "name":
-			tp.Name, found = val.(string)
-			if !found {
-				return HenchErr(ErrWrongType(field, val, "string"), map[string]interface{}{
-					"task":     tp.Name,
-					"solution": "Make sure the field is of proper type",
-				}, "")
-			}
+			// holder so it think it's a module
+			break
 		case "sudo":
 			tp.Sudo, found = val.(bool)
 			if !found {
@@ -389,29 +398,6 @@ func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	return px.VarsProxy.Vars, nil
 }
 
-// Process hosts list.  Checks the host list to see if any of the
-// hosts entries are valid sections and will extract it based on
-func filterInventory(groups []string, fullInventory Inventory) Inventory {
-	// FIXME: Support globbing in the groups
-	// No groups? No problem. Just return the full inventory
-	//	return fullInventory
-	if len(groups) == 0 {
-		return fullInventory
-	} else {
-		filtered := Inventory{}
-		filtered.Groups = make(map[string]HostGroup)
-		//filtered.HostVars = fullInventory.HostVars
-		for _, group := range groups {
-			machines, present := fullInventory.Groups[group]
-			if present {
-				filtered.Groups[group] = machines
-			}
-		}
-		filtered.HostVars = fullInventory.HostVars
-		return filtered
-	}
-}
-
 // Creates new plan proxy
 func newPlanProxy(buf []byte) (PlanProxy, error) {
 	var px PlanProxy
@@ -423,8 +409,6 @@ func newPlanProxy(buf []byte) (PlanProxy, error) {
 }
 
 // For Plan
-// NOTE: inventory should always be initialized and passed in?
-//       or should we just check to see if it's nil?
 func PreprocessPlan(buf []byte, inv Inventory) (*Plan, error) {
 	px, err := newPlanProxy(buf)
 	if err != nil {
