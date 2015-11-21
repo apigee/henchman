@@ -23,4 +23,4 @@ test:
 
 general:
   artifacts:
-    - "$GOPATH/src/$IMPORT_PATH/artifacts/*.tar.gz"
+    - "artifacts/*.tar.gz"

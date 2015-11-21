@@ -28,5 +28,6 @@ do
     done
 done
 
+echo "$CIRCLE_ARTIFACTS"
 echo "Cleaning up..."
 rm -rf bin/
