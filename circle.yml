@@ -23,4 +23,4 @@ test:
 
 general:
   artifacts:
-    - "artefacts/*.tar.gz"
+    - "artifacts/*.tar.gz"
