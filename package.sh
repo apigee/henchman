@@ -9,9 +9,9 @@ GOARCHS="amd64"
 
 GIT_COMMIT_SHA1=`git rev-parse --short HEAD`
 
-mkdir -p artefacts
+mkdir -p artifacts
 
-ARTEFACTS=`pwd`/artefacts
+ARTIFACTS=`pwd`/artifacts
 
 for os in ${GOOSES}
 do
@@ -23,7 +23,7 @@ do
         cp -R modules ${BINDIR} 
         cd ${BINDIR}
         tar -cvf "henchman.${GIT_COMMIT_SHA1}.${os}.${arch}.tar.gz" henchman modules
-        cp *.tar.gz ${ARTEFACTS}
+        cp *.tar.gz ${ARTIFACTS}
         cd -
     done
 done
