@@ -2,6 +2,13 @@ machine:
   environment:
     IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
 
+general:
+  artifacts:
+    - "artifacts/*.tar.gz"
+  branches:
+    only:
+      - master
+
 dependencies:
   pre:
     - go get github.com/tools/godep
@@ -21,9 +28,3 @@ test:
     - sh ./package.sh
 
 
-general:
-  artifacts:
-    - "artifacts/*.tar.gz"
-  branches:
-    only:
-      - master

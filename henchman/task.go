@@ -231,8 +231,14 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			srcPath := path.Join(remoteModDir, path.Base(remoteSrcPath))
 
-			cmd := fmt.Sprintf("/bin/mkdir -p %s && /bin/cp -r %s %s", dstFldr, srcPath, dstPath)
-			buf, err := machine.Transport.Exec(cmd, nil, task.Sudo)
+			cmd := fmt.Sprintf("/bin/mkdir -p %s", dstFldr)
+			buf, err := machine.Transport.Exec(cmd, nil, false)
+			if err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "While copying file")
+			}
+
+			cmd = fmt.Sprintf("/bin/cp %s %s", srcPath, dstPath)
+			buf, err = machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While copying file")
 			}

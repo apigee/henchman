@@ -30,5 +30,6 @@ done
 
 echo "Copying artifacts"
 cp -r ${ARTIFACTS}/* $CIRCLE_ARTIFACTS
+
 echo "Cleaning up..."
 rm -rf bin/
