@@ -24,3 +24,6 @@ test:
 general:
   artifacts:
     - "artifacts/*.tar.gz"
+  branches:
+    only:
+      - master
