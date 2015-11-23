@@ -1,0 +1,11 @@
+name: "Retry at task level"
+hosts:
+  - individual
+vars:
+  service: iptables
+tasks:
+  - name: "Task with retry"
+    shell: cmd="echo hello"
+    retry: 2
+  - name: "Task without retry"
+    shell: cmd="echo goodbye"

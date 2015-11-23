@@ -108,8 +108,16 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	for field, val := range tmap {
 		switch field {
 		case "name":
-			// holder so it think it's a module
+			// holder so switch won't think it's a module
 			break
+		case "retry":
+			tp.Retry, found = val.(int)
+			if !found {
+				return HenchErr(ErrWrongType(field, val, "int"), map[string]interface{}{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
+			}
 		case "sudo":
 			tp.Sudo, found = val.(bool)
 			if !found {
@@ -304,6 +312,7 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 			task.IgnoreErrors = tp.IgnoreErrors
 			task.Local = tp.Local
 			task.Register = tp.Register
+			task.Retry = tp.Retry
 			task.When = tp.When
 
 			// NOTE: plan.Vars is merged in plan.execute(...) before Render
@@ -351,7 +360,7 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 // Processes plan level vars with includes
 // All plan level vars will be in the vars map
 // And any repeat vars in the includes will be a FCFS priority
-// NOTE: if the user has multipl include blocks it'll grab the one closest to
+// NOTE: if the user has multiple include blocks it'll grab the one closest to
 //       the bottom
 func (px PlanProxy) PreprocessVars() (VarsMap, error) {
 	newVars := px.VarsProxy.Vars
@@ -370,6 +379,7 @@ func (px PlanProxy) PreprocessVars() (VarsMap, error) {
 	return newVars, nil
 }
 
+// Reads and extracts the vars fields from include statements
 func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	newFName, found := fName.(string)
 	if !found {

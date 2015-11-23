@@ -234,6 +234,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	return nil
 }
 
+// Does execution of tasks
 func (plan *Plan) Execute(machines []*Machine) error {
 	local := localhost()
 
@@ -297,23 +298,33 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					"host": actualMachine.Hostname,
 				}, "Starting Task")
 
-				taskResult, err := task.Run(actualMachine, vars, registerMap)
-				if err != nil {
-					henchErr := HenchErr(err, map[string]interface{}{
-						"plan":  plan.Name,
-						"task":  task.Name,
-						"host":  actualMachine.Hostname,
-						"error": err.Error(),
-					}, "").(*HenchmanError)
-					Fatal(henchErr.Fields, "Error running task")
-					return
-					/*
-						return HenchErr(err, log.Fields{
-							"plan": plan.Name,
-							"task": task.Name,
-							"host": actualMachine.Hostname,
-						}, "Error running task")
-					*/
+				// handles the retries
+				var taskResult TaskResult
+				for numRuns := task.Retry + 1; numRuns > 0; numRuns-- {
+					taskResult, err := task.Run(actualMachine, vars, registerMap)
+					if err != nil {
+						henchErr := HenchErr(err, map[string]interface{}{
+							"plan":  plan.Name,
+							"task":  task.Name,
+							"host":  actualMachine.Hostname,
+							"error": err.Error(),
+						}, "").(*HenchmanError)
+						Fatal(henchErr.Fields, "Error running task")
+						return
+						/*
+							return HenchErr(err, log.Fields{
+								"plan": plan.Name,
+								"task": task.Name,
+								"host": actualMachine.Hostname,
+							}, "Error running task")
+						*/
+					}
+
+					if taskResult.State != "error" ||
+						taskResult.State != "ignored" ||
+						taskResult.State != "failure" {
+						numRuns = 0
+					}
 				}
 
 				colorCode := statuses[taskResult.State]
@@ -331,15 +342,6 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				}
 
 				Info(fields, "Task Complete")
-
-				// print only when --debug is on
-				/*
-					Debug(log.Fields{
-						"task":   task.Name,
-						"host":   actualMachine.Hostname,
-						"output": printRecurse(taskResult.Output, "", "\n"),
-					}, "Task Output")
-				*/
 
 				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
 				if taskResult.State == "error" || taskResult.State == "failure" {

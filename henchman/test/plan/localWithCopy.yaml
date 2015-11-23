@@ -5,3 +5,5 @@ hosts:
 tasks:
    - name: "Task 1"
      copy: src="henchman/test/plan/localTest.yaml" dest="fldr/tmp.yaml"
+     sudo: true
+     debug: true

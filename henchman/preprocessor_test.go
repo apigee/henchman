@@ -244,6 +244,19 @@ func TestPreprocessWithDebug(t *testing.T) {
 	assert.Equal(t, true, plan.Tasks[2].Debug, "Plan debug did not work")
 }
 
+func TestPreprocessWithRetry(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/retryAtTaskLevel.yaml")
+	require.NoError(t, err)
+
+	plan, err := PreprocessPlan(buf, inv)
+	require.NoError(t, err)
+
+	assert.Equal(t, 2, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, 2, plan.Tasks[0].Retry, "Retry has wrong value")
+	assert.Equal(t, 0, plan.Tasks[1].Retry, "Retry should default to zero if not present")
+}
+
 // Table driven test for Invalids
 func TestInvalid(t *testing.T) {
 	var tests = []struct {

@@ -14,15 +14,16 @@ import (
 
 type Task struct {
 	Id           string
-	Sudo         bool
-	Name         string
-	Module       *Module
+	Debug        bool
 	IgnoreErrors bool `yaml:"ignore_errors"`
 	Local        bool
-	When         string
+	Module       *Module
+	Name         string
 	Register     string
+	Retry        int
+	Sudo         bool
 	Vars         VarsMap
-	Debug        bool
+	When         string
 }
 
 type TaskResult struct {
