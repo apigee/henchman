@@ -91,18 +91,15 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}, "")
 	}
 
-	// every task needs to have a name. This also sets tp.Name for use when returning errors
-	val, ok := tmap["name"]
-	if !ok {
-		return HenchErr(fmt.Errorf("Every task needs a name"), tmap, "")
-	}
-
-	tp.Name, found = val.(string)
-	if !found {
-		return HenchErr(ErrWrongType("name", val, "string"), map[string]interface{}{
-			"task":     tp.Name,
-			"solution": "Make sure the field is of proper type",
-		}, "")
+	// Sets tp.Name for use when returning errors
+	if val, ok := tmap["name"]; ok {
+		tp.Name, found = val.(string)
+		if !found {
+			return HenchErr(ErrWrongType("name", val, "string"), map[string]interface{}{
+				"task":     tp.Name,
+				"solution": "Make sure the field is of proper type",
+			}, "")
+		}
 	}
 
 	for field, val := range tmap {

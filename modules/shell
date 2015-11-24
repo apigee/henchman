@@ -35,5 +35,5 @@ try:
 except Exception as e:
     result["status"] = "error"
     result["msg"] = "Command exec'ed with errors.  Return code %d" % p.returncode
-    result["output"] = str(e)
+    result["output"] = {"stderr": str(e), "stdout": output}
 print json.dumps(result)

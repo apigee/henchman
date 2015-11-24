@@ -268,7 +268,7 @@ func TestInvalid(t *testing.T) {
 		{"test/plan/invalid/invalidRegisterVariable.yaml"},
 		{"test/plan/invalid/invalidPongo2AtWhen.yaml"},
 		{"test/plan/invalid/invalidTask.yaml"},
-		{"test/plan/invalid/invalidTaskNoName.yaml"},
+		//{"test/plan/invalid/invalidTaskNoName.yaml"},
 	}
 	inv, _ := loadValidInventory()
 	for _, test := range tests {
