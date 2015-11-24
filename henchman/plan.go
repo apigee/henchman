@@ -320,9 +320,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						*/
 					}
 
-					if taskResult.State != "error" ||
-						taskResult.State != "ignored" ||
-						taskResult.State != "failure" {
+					if taskResult.State == "ok" || taskResult.State == "changed" {
 						numRuns = 0
 					}
 				}
