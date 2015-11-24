@@ -266,9 +266,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				vars := make(VarsMap)
 				MergeMap(plan.Vars, vars, true)
-				Debug(map[string]interface{}{"vars": printRecurse(vars, "", "\n")}, "vars map")
 				MergeMap(machine.Vars, vars, true)
-				Debug(map[string]interface{}{"vars": printRecurse(machine.Vars, "", "\n")}, "machine vars map")
 
 				task.Vars["current_host"] = actualMachine.Hostname
 				MergeMap(task.Vars, vars, true)
@@ -299,9 +297,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				}, "Starting Task")
 
 				// handles the retries
-				var taskResult TaskResult
+				var taskResult *TaskResult
 				for numRuns := task.Retry + 1; numRuns > 0; numRuns-- {
-					taskResult, err := task.Run(actualMachine, vars, registerMap)
+					taskResult, err = task.Run(actualMachine, vars, registerMap)
 					if err != nil {
 						henchErr := HenchErr(err, map[string]interface{}{
 							"plan":  plan.Name,
