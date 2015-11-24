@@ -160,6 +160,7 @@ func executePlan(c *cli.Context) {
 	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
 		henchErr := henchman.HenchErr(err, map[string]interface{}{
+			"plan":  planFile,
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
 		henchman.Fatal(henchErr.Fields, "Error Preprocessing Plan")
