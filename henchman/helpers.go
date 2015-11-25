@@ -13,6 +13,9 @@ import (
 
 // NOTE: This file is getting out of hand....
 
+/**
+ * These functions deal with merging of maps
+ */
 // source values will override dest values if override is true
 // else dest values will not be overridden
 func MergeMap(src map[interface{}]interface{}, dst map[interface{}]interface{}, override bool) {
@@ -35,6 +38,9 @@ func MergeLogrusFields(src map[string]interface{}, dst map[string]interface{}, o
 	}
 }
 
+/**
+ * These functions deal with creating and removing temp dir and files
+ */
 // used to make tmp files in *_test.go
 func createTempDir(folder string) string {
 	name, _ := ioutil.TempDir("/tmp", folder)
@@ -51,6 +57,9 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
+/**
+ * These functions deal with printing
+ */
 // recursively print a map.  Only issue is everything is out of order in a map.  Still prints nicely though
 func printRecurse(output interface{}, padding string, retVal string) string {
 	tmpVal := retVal
@@ -87,7 +96,8 @@ func printRecurse(output interface{}, padding string, retVal string) string {
 	return tmpVal
 }
 
-// prints and fills with ~~~
+// Does a printf and fills the extra white space
+// Just specify the max size to fill to and the string to fill with
 func PrintfAndFill(size int, fill string, msg string, a ...interface{}) {
 	val := fmt.Sprintf(msg, a...)
 	fmt.Print(val)
@@ -99,6 +109,21 @@ func PrintfAndFill(size int, fill string, msg string, a ...interface{}) {
 	fmt.Println(padding)
 }
 
+// Does a Sprintf and fills the extra white space
+func SprintfAndFill(size int, fill string, msg string, a ...interface{}) string {
+	val := fmt.Sprintf(msg, a...)
+
+	var padding string
+	for i := 0; i < (size - len(val)); i++ {
+		padding += fill
+	}
+
+	return val + padding
+}
+
+/**
+ * These functions deal with tar
+ */
 // Tar a file
 func tarFile(fName string, tarball *tar.Writer) error {
 	info, err := os.Stat(fName)

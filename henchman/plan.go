@@ -20,6 +20,9 @@ var statuses = map[string]string{
 	"ignored": ansi.ColorCode("cyan"),
 }
 
+// For plan stats.  Records the number of states for each machine
+var planStats = map[string]map[string]int{}
+
 type VarsMap map[interface{}]interface{}
 type RegMap map[string]interface{}
 
@@ -42,6 +45,9 @@ func localhost() *Machine {
 	return &localhost
 }
 
+/**
+ * These functions are helpers of plan.Setup
+ */
 // transfers the modules.tar to each machine, untars, and removes the tar file
 func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 	// create dir
@@ -174,6 +180,32 @@ func createModulesTar(tasks []*Task) error {
 	return nil
 }
 
+/**
+ * These functions deal with plan stats
+ */
+func updatePlanStats(state string, hostname string) {
+	if _, ok := planStats[hostname]; !ok {
+		planStats[hostname] = map[string]int{}
+	}
+
+	planStats[hostname][state]++
+}
+
+func printPlanStats() {
+	var str string
+	for hostname, states := range planStats {
+		str = SprintfAndFill(25, " ", "[ %s ]", hostname)
+		str += "=> "
+		for state, counter := range states {
+			str += SprintfAndFill(10, " ", "%s: %d", state, counter)
+		}
+		fmt.Println(str)
+	}
+}
+
+/**
+ * These functions are functions that can be utilized by plans
+ */
 // Moves all modules to each host
 func (plan *Plan) Setup(machines []*Machine) error {
 	Info(map[string]interface{}{
@@ -333,6 +365,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					fmt.Println(colorCode + printRecurse(taskResult.Output, "", "\n") + resetCode)
 				}
 
+				updatePlanStats(taskResult.State, machine.Hostname)
+
 				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
 				if taskResult.State == "error" || taskResult.State == "failure" {
 					break
@@ -346,7 +380,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, "Plan Complete")
-	PrintfAndFill(75, "~", "PLAN FINISHED [ %s ] ", plan.Name)
+	PrintfAndFill(75, "~", "PLAN STATS [ %s ] ", plan.Name)
 
+	printPlanStats()
 	return nil
 }
