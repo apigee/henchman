@@ -217,7 +217,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, "Done setting up plan")
-	fmt.Println("Setup complete\n")
+	fmt.Printf("Setup complete\n\n")
 
 	return nil
 }
@@ -285,7 +285,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					"task": task.Name,
 					"host": actualMachine.Hostname,
 					"plan": plan.Name,
-				}, fmt.Sprintf("Starting Task '%s'", actualMachine.Hostname, task.Name))
+				}, fmt.Sprintf("Starting Task '%s'", task.Name))
 
 				// handles the retries
 				var taskResult *TaskResult
