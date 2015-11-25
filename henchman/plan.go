@@ -43,7 +43,7 @@ func localhost() *Machine {
 }
 
 // transfers the modules.tar to each machine, untars, and removes the tar file
-func transferUntarModules(machine *Machine, remoteModDir string) error {
+func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 	// create dir
 	if _, err := machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
 		nil, false); err != nil {
@@ -180,11 +180,8 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, "Setting up plan")
-
-	Debug(map[string]interface{}{
-		"plan":         plan.Name,
-		"num machines": len(machines),
-	}, "Creating modules.tar")
+	PrintfAndFill(75, "~", "SETTING UP PLAN [ %s ] ", plan.Name)
+	fmt.Println("Creating modules.tar")
 
 	// creates and populates modules.tar
 	if err := createModulesTar(plan.Tasks); err != nil {
@@ -193,35 +190,25 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		}, "While creating modules.tar")
 	}
 
-	Debug(map[string]interface{}{
-		"plan":         plan.Name,
-		"num machines": len(machines),
-	}, "Finished creating modules.tar")
-
-	Debug(map[string]interface{}{
-		"plan":         plan.Name,
-		"num machines": len(machines),
-	}, "Transporting modules.tar")
-
+	fmt.Println("Transferring modules to all systems...")
 	// transport modules.tar to all machines
 	remoteModDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
-		if err := transferUntarModules(machine, remoteModDir); err != nil {
+		if err := transferAndUntarModules(machine, remoteModDir); err != nil {
 			return HenchErr(err, map[string]interface{}{
 				"plan": plan.Name,
+				"host": machine.Hostname,
 			}, "While transferring modules.tar")
 		}
+		fmt.Printf("Transferred to [ %s ]\n", machine.Hostname)
 	}
-	if err := transferUntarModules(localhost(), remoteModDir); err != nil {
+	if err := transferAndUntarModules(localhost(), remoteModDir); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
-		}, "While trasnferring modules.tar")
+			"host": "127.0.0.1",
+		}, "While transferring modules.tar")
 	}
-
-	Debug(map[string]interface{}{
-		"plan":         plan.Name,
-		"num machines": len(machines),
-	}, "Finished transporting modules.tar")
+	fmt.Println("Transferred to [ 127.0.0.1 ]")
 
 	// remove unnecessary modules.tar
 	os.Remove("modules.tar")
@@ -230,6 +217,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, "Done setting up plan")
+	fmt.Println("Setup complete\n")
 
 	return nil
 }
@@ -241,16 +229,18 @@ func (plan *Plan) Execute(machines []*Machine) error {
 	Info(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
-	}, "Executing plan")
+	}, fmt.Sprintf("Executing plan '%s'", plan.Name))
+	PrintfAndFill(75, "~", "EXECUTING PLAN [ %s ] ", plan.Name)
 
 	resetCode := statuses["reset"]
 	wg := new(sync.WaitGroup)
 	for _, _machine := range machines {
 		machine := _machine
 		wg.Add(1)
-		//		machineVars := plan.Inventory.Groups[machine.Group].Vars
+
 		// NOTE: need individual registerMap for each machine
 		registerMap := make(RegMap)
+
 		// NOTE: returning errors requires channels.
 		// FIXME: create channels for stuff m8
 		go func() {
@@ -280,7 +270,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						"host":  actualMachine.Hostname,
 						"error": err.Error(),
 					}, "").(*HenchmanError)
-					Fatal(henchErr.Fields, "Error rendering task")
+					Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task '%s'", task.Name))
 					return
 					/*
 						return HenchErr(err, log.Fields{
@@ -294,7 +284,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				Info(map[string]interface{}{
 					"task": task.Name,
 					"host": actualMachine.Hostname,
-				}, "Starting Task")
+					"plan": plan.Name,
+				}, fmt.Sprintf("Starting Task '%s'", actualMachine.Hostname, task.Name))
 
 				// handles the retries
 				var taskResult *TaskResult
@@ -307,7 +298,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 							"host":  actualMachine.Hostname,
 							"error": err.Error(),
 						}, "").(*HenchmanError)
-						Fatal(henchErr.Fields, "Error running task")
+						Fatal(henchErr.Fields, fmt.Sprintf("Error running task '%s'", task.Name))
 						return
 						/*
 							return HenchErr(err, log.Fields{
@@ -325,19 +316,22 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				colorCode := statuses[taskResult.State]
 
-				//NOTE: make a color code create function
 				fields := map[string]interface{}{
 					"task":  task.Name,
 					"host":  actualMachine.Hostname,
-					"state": colorCode + taskResult.State + resetCode,
+					"state": taskResult.State,
 					"msg":   taskResult.Msg,
 				}
-
 				if task.Debug {
-					fields["output"] = printRecurse(taskResult.Output, "", "\n")
+					fields["output"] = taskResult.Output
 				}
-
-				Info(fields, "Task Complete")
+				Info(fields, fmt.Sprintf("Task '%s' complete", task.Name))
+				PrintfAndFill(75, "~", "TASK [ %s | %s ] ", actualMachine.Hostname, task.Name)
+				fmt.Printf("%s => %s\n\n", colorCode+taskResult.State, taskResult.Msg+resetCode)
+				if task.Debug {
+					fmt.Printf("Output\n------")
+					fmt.Println(colorCode + printRecurse(taskResult.Output, "", "\n") + resetCode)
+				}
 
 				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
 				if taskResult.State == "error" || taskResult.State == "failure" {

@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"reflect"
+	_ "reflect"
 )
+
+// NOTE: This file is getting out of hand....
 
 // source values will override dest values if override is true
 // else dest values will not be overridden
@@ -53,16 +55,19 @@ func rmTempFile(fpath string) {
 func printRecurse(output interface{}, padding string, retVal string) string {
 	tmpVal := retVal
 	switch output.(type) {
-	case VarsMap:
-		for key, val := range output.(VarsMap) {
-			switch val.(type) {
-			case map[string]interface{}:
-				tmpVal += fmt.Sprintf("%s%v:\n", padding, key)
-				tmpVal += printRecurse(val, padding+"  ", "")
-			default:
-				tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
+	/*
+		case VarsMap:
+			for key, val := range output.(VarsMap) {
+				switch val.(type) {
+				case map[string]interface{}:
+					tmpVal += fmt.Sprintf("%s%v:\n", padding, key)
+					tmpVal += printRecurse(val, padding+"  ", "")
+				default:
+					//tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
+					tmpVal += fmt.Sprintf("%s%v: %v\n", padding, key, val)
+				}
 			}
-		}
+	*/
 	case map[string]interface{}:
 		for key, val := range output.(map[string]interface{}) {
 			switch val.(type) {
@@ -70,14 +75,28 @@ func printRecurse(output interface{}, padding string, retVal string) string {
 				tmpVal += fmt.Sprintf("%s%v:\n", padding, key)
 				tmpVal += printRecurse(val, padding+"  ", "")
 			default:
-				tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
+				//tmpVal += fmt.Sprintf("%s%v: %v (%v)\n", padding, key, val, reflect.TypeOf(val))
+				tmpVal += fmt.Sprintf("%s%v: %v\n", padding, key, val)
 			}
 		}
 	default:
-		tmpVal += fmt.Sprintf("%s%v (%s)\n", padding, output, reflect.TypeOf(output))
+		//tmpVal += fmt.Sprintf("%s%v (%s)\n", padding, output, reflect.TypeOf(output))
+		tmpVal += fmt.Sprintf("%s%v\n", padding, output)
 	}
 
 	return tmpVal
+}
+
+// prints and fills with ~~~
+func PrintfAndFill(size int, fill string, msg string, a ...interface{}) {
+	val := fmt.Sprintf(msg, a...)
+	fmt.Print(val)
+
+	var padding string
+	for i := 0; i < (size - len(val)); i++ {
+		padding += fill
+	}
+	fmt.Println(padding)
 }
 
 // Tar a file

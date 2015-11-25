@@ -1,16 +1,28 @@
 package henchman
 
 import (
-	log "gopkg.in/Sirupsen/logrus.v0"
+	logrus "gopkg.in/Sirupsen/logrus.v0"
+	"os"
 )
+
+var jsonLog = logrus.New()
+
+func InitLog() {
+	jsonLog.Level = logrus.DebugLevel
+	jsonLog.Formatter = new(logrus.JSONFormatter)
+
+	// NOTE: hardcoded for now
+	f, _ := os.Create("DummyLogsForHenchman")
+	jsonLog.Out = f
+}
 
 // wrapper for debug
 func Debug(fields map[string]interface{}, msg string) {
 	if DebugFlag {
 		if fields == nil {
-			log.Debug(msg)
+			jsonLog.Debug(msg)
 		} else {
-			log.WithFields(fields).Debug(msg)
+			jsonLog.WithFields(fields).Debug(msg)
 		}
 	}
 }
@@ -18,33 +30,40 @@ func Debug(fields map[string]interface{}, msg string) {
 // wrapper for Info
 func Info(fields map[string]interface{}, msg string) {
 	if fields == nil {
-		log.Info(msg)
+		jsonLog.Info(msg)
 	} else {
-		log.WithFields(fields).Info(msg)
+		jsonLog.WithFields(fields).Info(msg)
 	}
 }
 
 // wrapper for Fatal
 func Fatal(fields map[string]interface{}, msg string) {
 	if fields == nil {
-		log.Fatal(msg)
+		jsonLog.Fatal(msg)
+		logrus.Fatal(msg)
 	} else {
-		log.WithFields(fields).Fatal(msg)
+		jsonLog.WithFields(fields).Fatal(msg)
+		logrus.WithFields(fields).Fatal(msg)
 	}
 }
 
+// wrapper for Error
 func Error(fields map[string]interface{}, msg string) {
 	if fields == nil {
-		log.Error(msg)
+		jsonLog.Error(msg)
+		logrus.Error(msg)
 	} else {
-		log.WithFields(fields).Error(msg)
+		jsonLog.WithFields(fields).Error(msg)
+		logrus.WithFields(fields).Error(msg)
 	}
 }
 
 func Warn(fields map[string]interface{}, msg string) {
 	if fields == nil {
-		log.Warn(msg)
+		jsonLog.Warn(msg)
+		logrus.Warn(msg)
 	} else {
-		log.WithFields(fields).Warn(msg)
+		jsonLog.WithFields(fields).Warn(msg)
+		logrus.WithFields(fields).Warn(msg)
 	}
 }

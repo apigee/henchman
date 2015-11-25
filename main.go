@@ -1,7 +1,6 @@
 package main
 
 import (
-	log "gopkg.in/Sirupsen/logrus.v0"
 	"io/ioutil"
 	"os"
 	"path"
@@ -188,7 +187,7 @@ func executePlan(c *cli.Context) {
 }
 
 func main() {
-	log.SetLevel(log.DebugLevel)
+	henchman.InitLog()
 	app := cli.NewApp()
 	app.Name = "henchman"
 	app.Usage = "Orchestration framework"
