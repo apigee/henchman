@@ -346,5 +346,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, "Plan Complete")
+	PrintfAndFill(75, "~", "PLAN FINISHED [ %s ] ", plan.Name)
+
 	return nil
 }

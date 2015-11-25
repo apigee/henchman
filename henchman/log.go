@@ -39,11 +39,11 @@ func Info(fields map[string]interface{}, msg string) {
 // wrapper for Fatal
 func Fatal(fields map[string]interface{}, msg string) {
 	if fields == nil {
+		logrus.Error(msg)
 		jsonLog.Fatal(msg)
-		logrus.Fatal(msg)
 	} else {
+		logrus.WithFields(fields).Error(msg)
 		jsonLog.WithFields(fields).Fatal(msg)
-		logrus.WithFields(fields).Fatal(msg)
 	}
 }
 
