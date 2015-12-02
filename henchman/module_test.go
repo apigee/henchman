@@ -164,7 +164,7 @@ func TestModuleTemplateExecOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "process_template", execOrder[0], "Exec Order sequence is wrong for template module")
-	assert.Equal(t, "put_file", execOrder[1], "Exec Order sequence is wrong for template module")
+	assert.Equal(t, "put_for_copy", execOrder[1], "Exec Order sequence is wrong for template module")
 	assert.Equal(t, "copy_remote", execOrder[2], "Exec Order sequence is wrong for template module")
 	assert.Equal(t, "reset_src", execOrder[3], "Exec Order sequence is wrong for template module")
 	assert.Equal(t, "exec_module", execOrder[4], "Exec Order sequence is wrong for template module")

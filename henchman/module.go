@@ -151,7 +151,7 @@ func (module *Module) Resolve() (modulePath string, err error) {
 func (module *Module) ExecOrder() ([]string, error) {
 	execOrder := map[string][]string{"default": []string{"exec_module"},
 		"copy": []string{"put_for_copy", "copy_remote", "exec_module"},
-		"template": []string{"process_template", "put_file", "copy_remote",
+		"template": []string{"process_template", "put_for_copy", "copy_remote",
 			"reset_src", "exec_module"},
 		"curl": []string{"exec_tar_module"},
 	}
