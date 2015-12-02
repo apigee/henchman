@@ -55,6 +55,10 @@ func gatherCommands() []cli.Command {
 		Name:  "debug",
 		Usage: "Allows indepth output.  E.G the register map after every task",
 	}
+	cleanupFlag := cli.BoolFlag{
+		Name:  "cleanup",
+		Usage: "Will removed .henchman directory from all remote machines",
+	}
 	// FIXME: Should this come from the transport instead.
 	// Different transports can come up with their own set of flags
 	// For now our world is just ssh
@@ -71,7 +75,7 @@ func gatherCommands() []cli.Command {
 			Name:   "exec",
 			Usage:  "Execute a plan on the given group in the inventory",
 			Action: executePlan,
-			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag, debugFlag),
+			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag, debugFlag, cleanupFlag),
 		},
 	}
 }
@@ -176,14 +180,15 @@ func executePlan(c *cli.Context) {
 
 	plan.Execute(machines)
 
-	/*
+	if c.Bool("cleanup") {
 		if err := plan.Cleanup(machines); err != nil {
 			henchErr := henchman.HenchErr(err, map[string]interface{}{
 				"error": err.Error(),
 			}, "").(*henchman.HenchmanError)
 			henchman.Fatal(henchErr.Fields, "Error in plan cleanup")
 		}
-	*/
+	}
+
 	// NOTE: use when we implement channels
 	/*
 		if err := plan.Execute(machines); err != nil {
