@@ -8,7 +8,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	_ "reflect"
+	"strings"
 )
 
 // NOTE: This file is getting out of hand....
@@ -124,72 +126,89 @@ func SprintfAndFill(size int, fill string, msg string, a ...interface{}) string 
 /**
  * These functions deal with tar
  */
-// Tar a file
-func tarFile(fName string, tarball *tar.Writer) error {
-	info, err := os.Stat(fName)
-	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"file":     fName,
-			"solution": "make sure file exists, correct permissions, or is not corrupted",
-		}, "Getting file info")
-	}
+// http://blog.ralch.com/tutorial/golang-working-with-tar-and-gzip/
+// This function tars the source file/dir.  If a tar.Writer is detected
+// it'll use that as the tar.Writer instead of generating it's own (this is useful
+// when you want to have selective tarring, such as modules).
+// Also if tarName is provided it'll use that
+// returns the name of the target file (if created) and any errors
+func tarit(source, tarName string, tb *tar.Writer) error {
+	var tarball *tar.Writer
+	target := tarName
 
-	header, err := tar.FileInfoHeader(info, info.Name())
-	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"file":     fName,
-			"solution": "Golang specific tar package.  Submit an issue starting with TAR HEADER",
-		}, "Adding info to tar header")
-	}
-	header.Name = fName
+	if tb != nil {
+		tarball = tb
+	} else {
+		filename := filepath.Base(source)
 
-	if err := tarball.WriteHeader(header); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"file":     fName,
-			"solution": "Golang specific tar package.  Submit an issue starting with TARBALL",
-		}, "Writing header to tar")
-	}
-
-	file, err := os.Open(fName)
-	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"file":     fName,
-			"solution": "Make sure file is not corrupted",
-		}, "Opening File")
-	}
-	defer file.Close()
-
-	if _, err := io.Copy(tarball, file); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"file":     fName,
-			"solution": "make sure file exists, correct permissions, or is not corrupted",
-		}, "")
-	}
-	return nil
-}
-
-// recursively iterates through directories to tar files
-func tarDir(fName string, tarball *tar.Writer) error {
-	infos, err := ioutil.ReadDir(fName)
-	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"file":     fName,
-			"solution": "make sure directory exists, correct permissions, or is not corrupted",
-		}, "Getting Dir info")
-	}
-
-	for _, info := range infos {
-		newPath := path.Join(fName, info.Name())
-		if info.IsDir() {
-			if err := tarDir(newPath, tarball); err != nil {
-				return err
-			}
-		} else {
-			if err := tarFile(newPath, tarball); err != nil {
-				return err
-			}
+		if target == "" {
+			target = fmt.Sprintf("%s.tar", filename)
 		}
+
+		tarfile, err := os.Create(target)
+		if err != nil {
+			return HenchErr(err, nil, "While creating target")
+		}
+		defer tarfile.Close()
+
+		tarball = tar.NewWriter(tarfile)
+		defer tarball.Close()
 	}
 
-	return nil
+	info, err := os.Stat(source)
+	if err != nil {
+		return nil
+	}
+
+	var baseDir string
+	if info.IsDir() {
+		baseDir = filepath.Base(source)
+	}
+
+	return filepath.Walk(source,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"path": path,
+				}, "While walking")
+			}
+
+			header, err := tar.FileInfoHeader(info, info.Name())
+			if err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"file":     path,
+					"solution": "Golang specific tar package.  Submit an issue starting with TAR HEADER",
+				}, "Adding info to tar header")
+			}
+
+			if baseDir != "" {
+				header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
+			}
+
+			if err := tarball.WriteHeader(header); err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"file":     path,
+					"solution": "Golang specific tar package.  Submit an issue starting with TARBALL",
+				}, "Writing header to tar")
+			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			file, err := os.Open(path)
+			if err != nil {
+				return HenchErr(err, nil, "")
+			}
+			defer file.Close()
+
+			if _, err := io.Copy(tarball, file); err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"file":     path,
+					"solution": "make sure file exists, correct permissions, or is not corrupted",
+				}, "")
+			}
+
+			return nil
+		})
 }

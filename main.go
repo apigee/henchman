@@ -175,6 +175,13 @@ func executePlan(c *cli.Context) {
 	}
 
 	plan.Execute(machines)
+
+	if err := plan.Cleanup(machines); err != nil {
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
+			"error": err.Error(),
+		}, "").(*henchman.HenchmanError)
+		henchman.Fatal(henchErr.Fields, "Error in plan cleanup")
+	}
 	// NOTE: use when we implement channels
 	/*
 		if err := plan.Execute(machines); err != nil {

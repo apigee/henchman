@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"path"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/flosch/pongo2"
@@ -143,7 +144,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 	}
 
 	remoteModDir := "${HOME}/.henchman/"
-	remoteModPath := path.Join(remoteModDir, task.Module.Name)
+	remoteModPath := filepath.Join(remoteModDir, task.Module.Name)
 	// NOTE: Info or Debug level
 	Debug(map[string]interface{}{
 		"task":   task.Name,
@@ -202,16 +203,26 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While in exec_tar_module")
 			}
-		case "put_file":
+		case "put_for_copy":
 			//scp's file from local location to remote location
 			srcPath, present := moduleParams["src"]
 			if !present {
 				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'src' parameter"), nil, "")
 			}
-			_, srcFile := path.Split(srcPath)
-			dstPath := path.Join(remoteModDir, srcFile)
 
-			err = machine.Transport.Put(srcPath, dstPath, "file")
+			info, err := os.Stat(srcPath)
+			if err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "Unable to get info on file/dir")
+			}
+
+			if info.IsDir() {
+				err = machine.Transport.Put(srcPath, remoteModDir, "dir")
+			} else {
+				_, srcFile := filepath.Split(srcPath)
+				dstPath := filepath.Join(remoteModDir, srcFile)
+
+				err = machine.Transport.Put(srcPath, dstPath, "file")
+			}
 
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "Putting File")
@@ -224,13 +235,13 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			}
 
 			dstPath, present := moduleParams["dest"]
-			dstFldr := path.Dir(dstPath)
+			dstFldr := filepath.Dir(dstPath)
 
 			if !present {
 				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'dest' parameter"), nil, "")
 			}
 
-			srcPath := path.Join(remoteModDir, path.Base(remoteSrcPath))
+			srcPath := filepath.Join(remoteModDir, filepath.Base(remoteSrcPath))
 
 			cmd := fmt.Sprintf("/bin/mkdir -p %s", dstFldr)
 			buf, err := machine.Transport.Exec(cmd, nil, false)
@@ -238,7 +249,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 				return &TaskResult{}, HenchErr(err, nil, "While copying file")
 			}
 
-			cmd = fmt.Sprintf("/bin/cp %s %s", srcPath, dstPath)
+			cmd = fmt.Sprintf("/bin/cp -r %s %s", srcPath, dstPath)
 			buf, err = machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While copying file")
@@ -269,10 +280,10 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 					"solution": "Verify if src file has proper pongo2 formatting",
 				}, "While processing template file")
 			}
-			tmpDir, srcFile := path.Split(srcPath)
+			tmpDir, srcFile := filepath.Split(srcPath)
 			srcFile = srcFile + "_" + machine.Hostname
 			tmpFileName := fmt.Sprintf(".%s", srcFile)
-			tmpFile := path.Join(tmpDir, tmpFileName)
+			tmpFile := filepath.Join(tmpDir, tmpFileName)
 
 			err = ioutil.WriteFile(tmpFile, []byte(out), 0644)
 			if err != nil {

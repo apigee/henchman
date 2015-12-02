@@ -27,8 +27,6 @@ try:
     dest = params.get("dest")
     if not dest:
         raise Exception("dest cannot be empty. Has to be a file")
-    if os.path.isdir(dest):
-        raise Exception("dest is a directory. Has to be a file. Directories aren't supported at this point of time")
 
     result["owner"] = owner
     result["group"] = group

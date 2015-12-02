@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"fmt"
 	"os"
+	"path/filepath"
 	_ "reflect"
 	"sync"
 
@@ -61,7 +62,7 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 
 	// throw a check the check sum stuff in here somewhere
 	// transfer tar module
-	if err := machine.Transport.Put(TARGET, remoteModDir, "dir"); err != nil {
+	if err := machine.Transport.Put(TARGET, remoteModDir+TARGET, "file"); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
 			"host":       machine.Hostname,
@@ -89,36 +90,10 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 	return nil
 }
 
-// Tars modules into modules.tar
-func tarModule(modName string, tarball *tar.Writer) error {
-	info, _ := os.Stat(modName)
-	if info.IsDir() {
-		if err := tarDir(modName, tarball); err != nil {
-			return HenchErr(err, map[string]interface{}{
-				"module": modName,
-			}, "While Tarring Dir")
-		}
-	} else {
-		if err := tarFile(modName, tarball); err != nil {
-			return HenchErr(err, map[string]interface{}{
-				"module": modName,
-			}, "While Tarring file")
-		}
-	}
-
-	return nil
-}
-
 // Creates and populates modules.tar
 func createModulesTar(tasks []*Task) error {
 	// initialize set to hold module names
 	modSet := make(map[string]bool)
-
-	// get the curdir and move to location of modules
-	curDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
 
 	// os.Create will O_TRUNC the file if it exists
 	tarfile, err := os.Create(TARGET)
@@ -148,33 +123,27 @@ func createModulesTar(tasks []*Task) error {
 	// NOTE: maybe we gotta zip them too
 	for _, modPath := range ModuleSearchPath {
 
-		//change to mod path
-		os.Chdir(modPath)
-
 		// add all modules in every search path
 		for modName, added := range modSet {
 
 			// if module has not been tarred add it
 			if !added {
-				_, err := os.Stat(modName)
+				filePath := filepath.Join(modPath, modName)
+				_, err := os.Stat(filePath)
 
 				// if module does not exists don't error out because it just doesn't
 				// exist in this seach path
 				if err == nil {
-					if err := tarModule(modName, tarball); err != nil {
+					if err := tarit(filePath, "", tarball); err != nil {
 						return HenchErr(err, map[string]interface{}{
 							"modPath": modPath,
 						}, "While populating modules.tar")
 					}
-
 					// set module added to be true
 					modSet[modName] = true
 				}
 			}
 		}
-
-		// go back to dir where modules.tar is
-		os.Chdir(curDir)
 	}
 
 	return nil
@@ -197,7 +166,7 @@ func printPlanStats() {
 		str = SprintfAndFill(25, " ", "[ %s ]", hostname)
 		str += "=> "
 		for state, counter := range states {
-			str += SprintfAndFill(10, " ", "%s: %d", state, counter)
+			str += SprintfAndFill(20, " ", "%s: %d", state, counter)
 		}
 		fmt.Println(str)
 	}
@@ -250,6 +219,30 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		"num machines": len(machines),
 	}, "Done setting up plan")
 	fmt.Printf("Setup complete\n\n")
+
+	return nil
+}
+
+// For now it just removes the .henchman folder in each system
+func (plan *Plan) Cleanup(machines []*Machine) error {
+	remoteHenchmanDir := "${HOME}/.henchman/"
+	for _, machine := range machines {
+		if _, err := machine.Transport.Exec(fmt.Sprintf("rm -rf %s", remoteHenchmanDir),
+			nil, false); err != nil {
+			return HenchErr(err, map[string]interface{}{
+				"remotePath": remoteHenchmanDir,
+				"host":       machine.Hostname,
+			}, "While removing .henchman")
+		}
+	}
+
+	if _, err := localhost().Transport.Exec(fmt.Sprintf("rm -rf %s", remoteHenchmanDir),
+		nil, false); err != nil {
+		return HenchErr(err, map[string]interface{}{
+			"remotePath": remoteHenchmanDir,
+			"host":       "127.0.0.1",
+		}, "While removing .henchman")
+	}
 
 	return nil
 }
@@ -358,14 +351,14 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					fields["output"] = taskResult.Output
 				}
 				Info(fields, fmt.Sprintf("Task '%s' complete", task.Name))
-				PrintfAndFill(75, "~", "TASK [ %s | %s ] ", actualMachine.Hostname, task.Name)
+				PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ", actualMachine.Hostname, task.Name, task.Module.Name)
 				fmt.Printf("%s => %s\n\n", colorCode+taskResult.State, taskResult.Msg+resetCode)
 				if task.Debug {
 					fmt.Printf("Output\n------")
 					fmt.Println(colorCode + printRecurse(taskResult.Output, "", "\n") + resetCode)
 				}
 
-				updatePlanStats(taskResult.State, machine.Hostname)
+				updatePlanStats(taskResult.State, actualMachine.Hostname)
 
 				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
 				if taskResult.State == "error" || taskResult.State == "failure" {
