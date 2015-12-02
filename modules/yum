@@ -69,7 +69,7 @@ try:
             result['output'] = output
 except Exception, e:
     result['status'] = "error"
-    result['msg'] = "Error occurred while installing package %s" % url
+    result['msg'] = "Error occurred while installing package %s" % name 
     result['output'] = str(e)
 
 print json.dumps(result)
