@@ -148,7 +148,7 @@ func TestModuleCopyExecOrder(t *testing.T) {
 	execOrder, err := mod.ExecOrder()
 	require.NoError(t, err)
 
-	assert.Equal(t, "put_file", execOrder[0], "Exec Order sequence is wrong for copy module")
+	assert.Equal(t, "put_for_copy", execOrder[0], "Exec Order sequence is wrong for copy module")
 	assert.Equal(t, "copy_remote", execOrder[1], "Exec Order sequence is wrong for copy module")
 }
 
