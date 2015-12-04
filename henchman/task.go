@@ -34,16 +34,6 @@ type TaskResult struct {
 	Msg    string      `json:"msg"`
 }
 
-func getTaskResult(buf *bytes.Buffer) (*TaskResult, error) {
-	var taskResult TaskResult
-	resultInBytes := []byte(buf.String())
-	err := json.Unmarshal(resultInBytes, &taskResult)
-	if err != nil {
-		return &TaskResult{}, HenchErr(err, nil, "While unmarshalling task results")
-	}
-	return &taskResult, nil
-}
-
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultInBytes := []byte(buf.String())
 	err := json.Unmarshal(resultInBytes, &taskResult)
