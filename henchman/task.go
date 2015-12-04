@@ -46,7 +46,6 @@ func getTaskResult(buf *bytes.Buffer) (*TaskResult, error) {
 
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultInBytes := []byte(buf.String())
-	fmt.Println(buf.String())
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
 		return HenchErr(err, nil, "While unmarshalling task results")

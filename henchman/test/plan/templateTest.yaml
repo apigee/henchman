@@ -11,3 +11,6 @@ tasks:
    - name: "Task Template Folder"
      template: src="henchman/test/templates" dest="test/templates"
      debug: true
+   - name: "Task Template Folder two"
+     template: src="henchman/test/templates/templates2" dest="test/templates"
+     debug: true
