@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/flosch/pongo2"
 	"github.com/pborman/uuid"
@@ -218,10 +219,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if info.IsDir() {
 				err = machine.Transport.Put(srcPath, remoteModDir, "dir")
 			} else {
-				srcFile := filepath.Base(srcPath)
-				dstPath := filepath.Join(remoteModDir, srcFile)
-
-				err = machine.Transport.Put(srcPath, dstPath, "file")
+				err = machine.Transport.Put(srcPath, remoteModDir, "file")
 			}
 
 			if err != nil {
@@ -266,32 +264,89 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'src' parameter"), nil, "")
 			}
 
-			tpl, err := pongo2.FromFile(srcPath)
+			info, err := os.Stat(srcPath)
 			if err != nil {
-				return &TaskResult{}, HenchErr(err, map[string]interface{}{
-					"file":     srcPath,
-					"solution": "Verify if src file has proper pongo2 formatting",
-				}, "While processing template file")
+				return &TaskResult{}, HenchErr(err, nil, "Unable to get info on file/dir")
 			}
-			out, err := tpl.Execute(pongo2.Context{"vars": vars})
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, map[string]interface{}{
-					"file":     srcPath,
-					"solution": "Verify if src file has proper pongo2 formatting",
-				}, "While processing template file")
-			}
-			tmpDir, srcFile := filepath.Split(srcPath)
-			srcFile = srcFile + "_" + machine.Hostname
-			tmpFileName := fmt.Sprintf(".%s", srcFile)
-			tmpFile := filepath.Join(tmpDir, tmpFileName)
 
-			err = ioutil.WriteFile(tmpFile, []byte(out), 0644)
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "While processing template file")
+			// creates temp directory to store templated files
+			tplDir := machine.Hostname + "_templates"
+			if err := os.Mkdir(tplDir, 0755); err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "Error creating tplDir for templating")
 			}
+
+			// if the file(s) to template is a folder
+			// create the approriate director in tplDir
+			baseDir := ""
+			if info.IsDir() {
+				baseDir = filepath.Join(tplDir, filepath.Base(srcPath))
+				if err := os.Mkdir(baseDir, 0755); err != nil {
+					return &TaskResult{}, HenchErr(err, nil, "Error creating baseDir for templating folders")
+				}
+			}
+
+			err = filepath.Walk(srcPath,
+				func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return HenchErr(err, map[string]interface{}{
+							"path": path,
+						}, "While walking")
+					}
+
+					if info.IsDir() {
+						// FIXME: make a cleaner work around
+						// since first file checked is the dir, can't make dir
+						ext := strings.TrimPrefix(path, srcPath)
+						if ext != "" {
+							return os.Mkdir(filepath.Join(baseDir, ext), 0755)
+						}
+
+						return nil
+					}
+
+					tpl, err := pongo2.FromFile(path)
+					if err != nil {
+						return HenchErr(err, map[string]interface{}{
+							"file":     srcPath,
+							"solution": "Verify if src file has proper pongo2 formatting",
+						}, "While processing template file")
+					}
+					out, err := tpl.Execute(pongo2.Context{"vars": vars})
+					if err != nil {
+						return HenchErr(err, map[string]interface{}{
+							"file":     srcPath,
+							"solution": "Verify if src file has proper pongo2 formatting",
+						}, "While processing template file")
+					}
+
+					renderFilePath := filepath.Join(tplDir, filepath.Base(srcPath))
+					if baseDir != "" {
+						renderFilePath = filepath.Join(baseDir, strings.TrimPrefix(path, srcPath))
+					}
+
+					err = ioutil.WriteFile(renderFilePath, []byte(out), 0644)
+					if err != nil {
+						return HenchErr(err, nil, "While processing template file")
+					}
+
+					return nil
+				})
+			if err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "While walking in process template")
+			}
+
 			moduleParams["srcOrig"] = srcPath
-			moduleParams["src"] = tmpFile
+			if baseDir != "" {
+				moduleParams["src"] = baseDir
+			} else {
+				moduleParams["src"] = filepath.Join(tplDir, filepath.Base(srcPath))
+			}
 		case "reset_src":
+			// remove the tplDir
+			tplDir := machine.Hostname + "_templates"
+			if err := os.RemoveAll(tplDir); err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "While in reset_src")
+			}
 			moduleParams["src"] = moduleParams["srcOrig"]
 		}
 	}

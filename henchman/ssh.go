@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	_ "path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -158,6 +158,9 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 	return bytesBuf, nil
 }
 
+// source is the source of the file/folder
+// destination is the path of the FOLDER where source will be transferred to
+// NOTE: source will keep it original name when transferred
 func (sshTransport *SSHTransport) Put(source, destination string, srcType string) error {
 	client, session, err := sshTransport.getClientSession()
 	if err != nil {
@@ -236,7 +239,7 @@ func (sshTransport *SSHTransport) Put(source, destination string, srcType string
 			}, "While untarring on remote")
 		}
 	} else {
-		f, err := sftp.Create(path.Join(newDst))
+		f, err := sftp.Create(filepath.Join(newDst, filepath.Base(source)))
 		if err != nil {
 			return HenchErr(err, map[string]interface{}{
 				"host": sshTransport.Host,
@@ -262,57 +265,6 @@ func (sshTransport *SSHTransport) Put(source, destination string, srcType string
 
 	return nil
 }
-
-/*
-func (sshTransport *SSHTransport) Put(source, destination string, dstType string) error {
-	client, session, err := sshTransport.getClientSession()
-	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"host": sshTransport.Host,
-		}, fmt.Sprintf("Couldn't dial into %s", sshTransport.Host))
-	}
-	defer client.Close()
-	defer session.Close()
-
-	sourceBuf, err := ioutil.ReadFile(source)
-	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"file": source,
-		}, "")
-	}
-	sourceFile := path.Base(source)
-	go func() {
-		pipe, err := session.StdinPipe()
-		if err != nil {
-			Error(map[string]interface{}{
-				"error": err.Error(),
-			}, "Error opening pipe")
-		}
-		defer pipe.Close()
-		buf := string(sourceBuf)
-		if dstType == "dir" {
-			// send a D#### message
-			fmt.Fprintln(pipe, "C0700", len(buf), sourceFile)
-		} else {
-			fmt.Fprintln(pipe, "C0644", len(buf), sourceFile)
-		}
-		fmt.Fprint(pipe, buf)
-		fmt.Fprint(pipe, "\x00")
-	}()
-	//default directory scp command
-	//remoteCommand := fmt.Sprintf("cd %s && /usr/bin/scp -qrt ./", destination)
-	remoteCommand := fmt.Sprintf("/usr/bin/scp -qrt %s", destination)
-	if dstType == "file" {
-		remoteCommand = fmt.Sprintf("/usr/bin/scp -t %s", destination)
-	}
-	if err := session.Run(remoteCommand); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"host": sshTransport.Host,
-		}, "Error doing scp")
-	}
-	return nil
-}
-*/
 
 func NewSSH(config *TransportConfig) (*SSHTransport, error) {
 	ssht := SSHTransport{}

@@ -1,0 +1,2 @@
+{{ vars.current_hostname }}
+{{ vars.service }}

@@ -1,0 +1,13 @@
+---
+name: "Testing local == true"
+hosts:
+   - individual 
+vars:
+  service: iptables
+tasks:
+   - name: "Task Template File"
+     template: src="henchman/test/templates/temp1" dest="test/temp1.yaml"
+     debug: true
+   - name: "Task Template Folder"
+     template: src="henchman/test/templates" dest="test/templates"
+     debug: true

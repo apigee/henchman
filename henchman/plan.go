@@ -62,7 +62,7 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 
 	// throw a check the check sum stuff in here somewhere
 	// transfer tar module
-	if err := machine.Transport.Put(TARGET, remoteModDir+TARGET, "file"); err != nil {
+	if err := machine.Transport.Put(TARGET, remoteModDir, "file"); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
 			"host":       machine.Hostname,
@@ -283,7 +283,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				MergeMap(plan.Vars, vars, true)
 				MergeMap(machine.Vars, vars, true)
 
-				task.Vars["current_host"] = actualMachine.Hostname
+				task.Vars["current_hostname"] = actualMachine.Hostname
 				MergeMap(task.Vars, vars, true)
 
 				err := task.Render(vars, registerMap)
