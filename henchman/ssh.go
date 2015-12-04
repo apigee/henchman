@@ -114,12 +114,13 @@ func (sshTransport *SSHTransport) getClientSession() (*ssh.Client, *ssh.Session,
 
 }
 
+/*
 func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*bytes.Buffer, error) {
 	var b bytes.Buffer
 	modes := ssh.TerminalModes{
 		ECHO:          0,
 		TTY_OP_ISPEED: 14400,
-		TTY_OP_OSPEED: 14400,
+		TTY_OP_OSPEED: 1,
 	}
 	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
 		return nil, HenchErr(err, nil, "request for psuedo terminal failed")
@@ -130,6 +131,7 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 	}
 	return &b, nil
 }
+*/
 
 func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
 	client, session, err := sshTransport.getClientSession()
@@ -151,11 +153,13 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 			log.Debug(cmd)
 		}
 	*/
-	bytesBuf, err := sshTransport.execCmd(session, cmd)
+	//bytesBuf, err := sshTransport.execCmd(session, cmd)
+	bytesSlice, err := session.CombinedOutput(cmd)
 	if err != nil {
 		return nil, HenchErr(err, nil, "While executing command")
 	}
-	return bytesBuf, nil
+
+	return bytes.NewBuffer(bytesSlice), nil
 }
 
 // source is the source of the file/folder
@@ -231,7 +235,7 @@ func (sshTransport *SSHTransport) Put(source, destination string, srcType string
 		}
 
 		cmd := fmt.Sprintf("tar -xvf %s -C %s && rm -rf %s", tarredFilePath, newDst, tarredFilePath)
-		_, err = sshTransport.execCmd(session, cmd)
+		_, err = session.CombinedOutput(cmd)
 		if err != nil {
 			return HenchErr(err, map[string]interface{}{
 				"host": sshTransport.Host,
