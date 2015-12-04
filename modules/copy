@@ -7,7 +7,7 @@
 # Params for this module
 # owner: The owner of the file (optional)
 # group: The group of the file (optional)
-# mode:  The file mode (default: 644)
+# mode:  The file mode (default: 644).  Directories should be 755
 # dest:  The destination. Should be a file (required)
 
 import sys
@@ -23,8 +23,14 @@ result = {}
 try:
     owner = params.get("owner",pwd.getpwuid( os.getuid() ).pw_name)
     group = params.get("owner",pwd.getpwuid( os.getuid() ).pw_name)
-    mode = params.get("mode","0644")
+    mode = params.get("mode")
     dest = params.get("dest")
+
+    if os.path.isdir(dest):
+      fType = "directory"
+    else:
+      fType = "file"
+
     if not dest:
         raise Exception("dest cannot be empty. Has to be a file")
 
@@ -36,16 +42,19 @@ try:
     output, err = p.communicate()
     if err != "":
         raise Exception(err)
+    
+    if mode:
+      command = ["/bin/chmod","-R","%s" % mode, "%s" % dest]
+      p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      output, err = p.communicate()
+      if err != "":
+          raise Exception(err)
 
-    command = ["/bin/chmod","-R","%s" % mode, "%s" % dest]
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, err = p.communicate()
-    if err != "":
-        raise Exception(err)
     result['status'] = "changed"
-    result['msg'] = "State of file %s changed" % dest
+    result['msg'] = "State of %s %s changed" % (fType, dest)
 
 except Exception as e:
     result["status"] = "error"
-    result["msg"] = str(e)
+    result["msg"] = "Error occurred while changing state of %s %s" % (fType, dest)
+    result["output"] = {"stderr": str(e)}
 print json.dumps(result)

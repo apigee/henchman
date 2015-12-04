@@ -1,16 +1,17 @@
 ---
 name: "Testing local == true"
 hosts:
-   - test 
+   - individual 
 tasks:
-   - name: "Task 1"
-     copy: src="henchman/test/plan/" dest="fldr/tmp.yaml"
+   - name: "Task Copy File"
+     copy: src="henchman/test/plan/localTest.yaml" dest="fldr/localTest.yaml"
      debug: true
-     sudo: true
-   - name: "Task 2"
-     copy: src="henchman/test/plan/invalid" dest="lowdr/invalids"
+   - name: "Task Copy Folder"
+     copy: src="henchman/test/plan/" dest="fldr/plans"
      debug: true
-     sudo: true
+   - name: "Task Copy Folder 2"
+     copy: src="henchman/test/plan/invalid" dest="fldr/plans/invalids/ralids"
+     debug: true
    #- name: "Local task"
    #  copy: src="henchman/test/plan" dest="/Users/jordanlin/tmpFldr/plans"
    #  local: true
