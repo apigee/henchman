@@ -46,6 +46,7 @@ func getTaskResult(buf *bytes.Buffer) (*TaskResult, error) {
 
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultInBytes := []byte(buf.String())
+	fmt.Println(buf.String())
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
 		return HenchErr(err, nil, "While unmarshalling task results")
@@ -271,6 +272,14 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			// creates temp directory to store templated files
 			tplDir := machine.Hostname + "_templates"
+
+			// double checks to see if tplDir already exists, if it does remove it
+			if _, err := os.Stat(tplDir); os.IsExist(err) {
+				if err := os.RemoveAll(tplDir); err != nil {
+					return &TaskResult{}, HenchErr(err, nil, "While removing old tplDir")
+				}
+			}
+
 			if err := os.Mkdir(tplDir, 0755); err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "Error creating tplDir for templating")
 			}
