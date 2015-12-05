@@ -117,9 +117,9 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 	modes := ssh.TerminalModes{
 		ECHO:          0,
 		TTY_OP_ISPEED: 14400,
-		TTY_OP_OSPEED: 1,
+		TTY_OP_OSPEED: 14400,
 	}
-	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+	if err := session.RequestPty("xterm", 100, 80, modes); err != nil {
 		return nil, HenchErr(err, nil, "request for psuedo terminal failed")
 	}
 

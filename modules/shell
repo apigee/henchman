@@ -36,4 +36,8 @@ except Exception as e:
     result["status"] = "error"
     result["msg"] = "Command exec'ed with errors.  Return code %d" % p.returncode
     result["output"] = {"stderr": str(e), "stdout": output}
+
+filename = os.path.join(os.environ['HOME'], "output.json")
+with open(filename, 'w') as outfile:
+    json.dump(result, outfile)
 print json.dumps(result)
