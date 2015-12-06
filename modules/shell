@@ -38,6 +38,8 @@ except Exception as e:
     result["output"] = {"stderr": str(e), "stdout": output}
 
 filename = os.path.join(os.environ['HOME'], "output.json")
-with open(filename, 'w') as outfile:
-    json.dump(result, outfile)
-print json.dumps(result)
+
+#with open(filename, 'w') as outfile:
+#    json.dump(result, outfile)
+#print json.dumps(result, sort_keys=true)
+json.dump(result, sys.stdout)
