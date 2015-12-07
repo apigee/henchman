@@ -38,9 +38,15 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultInBytes := []byte(buf.String())
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"input": buf.String(),
-		}, "While unmarshalling task results")
+		// Temp fix for current end of json input bug
+		resultInBytes = []byte(strings.TrimSpace(buf.String()) + "\"}")
+		err := json.Unmarshal(resultInBytes, &taskResult)
+		taskResult.Msg = taskResult.Msg + ". Error occurred while unmarshalling.  Temp fix.  Some data may not be present"
+		if err != nil {
+			return HenchErr(err, map[string]interface{}{
+				"input": strings.TrimSpace(buf.String()) + "\"}",
+			}, "While unmarshalling task results")
+		}
 	}
 	return nil
 }
