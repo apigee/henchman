@@ -33,6 +33,9 @@ try:
     name = params.get('name')
     version = params.get('version')
     state = params.get('state', 'present')
+    # If version is latest. Just ignore it
+    if version == 'latest':
+        version = None
     # check if state provided is valid
     if state not in possible_states:
         raise Exception("Valid states are one of %s " % ','.join(possible_states))
