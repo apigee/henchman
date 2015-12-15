@@ -12,7 +12,7 @@ func InitLog() {
 	jsonLog.Formatter = new(logrus.JSONFormatter)
 
 	// NOTE: hardcoded for now
-	f, _ := os.OpenFile(LogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	f, _ := os.OpenFile(Config.Log, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	jsonLog.Out = f
 }
 
