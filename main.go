@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -201,6 +202,11 @@ func executePlan(c *cli.Context) {
 }
 
 func main() {
+	if err := henchman.InitConfiguration(); err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
 	henchman.InitLog()
 	app := cli.NewApp()
 	app.Name = "henchman"
