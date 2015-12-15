@@ -124,25 +124,30 @@ func NewModule(name string, params string) (*Module, error) {
 	return &module, nil
 }
 
-func (module *Module) Resolve() (modulePath string, err error) {
+// Checks to see if a modules is valid and if it's a standalone module
+func (module *Module) Resolve() (string, bool, error) {
+	standalone := true
 	for _, dir := range ModuleSearchPath {
 		fullPath := path.Join(dir, module.Name)
 		finfo, err := os.Stat(fullPath)
-		if finfo != nil {
+		if err == nil {
 			if finfo.IsDir() {
 				tmpPath := path.Join(fullPath, "exec")
 				finfo, err = os.Stat(tmpPath)
-				if finfo == nil || finfo.IsDir() {
-					return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name), map[string]interface{}{
+				if err != nil || finfo.IsDir() {
+					return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name), map[string]interface{}{
 						"module":   module.Name,
 						"solution": "Check if the non-standalone module has an exec.  Or the standalone module isn't in a folder",
 					}, "")
+				} else {
+					standalone = false
 				}
 			}
-			return fullPath, err
+			return fullPath, standalone, err
 		}
 	}
-	return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), map[string]interface{}{
+
+	return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), map[string]interface{}{
 		"module":   module.Name,
 		"solution": "Check if module exists",
 	}, "")

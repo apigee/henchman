@@ -110,7 +110,7 @@ func createModulesTar(isLocal *bool, tasks []*Task) error {
 	// NOTE: just transfer everything to local
 	for _, task := range tasks {
 		if _, ok := modSet[task.Module.Name]; !ok {
-			if _, err := task.Module.Resolve(); err != nil {
+			if _, _, err := task.Module.Resolve(); err != nil {
 				return HenchErr(err, map[string]interface{}{
 					"task": task.Name,
 				}, "")

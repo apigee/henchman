@@ -158,6 +158,18 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		// Exec Order for Default
 		case "exec_module":
 			// executes module by calling the copied module remotely
+
+			// Checks if the module is a standalone or has dependecies
+			modPath := remoteModPath
+			_, standalone, err := task.Module.Resolve()
+			if err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
+			}
+
+			if !standalone {
+				modPath += "/exec"
+			}
+
 			Info(map[string]interface{}{
 				"mod path": remoteModPath,
 				"host":     task.Vars["current_host"],
@@ -169,7 +181,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "In exec_module while json marshalling")
 			}
-			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
+			buf, err := machine.Transport.Exec(modPath, jsonParams, task.Sudo)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
 			}
@@ -177,30 +189,6 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			err = setTaskResult(&taskResult, buf)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
-			}
-		case "exec_tar_module":
-			// executes module by calling the copied module remotely
-			// NOTE: may want to just change the way remoteModPath is created
-			newModPath := remoteModDir + task.Module.Name + "/exec"
-			Info(map[string]interface{}{
-				"mod path": newModPath,
-				"host":     task.Vars["current_host"],
-				"task":     task.Name,
-				"module":   task.Module.Name,
-			}, "Executing Module in Task")
-
-			jsonParams, err := json.Marshal(moduleParams)
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "In exec_tar_module while json marshalling")
-			}
-			buf, err := machine.Transport.Exec(newModPath, jsonParams, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "While in exec_tar_module")
-			}
-			//This should not be empty
-			err = setTaskResult(&taskResult, buf)
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "While in exec_tar_module")
 			}
 		case "put_for_copy":
 			//scp's file from local location to remote location

@@ -83,9 +83,10 @@ func TestModuleResolve(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
-	fullPath, err := mod.Resolve()
+	fullPath, standalone, err := mod.Resolve()
 
 	require.NoError(t, err)
+	assert.Equal(t, true, standalone)
 	assert.Equal(t, "/tmp/shell", fullPath, "Got incorrect fullPath")
 
 	err = os.Mkdir("/tmp/curl", 0777)
@@ -100,7 +101,8 @@ func TestModuleResolve(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
-	fullPath, err = mod.Resolve()
+	fullPath, standalone, err = mod.Resolve()
+	assert.Equal(t, false, standalone)
 
 	require.NoError(t, err)
 	assert.Equal(t, "/tmp/curl", fullPath, "Got incorrect fullPath")
@@ -119,7 +121,7 @@ func TestNonexistentModuleResolve(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
-	fullPath, err := mod.Resolve()
+	fullPath, _, err := mod.Resolve()
 
 	require.Error(t, err)
 	require.Equal(t, "", fullPath, "Fullpath should have been empty")
