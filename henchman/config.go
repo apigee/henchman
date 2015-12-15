@@ -1,28 +1,29 @@
 package henchman
 
 import (
+	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )
 
 type Configuration struct {
-	Log string
+	Log       string
+	ExecOrder map[string][]string
 }
 
-func InitConfiguration() error {
-	buf, err := ioutil.ReadFile("conf.yaml")
+// Global config object for henchman to use
+var Config Configuration
+
+func InitConfiguration(filename string) error {
+	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("Error reading conf.yaml :: " + err.Error())
+		return fmt.Errorf("Error reading conf.json :: " + err.Error())
 	}
 
-	var config Configuration
-	err = yaml.Unmarshal(buf, &config)
+	err = json.Unmarshal(buf, &Config)
 	if err != nil {
 		return fmt.Errorf("Error unmarshalling conf.yaml :: " + err.Error())
 	}
-
-	LogFile = config.Log
 
 	return nil
 }

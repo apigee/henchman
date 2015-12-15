@@ -60,6 +60,11 @@ func gatherCommands() []cli.Command {
 		Name:  "cleanup",
 		Usage: "Will removed .henchman directory from all remote machines",
 	}
+	configurationFlag := cli.StringFlag{
+		Name:  "configuration",
+		Value: "conf.json",
+		Usage: "Path to the configuration file",
+	}
 	// FIXME: Should this come from the transport instead.
 	// Different transports can come up with their own set of flags
 	// For now our world is just ssh
@@ -76,7 +81,7 @@ func gatherCommands() []cli.Command {
 			Name:   "exec",
 			Usage:  "Execute a plan on the given group in the inventory",
 			Action: executePlan,
-			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag, debugFlag, cleanupFlag),
+			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag, debugFlag, cleanupFlag, configurationFlag),
 		},
 	}
 }
@@ -104,8 +109,14 @@ func executePlan(c *cli.Context) {
 		henchman.Fatal(nil, "Missing path to the plan")
 	}
 
-	// Step 0: Set global variables
+	// Step 0: Set global variables and Init stuff
 	henchman.DebugFlag = c.Bool("debug")
+	// NOTE: can't use HenchErr b/c it hasn't been initialized yet
+	if err := henchman.InitConfiguration(c.String("configuration")); err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	henchman.InitLog()
 
 	// Step 1: Validate Modules path and see if it exists
 	modulesPath := c.String("modules")
@@ -202,12 +213,6 @@ func executePlan(c *cli.Context) {
 }
 
 func main() {
-	if err := henchman.InitConfiguration(); err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-
-	henchman.InitLog()
 	app := cli.NewApp()
 	app.Name = "henchman"
 	app.Usage = "Orchestration framework"

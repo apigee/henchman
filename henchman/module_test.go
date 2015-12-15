@@ -131,6 +131,8 @@ func TestModuleDefaultExecOrder(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
+	require.NoError(t, InitConfiguration("../conf.json"))
+
 	execOrder, err := mod.ExecOrder()
 	require.NoError(t, err)
 
@@ -144,6 +146,8 @@ func TestModuleCopyExecOrder(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, mod)
+
+	require.NoError(t, InitConfiguration("../conf.json"))
 
 	execOrder, err := mod.ExecOrder()
 	require.NoError(t, err)
@@ -159,6 +163,8 @@ func TestModuleTemplateExecOrder(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, mod)
+
+	require.NoError(t, InitConfiguration("../conf.json"))
 
 	execOrder, err := mod.ExecOrder()
 	require.NoError(t, err)
