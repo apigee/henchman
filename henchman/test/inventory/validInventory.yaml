@@ -19,7 +19,7 @@ groups:
     hosts: 
       - "1.1.1.1"
       - "1.1.1.4"
-hostvars:
+host_vars:
   "192.168.1.1":
      keyfile: "~/.ssh/another_key"
      henchman_user: "root"
@@ -28,3 +28,10 @@ hostvars:
   "1.1.1.1":
      ulimit: 240
      files: 240
+
+global_vars:
+  service: "iptables"
+  henchman_user: "vagrant"
+  henchman_keyfile: "~/.ssh/origin_key"
+
+

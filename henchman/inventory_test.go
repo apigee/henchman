@@ -33,11 +33,10 @@ func TestLoadInvalidInventory(t *testing.T) {
 }
 
 func TestGetInventoryGroups(t *testing.T) {
-	inventory, err := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
 	require.NoError(t, err)
 
-	groups, err := inventory.GetInventoryGroups(buf)
+	groups, err := GetInventoryGroups(buf)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(groups))
 	assert.Equal(t, []string{"nginx"}, groups)
@@ -75,6 +74,23 @@ func TestValidYAMLInventoryHostgroup(t *testing.T) {
 		inventory.HostVars["1.1.1.1"]["files"], "keyfile expected to be set to ~/.ssh/another_key")
 }
 
+// FIXME: Can't finish this test because of the transport config aspect
+func TestGetMachines(t *testing.T) {
+	inventory, err := loadValidInventory()
+	require.NoError(t, err)
+	require.NotNil(t, inventory)
+
+	assert.Equal(t, 2, len(inventory.HostVars), "Expected 2 host overrides")
+	files := inventory.HostVars["1.1.1.1"]["files"].(int)
+	assert.Equal(t, 240, inventory.HostVars["1.1.1.1"]["ulimit"].(int), "Expected 2 host overrides")
+	assert.Equal(t, "~/.ssh/another_key",
+		inventory.HostVars["192.168.1.1"]["keyfile"], "keyfile expected to be set to ~/.ssh/another_key")
+	assert.Equal(t, files,
+		inventory.HostVars["1.1.1.1"]["files"], "keyfile expected to be set to ~/.ssh/another_key")
+}
+
+//NOTE: MergeHostVars is not being used in the code.  Remove at 1/4/16
+/*
 func TestMergeHostVars(t *testing.T) {
 	inventory, err := loadValidInventory()
 	require.NoError(t, err)
@@ -90,3 +106,4 @@ func TestMergeHostVars(t *testing.T) {
 	inventory.MergeHostVars("1.1.1.2", taskvars2)
 	assert.Equal(t, 400, taskvars2["ulimit"], "Expected hostvars override for ulimit to be 240")
 }
+*/

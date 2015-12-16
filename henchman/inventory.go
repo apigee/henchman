@@ -91,7 +91,7 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	return *iv, nil
 }
 
-//NOTE: should be removed if this is here to long
+//NOTE: Not being used.  Remove at 1/4/16
 /*
 func (inv *Inventory) MergeHostVars(hostname string, taskVars map[interface{}]interface{}) {
 	if len(inv.HostVars) == 0 {
@@ -175,7 +175,7 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 	// gets henchman specific vars from global_vars
 	globalInvHenchmanVars := GetHenchmanVars(inv.GlobalVars)
 
-	//update hostvars
+	// update hostvars
 	for _, machine := range machines {
 		for hostname, vars := range inv.HostVars {
 			if machine.Hostname == hostname {

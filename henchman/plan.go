@@ -285,14 +285,18 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				vars := make(VarsMap)
 				MergeMap(plan.Vars, vars, true)
-				fmt.Println(vars)
 				MergeMap(machine.Vars, vars, true)
 
-				fmt.Println(vars)
 				task.Vars["current_hostname"] = actualMachine.Hostname
 				MergeMap(task.Vars, vars, true)
 
-				fmt.Println(vars)
+				Debug(map[string]interface{}{
+					"vars": vars,
+					"plan": plan.Name,
+					"task": task.Name,
+					"host": actualMachine.Hostname,
+				}, "Vars for Task")
+
 				err := task.Render(vars, registerMap)
 
 				if err != nil {

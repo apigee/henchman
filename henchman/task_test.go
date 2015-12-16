@@ -39,7 +39,7 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	buf, err := ioutil.ReadFile("test/plan/planWithPongo2.yaml")
 	require.NoError(t, err, "Could not read planWithPongo2.yaml")
 
-	plan, err := PreprocessPlan(buf, Inventory{})
+	plan, err := PreprocessPlan(buf, &Inventory{})
 	require.NoError(t, err, "This plan shouldn't be having an error")
 
 	testTransport := TestTransport{}
