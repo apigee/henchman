@@ -44,7 +44,7 @@ func localhost() *Machine {
 }
 
 /**
- * These functions deal with plan stats
+ * These functions deal with plan stats and details
  */
 func updatePlanStats(state string, hostname string) {
 	if _, ok := planStats[hostname]; !ok {
@@ -63,6 +63,19 @@ func printPlanStats() {
 			str += SprintfAndFill(20, " ", "%s: %d", state, counter)
 		}
 		fmt.Println(str)
+	}
+}
+
+func printTaskResults(taskResult *TaskResult, task *Task) {
+	resetCode := statuses["reset"]
+	colorCode := statuses[taskResult.State]
+	Printf("%s => %s\n\n", colorCode+taskResult.State, taskResult.Msg+resetCode)
+
+	if task.Debug {
+		Println("Output\n-----" +
+			colorCode +
+			printRecurse(taskResult.Output, "", "\n") +
+			resetCode)
 	}
 }
 
@@ -261,8 +274,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 	}, fmt.Sprintf("Executing plan '%s'", plan.Name))
 	PrintfAndFill(75, "~", "EXECUTING PLAN [ %s ] ", plan.Name)
 
-	resetCode := statuses["reset"]
 	wg := new(sync.WaitGroup)
+
 	for _, _machine := range machines {
 		machine := _machine
 		wg.Add(1)
@@ -286,7 +299,6 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				vars := make(VarsMap)
 				MergeMap(plan.Vars, vars, true)
 				MergeMap(machine.Vars, vars, true)
-
 				task.Vars["current_hostname"] = actualMachine.Hostname
 				MergeMap(task.Vars, vars, true)
 
@@ -326,6 +338,18 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				// handles the retries
 				var taskResult *TaskResult
 				for numRuns := task.Retry + 1; numRuns > 0; numRuns-- {
+					if numRuns <= task.Retry {
+						Debug(map[string]interface{}{
+							"task":      task.Name,
+							"host":      actualMachine.Hostname,
+							"plan":      plan.Name,
+							"iteration": task.Retry + 1 - numRuns,
+						}, fmt.Sprintf("Retrying Task '%s'", task.Name))
+						PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
+							actualMachine.Hostname, task.Name, task.Module.Name)
+						printTaskResults(taskResult, task)
+					}
+
 					taskResult, err = task.Run(actualMachine, vars, registerMap)
 					if err != nil {
 						henchErr := HenchErr(err, map[string]interface{}{
@@ -347,18 +371,10 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 					if taskResult.State == "ok" || taskResult.State == "changed" {
 						numRuns = 0
-					} else {
-						Debug(map[string]interface{}{
-							"task":      task.Name,
-							"host":      actualMachine.Hostname,
-							"plan":      plan.Name,
-							"iteration": task.Retry + 1 - numRuns,
-						}, fmt.Sprintf("Retrying Task '%s'", task.Name))
 					}
 				}
 
-				colorCode := statuses[taskResult.State]
-
+				// Fields for info
 				fields := map[string]interface{}{
 					"task":  task.Name,
 					"host":  actualMachine.Hostname,
@@ -369,13 +385,10 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					fields["output"] = taskResult.Output
 				}
 				Info(fields, fmt.Sprintf("Task '%s' complete", task.Name))
-				PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ", actualMachine.Hostname, task.Name, task.Module.Name)
-				fmt.Printf("%s => %s\n\n", colorCode+taskResult.State, taskResult.Msg+resetCode)
-				if task.Debug {
-					fmt.Printf("Output\n------")
-					fmt.Println(colorCode + printRecurse(taskResult.Output, "", "\n") + resetCode)
-				}
+				PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
+					actualMachine.Hostname, task.Name, task.Module.Name)
 
+				printTaskResults(taskResult, task)
 				updatePlanStats(taskResult.State, actualMachine.Hostname)
 
 				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
