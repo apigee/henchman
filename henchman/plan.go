@@ -34,9 +34,6 @@ type Plan struct {
 	Tasks     []*Task
 }
 
-const HENCHMAN_PREFIX = "henchman_"
-const TARGET = "modules.tar"
-
 func localhost() *Machine {
 	tc := make(TransportConfig)
 	local, _ := NewLocal(&tc)
@@ -44,6 +41,29 @@ func localhost() *Machine {
 	localhost.Hostname = "127.0.0.1"
 	localhost.Transport = local
 	return &localhost
+}
+
+/**
+ * These functions deal with plan stats
+ */
+func updatePlanStats(state string, hostname string) {
+	if _, ok := planStats[hostname]; !ok {
+		planStats[hostname] = map[string]int{}
+	}
+
+	planStats[hostname][state]++
+}
+
+func printPlanStats() {
+	var str string
+	for hostname, states := range planStats {
+		str = SprintfAndFill(25, " ", "[ %s ]", hostname)
+		str += "=> "
+		for state, counter := range states {
+			str += SprintfAndFill(20, " ", "%s: %d", state, counter)
+		}
+		fmt.Println(str)
+	}
 }
 
 /**
@@ -150,29 +170,6 @@ func createModulesTar(isLocal *bool, tasks []*Task) error {
 	}
 
 	return nil
-}
-
-/**
- * These functions deal with plan stats
- */
-func updatePlanStats(state string, hostname string) {
-	if _, ok := planStats[hostname]; !ok {
-		planStats[hostname] = map[string]int{}
-	}
-
-	planStats[hostname][state]++
-}
-
-func printPlanStats() {
-	var str string
-	for hostname, states := range planStats {
-		str = SprintfAndFill(25, " ", "[ %s ]", hostname)
-		str += "=> "
-		for state, counter := range states {
-			str += SprintfAndFill(20, " ", "%s: %d", state, counter)
-		}
-		fmt.Println(str)
-	}
 }
 
 /**
@@ -288,11 +285,14 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				vars := make(VarsMap)
 				MergeMap(plan.Vars, vars, true)
+				fmt.Println(vars)
 				MergeMap(machine.Vars, vars, true)
 
+				fmt.Println(vars)
 				task.Vars["current_hostname"] = actualMachine.Hostname
 				MergeMap(task.Vars, vars, true)
 
+				fmt.Println(vars)
 				err := task.Render(vars, registerMap)
 
 				if err != nil {
@@ -343,6 +343,13 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 					if taskResult.State == "ok" || taskResult.State == "changed" {
 						numRuns = 0
+					} else {
+						Debug(map[string]interface{}{
+							"task":      task.Name,
+							"host":      actualMachine.Hostname,
+							"plan":      plan.Name,
+							"iteration": task.Retry + 1 - numRuns,
+						}, fmt.Sprintf("Retrying Task '%s'", task.Name))
 					}
 				}
 

@@ -16,8 +16,9 @@ type InventoryInterface interface {
 //type Inventory map[string][]*Machine
 type Inventory struct {
 	//GroupHosts map[string][]*Machine
-	Groups   map[string]HostGroup                   `yaml:"groups"`
-	HostVars map[string]map[interface{}]interface{} `yaml:"hostvars"`
+	Groups     map[string]HostGroup                   `yaml:"groups"`
+	HostVars   map[string]map[interface{}]interface{} `yaml:"host_vars"`
+	GlobalVars map[interface{}]interface{}            `yaml:"global_vars"`
 }
 
 type HostGroup struct {
@@ -35,8 +36,9 @@ func (inv Inventory) Count() int {
 
 // FIXME: Have a way to provide specifics
 type YAMLInventory struct {
-	Groups   map[string]HostGroup                   `yaml:"groups"`
-	HostVars map[string]map[interface{}]interface{} `yaml:"hostvars"`
+	Groups     map[string]HostGroup                   `yaml:"groups"`
+	HostVars   map[string]map[interface{}]interface{} `yaml:"host_vars"`
+	GlobalVars map[interface{}]interface{}            `yaml:"global_vars"`
 }
 
 func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
@@ -85,9 +87,12 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	iv := &Inventory{}
 	iv.HostVars = yi.HostVars
 	iv.Groups = yi.Groups
+	iv.GlobalVars = yi.GlobalVars
 	return *iv, nil
 }
 
+//NOTE: should be removed if this is here to long
+/*
 func (inv *Inventory) MergeHostVars(hostname string, taskVars map[interface{}]interface{}) {
 	if len(inv.HostVars) == 0 {
 		return
@@ -96,8 +101,12 @@ func (inv *Inventory) MergeHostVars(hostname string, taskVars map[interface{}]in
 		MergeMap(inv.HostVars[hostname], taskVars, true)
 	}
 }
+*/
 
-func (inv *Inventory) GetInventoryGroups(planBuf []byte) ([]string, error) {
+/**
+ * gets the groups under hosts section from plan file
+ */
+func GetInventoryGroups(planBuf []byte) ([]string, error) {
 	hostsProxy := struct {
 		Groups []string `yaml:"hosts"`
 	}{}
@@ -112,6 +121,10 @@ func (inv *Inventory) GetInventoryGroups(planBuf []byte) ([]string, error) {
 	return hostsProxy.Groups, nil
 }
 
+/**
+ * Returns a filtered inventory depending on which groups are specified
+ * Keeps the groups specified in the filtered inventory
+ */
 func (inv *Inventory) GetInventoryForGroups(groups []string) Inventory {
 	// FIXME: Support globbing in the groups
 	// No groups? No problem. Just return the full inventory
@@ -159,6 +172,9 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		}
 	}
 
+	// gets henchman specific vars from global_vars
+	globalInvHenchmanVars := GetHenchmanVars(inv.GlobalVars)
+
 	//update hostvars
 	for _, machine := range machines {
 		for hostname, vars := range inv.HostVars {
@@ -172,7 +188,11 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		for k, v := range tc {
 			tcCurr[k] = v
 		}
+
+		// gets henchman specific vars from each machine and merges with global
 		henchmanVars := GetHenchmanVars(machine.Vars)
+		MergeMap(globalInvHenchmanVars, henchmanVars, false)
+
 		for k, v := range henchmanVars {
 			tcCurr[k.(string)] = v.(string)
 		}
@@ -194,14 +214,14 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 	return machines, nil
 }
 
+/**
+ * Gets any vars with the prefix henchman
+ */
 func GetHenchmanVars(vars VarsMap) VarsMap {
-	var henchmanVars VarsMap
+	henchmanVars := VarsMap{}
 
 	for k, v := range vars {
 		if strings.Contains(k.(string), HENCHMAN_PREFIX) {
-			if len(henchmanVars) == 0 {
-				henchmanVars = make(VarsMap)
-			}
 			parts := strings.Split(k.(string), HENCHMAN_PREFIX)
 			henchmanVars[parts[len(parts)-1]] = v
 		}

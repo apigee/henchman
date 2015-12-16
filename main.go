@@ -86,11 +86,16 @@ func gatherCommands() []cli.Command {
 	}
 }
 
+/**
+ * Sets all_hosts, and groups with attached hosts lists
+ * These can be accessed in vars.inv.whatevs
+ */
 func setInventoryVars(plan *henchman.Plan, inv henchman.Inventory) {
 	var all_hosts []string
+	invVars := make(map[interface{}]interface{})
 	duplicates := make(map[string]bool)
 	for group, hostGroup := range inv.Groups {
-		plan.Vars[group] = hostGroup.Hosts
+		invVars[group] = hostGroup.Hosts
 		for _, host := range hostGroup.Hosts {
 			if _, present := duplicates[host]; !present {
 				duplicates[host] = true
@@ -99,7 +104,8 @@ func setInventoryVars(plan *henchman.Plan, inv henchman.Inventory) {
 		}
 	}
 
-	plan.Vars["all_hosts"] = all_hosts
+	invVars["all_hosts"] = all_hosts
+	plan.Vars["inv"] = invVars
 }
 
 func executePlan(c *cli.Context) {
@@ -111,6 +117,7 @@ func executePlan(c *cli.Context) {
 
 	// Step 0: Set global variables and Init stuff
 	henchman.DebugFlag = c.Bool("debug")
+
 	// NOTE: can't use HenchErr b/c it hasn't been initialized yet
 	if err := henchman.InitConfiguration(c.String("configuration")); err != nil {
 		fmt.Println(err.Error())
@@ -150,7 +157,7 @@ func executePlan(c *cli.Context) {
 		henchman.Fatal(henchErr.Fields, "Error Loading Inventory")
 	}
 
-	// Step 3: Read the planFile
+	// Step 3: Preprocess Plans and execute
 	planFile := args[0]
 	planBuf, err := ioutil.ReadFile(planFile)
 	if err != nil {
@@ -160,7 +167,9 @@ func executePlan(c *cli.Context) {
 		}, "").(*henchman.HenchmanError)
 		henchman.Fatal(henchErr.Fields, "Error Reading Plan")
 	}
-	groups, err := inv.GetInventoryGroups(planBuf)
+
+	// Step 3.1: Find the groups being used by plan
+	groups, err := henchman.GetInventoryGroups(planBuf)
 	if err != nil {
 		henchErr := henchman.HenchErr(err, map[string]interface{}{
 			"plan":  planFile,
@@ -168,10 +177,16 @@ func executePlan(c *cli.Context) {
 		}, "").(*henchman.HenchmanError)
 		henchman.Fatal(henchErr.Fields, "Error Getting Inv Groups")
 	}
+
+	// Step 3.2: Create a filtered Inv with only groups the plan specified
 	inventory := inv.GetInventoryForGroups(groups)
+
+	// Step 3.3: For each machine assign group and host vars
 	machines, err := inventory.GetMachines(tc)
 	//_, err = inventory.GetMachines(tc)
 
+	// Step 3.4: Preprocess plan to create plan struct
+	//           Setup final version of vars
 	plan, err := henchman.PreprocessPlan(planBuf, inventory)
 	if err != nil {
 		henchErr := henchman.HenchErr(err, map[string]interface{}{
@@ -182,7 +197,9 @@ func executePlan(c *cli.Context) {
 	}
 
 	setInventoryVars(plan, inv)
+	henchman.MergeMap(inventory.GlobalVars, plan.Vars, false)
 
+	// Step 3.5: Setup plan and execute
 	if err := plan.Setup(machines); err != nil {
 		henchErr := henchman.HenchErr(err, map[string]interface{}{
 			"error": err.Error(),
