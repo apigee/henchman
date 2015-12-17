@@ -42,6 +42,25 @@ func TestGetInventoryGroups(t *testing.T) {
 	assert.Equal(t, []string{"nginx"}, groups)
 }
 
+func TestGetInventoryForGroups(t *testing.T) {
+	inventory, err := loadValidInventory()
+
+	require.NoError(t, err)
+	require.NotNil(t, inventory)
+
+	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
+	require.NoError(t, err)
+
+	groups, err := GetInventoryGroups(buf)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(groups))
+	assert.Equal(t, []string{"nginx"}, groups)
+
+	newInv := inventory.GetInventoryForGroups(groups)
+	assert.Equal(t, 3, len(newInv.GlobalVars))
+	assert.Equal(t, 2, len(newInv.HostVars))
+}
+
 func TestValidYAMLInventorygroup(t *testing.T) {
 	inventory, err := loadValidInventory()
 
