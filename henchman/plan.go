@@ -338,6 +338,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				// handles the retries
 				var taskResult *TaskResult
 				for numRuns := task.Retry + 1; numRuns > 0; numRuns-- {
+					// If this is a retry print some info
 					if numRuns <= task.Retry {
 						Debug(map[string]interface{}{
 							"task":      task.Name,
@@ -369,7 +370,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						*/
 					}
 
-					if taskResult.State == "ok" || taskResult.State == "changed" {
+					if taskResult.State == "ok" ||
+						taskResult.State == "changed" {
 						numRuns = 0
 					}
 				}
