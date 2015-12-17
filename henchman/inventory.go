@@ -143,6 +143,7 @@ func (inv *Inventory) GetInventoryForGroups(groups []string) Inventory {
 			}
 		}
 		filtered.HostVars = inv.HostVars
+		filtered.GlobalVars = inv.GlobalVars
 		return filtered
 	}
 }

@@ -303,7 +303,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				MergeMap(task.Vars, vars, true)
 
 				Debug(map[string]interface{}{
-					"vars": vars,
+					"vars": fmt.Sprintf("%v", vars),
 					"plan": plan.Name,
 					"task": task.Name,
 					"host": actualMachine.Hostname,
