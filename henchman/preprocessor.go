@@ -70,6 +70,9 @@ func (vp *VarsProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 					}, "")
 			}
 		default:
+			if isKeyword(field) {
+				return HenchErr(ErrKeyword(field), nil, "While unmarshalling vars")
+			}
 			vp.Vars[field] = val
 		}
 	}

@@ -68,6 +68,10 @@ func isKeyword(val string) bool {
 		return true
 	case "item":
 		return true
+	case "inv":
+		return true
+	case "current_hostname":
+		return true
 	default:
 		return false
 	}

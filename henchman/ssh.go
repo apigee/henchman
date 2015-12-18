@@ -124,12 +124,17 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 		return nil, HenchErr(err, nil, "request for psuedo terminal failed")
 	}
 
-	b, err := session.CombinedOutput(cmd)
+	r, err := session.StdoutPipe()
+	//b, err := session.CombinedOutput(cmd)
+	err = session.Run(cmd)
 	if err != nil {
 		return nil, HenchErr(err, nil, "")
 	}
 
-	return bytes.NewBuffer(b), nil
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r)
+	//return bytes.NewBuffer(b), nil
+	return buf, nil
 }
 
 func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
