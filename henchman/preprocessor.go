@@ -300,7 +300,8 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 
 			tasks = append(tasks, includedTasks...)
 		} else {
-			if tp.Module == nil {
+			// Checking for name because module is not a pointer
+			if tp.Module.Name == "" {
 				return nil, HenchErr(fmt.Errorf("This task doesn't have a valid module"), map[string]interface{}{
 					"task":     tp.Name,
 					"solution": "Each task needs to have exactly one module",

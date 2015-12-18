@@ -111,21 +111,21 @@ func extraArgsHasText(extraArgs map[string]string, text string) bool {
 	return false
 }
 
-func NewModule(name string, params string) (*Module, error) {
+func NewModule(name string, params string) (Module, error) {
 	module := Module{}
 	module.Name = name
 	paramTable, err := parseModuleArgs(params)
 	if err != nil {
-		return nil, HenchErr(err, map[string]interface{}{
+		return module, HenchErr(err, map[string]interface{}{
 			"module": name,
 		}, "While parsing args")
 	}
 	module.Params = paramTable
-	return &module, nil
+	return module, nil
 }
 
 // Checks to see if a modules is valid and if it's a standalone module
-func (module *Module) Resolve() (string, bool, error) {
+func (module Module) Resolve() (string, bool, error) {
 	standalone := true
 	for _, dir := range ModuleSearchPath {
 		fullPath := path.Join(dir, module.Name)
@@ -153,7 +153,7 @@ func (module *Module) Resolve() (string, bool, error) {
 	}, "")
 }
 
-func (module *Module) ExecOrder() ([]string, error) {
+func (module Module) ExecOrder() ([]string, error) {
 	/*
 		execOrder := map[string][]string{"default": []string{"exec_module"},
 			"copy": []string{"put_for_copy", "copy_remote", "exec_module"},

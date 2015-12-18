@@ -9,17 +9,20 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/flosch/pongo2"
 	"github.com/pborman/uuid"
 )
+
+var renderLock sync.Mutex
 
 type Task struct {
 	Id           string
 	Debug        bool
 	IgnoreErrors bool `yaml:"ignore_errors"`
 	Local        bool
-	Module       *Module
+	Module       Module
 	Name         string
 	Register     string
 	Retry        int
@@ -77,28 +80,35 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 }
 
 // wrapper for Rendering each task
-func (task *Task) Render(vars VarsMap, registerMap RegMap) error {
+// This will return the rendered task and not manipulate the pointer to the
+// task. b/c the pointer to the task is a template and a race condition can occur.
+func (task Task) Render(vars VarsMap, registerMap RegMap) (Task, error) {
+	renderLock.Lock()
+	defer renderLock.Unlock()
 	var err error
 	task.Name, err = renderValue(task.Name, vars, registerMap)
 	if err != nil {
-		return err
+		return task, err
 	}
 
 	if task.When != "" {
 		task.When, err = renderValue("{{"+task.When+"}}", vars, registerMap)
 		if err != nil {
-			return err
+			return task, err
 		}
 	}
 
+	// necessary b/c maps are ptrs and race conditions in here and Run(...)
+	renderedModuleParams := make(map[string]string)
 	for k, v := range task.Module.Params {
-		task.Module.Params[k], err = renderValue(v, vars, registerMap)
+		renderedModuleParams[k], err = renderValue(v, vars, registerMap)
 		if err != nil {
-			return err
+			return task, err
 		}
 	}
 
-	return nil
+	task.Module.Params = renderedModuleParams
+	return task, nil
 }
 
 // checks and converts when to bool
@@ -147,7 +157,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 	// NOTE: Info or Debug level
 	Debug(map[string]interface{}{
 		"task":   task.Name,
-		"host":   task.Vars["current_host"],
+		"host":   machine.Hostname,
 		"module": task.Module.Name,
 		"order":  execOrder,
 	}, "Exec Order")
@@ -172,7 +182,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			Info(map[string]interface{}{
 				"mod path": remoteModPath,
-				"host":     task.Vars["current_host"],
+				"host":     machine.Hostname,
 				"task":     task.Name,
 				"module":   task.Module.Name,
 			}, "Executing Module in Task")
