@@ -158,6 +158,9 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 				machineSet[hostname] = true
 				machine.Hostname = hostname
 				machine.Vars = hostGroup.Vars
+				if machine.Vars == nil {
+					machine.Vars = make(VarsMap)
+				}
 				machines = append(machines, machine)
 			} else {
 				//machine part of multiple groups
