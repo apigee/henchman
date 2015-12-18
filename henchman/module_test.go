@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func moduleTestSetup(modName string) (module *Module) {
+func moduleTestSetup(modName string) (module Module) {
 	moduleContent := `
 #!/usr/bin/env sh
 ls -al $1
@@ -21,7 +21,7 @@ ls -al $1
 	return mod
 }
 
-func moduleTestTeardown(mod *Module) {
+func moduleTestTeardown(mod Module) {
 	os.Remove(path.Join("/tmp", mod.Name))
 }
 
@@ -108,7 +108,7 @@ func TestModuleResolve(t *testing.T) {
 	assert.Equal(t, "/tmp/curl", fullPath, "Got incorrect fullPath")
 }
 
-func setupTestShellModule() (*Module, error) {
+func setupTestShellModule() (Module, error) {
 	writeTempFile([]byte("ls -al"), "shell")
 	defer rmTempFile("/tmp/shell")
 	return NewModule("shell", "foo=bar")
