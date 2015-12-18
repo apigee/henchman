@@ -1,6 +1,7 @@
 package henchman
 
 import (
+	_ "bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -125,7 +126,7 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
-		return nil, HenchErr(fmt.Errorf(string(b)), nil, "")
+		return nil, HenchErr(err, nil, "")
 	}
 
 	return bytes.NewBuffer(b), nil
@@ -146,13 +147,9 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 	}
 
 	cmd = fmt.Sprintf("echo '%s' | %s", stdin, cmd)
-	/*
-		if Debug {
-			log.Debug(cmd)
-		}
-	*/
+
 	bytesBuf, err := sshTransport.execCmd(session, cmd)
-	//bytesSlice, err := session.CombinedOutput(cmd)
+
 	if err != nil {
 		return nil, HenchErr(err, nil, "While executing command")
 	}

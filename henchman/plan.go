@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	_ "reflect"
-	"sync"
+	_ "sync"
 
 	"github.com/mgutz/ansi"
 )
@@ -274,43 +274,79 @@ func (plan *Plan) Execute(machines []*Machine) error {
 	}, fmt.Sprintf("Executing plan '%s'", plan.Name))
 	PrintfAndFill(75, "~", "EXECUTING PLAN [ %s ] ", plan.Name)
 
-	wg := new(sync.WaitGroup)
-
 	for _, _machine := range machines {
 		machine := _machine
-		wg.Add(1)
 
 		// NOTE: need individual registerMap for each machine
 		registerMap := make(RegMap)
 
 		// NOTE: returning errors requires channels.
 		// FIXME: create channels for stuff m8
-		go func() {
-			defer wg.Done()
-			var actualMachine *Machine
-			for _, task := range plan.Tasks {
-				if task.Local == true {
-					actualMachine = local
-				} else {
-					actualMachine = machine
+		var actualMachine *Machine
+		for _, task := range plan.Tasks {
+			if task.Local == true {
+				actualMachine = local
+			} else {
+				actualMachine = machine
+			}
+
+			// copy of task.Vars. It'll be different for each machine
+			vars := make(VarsMap)
+			MergeMap(plan.Vars, vars, true)
+			MergeMap(machine.Vars, vars, true)
+			MergeMap(task.Vars, vars, true)
+			vars["current_hostname"] = actualMachine.Hostname
+
+			Debug(map[string]interface{}{
+				"vars": fmt.Sprintf("%v", vars),
+				"plan": plan.Name,
+				"task": task.Name,
+				"host": actualMachine.Hostname,
+			}, "Vars for Task")
+
+			RenderedTask, err := task.Render(vars, registerMap)
+
+			if err != nil {
+				henchErr := HenchErr(err, map[string]interface{}{
+					"plan":  plan.Name,
+					"task":  RenderedTask.Name,
+					"host":  actualMachine.Hostname,
+					"error": err.Error(),
+				}, "").(*HenchmanError)
+				Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
+				return nil
+				/*
+					return HenchErr(err, log.Fields{
+						"plan": plan.Name,
+						"task": task.Name,
+						"host": actualMachine.Hostname,
+					}, "Error rendering task")
+				*/
+			}
+
+			Info(map[string]interface{}{
+				"task": RenderedTask.Name,
+				"host": actualMachine.Hostname,
+				"plan": plan.Name,
+			}, fmt.Sprintf("Starting Task '%s'", RenderedTask.Name))
+
+			// handles the retries
+			var taskResult *TaskResult
+			for numRuns := RenderedTask.Retry + 1; numRuns > 0; numRuns-- {
+				// If this is a retry print some info
+				if numRuns <= RenderedTask.Retry {
+					Debug(map[string]interface{}{
+						"task":      RenderedTask.Name,
+						"host":      actualMachine.Hostname,
+						"plan":      plan.Name,
+						"iteration": RenderedTask.Retry + 1 - numRuns,
+					}, fmt.Sprintf("Retrying Task '%s'", RenderedTask.Name))
+					PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
+						actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
+					printTaskResults(taskResult, &RenderedTask)
 				}
 
-				// copy of task.Vars. It'll be different for each machine
-				vars := make(VarsMap)
-				MergeMap(plan.Vars, vars, true)
-				MergeMap(machine.Vars, vars, true)
-				MergeMap(task.Vars, vars, true)
-				vars["current_hostname"] = actualMachine.Hostname
-
-				Debug(map[string]interface{}{
-					"vars": fmt.Sprintf("%v", vars),
-					"plan": plan.Name,
-					"task": task.Name,
-					"host": actualMachine.Hostname,
-				}, "Vars for Task")
-
-				RenderedTask, err := task.Render(vars, registerMap)
-
+				taskResult, err = RenderedTask.Run(actualMachine, vars, registerMap)
 				if err != nil {
 					henchErr := HenchErr(err, map[string]interface{}{
 						"plan":  plan.Name,
@@ -318,89 +354,46 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						"host":  actualMachine.Hostname,
 						"error": err.Error(),
 					}, "").(*HenchmanError)
-					Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
-					return
+					Fatal(henchErr.Fields, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
+					return nil
 					/*
 						return HenchErr(err, log.Fields{
 							"plan": plan.Name,
 							"task": task.Name,
 							"host": actualMachine.Hostname,
-						}, "Error rendering task")
+						}, "Error running task")
 					*/
 				}
 
-				Info(map[string]interface{}{
-					"task": RenderedTask.Name,
-					"host": actualMachine.Hostname,
-					"plan": plan.Name,
-				}, fmt.Sprintf("Starting Task '%s'", RenderedTask.Name))
-
-				// handles the retries
-				var taskResult *TaskResult
-				for numRuns := RenderedTask.Retry + 1; numRuns > 0; numRuns-- {
-					// If this is a retry print some info
-					if numRuns <= RenderedTask.Retry {
-						Debug(map[string]interface{}{
-							"task":      RenderedTask.Name,
-							"host":      actualMachine.Hostname,
-							"plan":      plan.Name,
-							"iteration": RenderedTask.Retry + 1 - numRuns,
-						}, fmt.Sprintf("Retrying Task '%s'", RenderedTask.Name))
-						PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
-							actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-						printTaskResults(taskResult, &RenderedTask)
-					}
-
-					taskResult, err = RenderedTask.Run(actualMachine, vars, registerMap)
-					if err != nil {
-						henchErr := HenchErr(err, map[string]interface{}{
-							"plan":  plan.Name,
-							"task":  RenderedTask.Name,
-							"host":  actualMachine.Hostname,
-							"error": err.Error(),
-						}, "").(*HenchmanError)
-						Fatal(henchErr.Fields, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
-						return
-						/*
-							return HenchErr(err, log.Fields{
-								"plan": plan.Name,
-								"task": task.Name,
-								"host": actualMachine.Hostname,
-							}, "Error running task")
-						*/
-					}
-
-					if taskResult.State == "ok" ||
-						taskResult.State == "changed" {
-						numRuns = 0
-					}
-				}
-
-				// Fields for info
-				fields := map[string]interface{}{
-					"task":  RenderedTask.Name,
-					"host":  actualMachine.Hostname,
-					"state": taskResult.State,
-					"msg":   taskResult.Msg,
-				}
-				if RenderedTask.Debug {
-					fields["output"] = taskResult.Output
-				}
-				Info(fields, fmt.Sprintf("Task '%s' complete", RenderedTask.Name))
-				PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
-					actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-
-				printTaskResults(taskResult, &RenderedTask)
-				updatePlanStats(taskResult.State, actualMachine.Hostname)
-
-				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
-				if taskResult.State == "error" || taskResult.State == "failure" {
-					break
+				if taskResult.State == "ok" ||
+					taskResult.State == "changed" {
+					numRuns = 0
 				}
 			}
-		}()
+
+			// Fields for info
+			fields := map[string]interface{}{
+				"task":  RenderedTask.Name,
+				"host":  actualMachine.Hostname,
+				"state": taskResult.State,
+				"msg":   taskResult.Msg,
+			}
+			if RenderedTask.Debug {
+				fields["output"] = taskResult.Output
+			}
+			Info(fields, fmt.Sprintf("Task '%s' complete", RenderedTask.Name))
+			PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
+				actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
+
+			printTaskResults(taskResult, &RenderedTask)
+			updatePlanStats(taskResult.State, actualMachine.Hostname)
+
+			// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
+			if taskResult.State == "error" || taskResult.State == "failure" {
+				break
+			}
+		}
 	}
-	wg.Wait()
 
 	Info(map[string]interface{}{
 		"plan":         plan.Name,
