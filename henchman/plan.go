@@ -79,6 +79,12 @@ func printTaskResults(taskResult *TaskResult, task *Task) {
 	}
 }
 
+func printShellModule(task *Task) {
+	if task.Module.Name == "shell" {
+		PrintfAndFill(75, "~", "SHELL [ cmd => %v ]", task.Module.Params["cmd"])
+	}
+}
+
 /**
  * These functions are helpers of plan.Setup
  */
@@ -348,6 +354,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						}, fmt.Sprintf("Retrying Task '%s'", RenderedTask.Name))
 						PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
 							actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
+						printShellModule(&RenderedTask)
 						printTaskResults(taskResult, &RenderedTask)
 					}
 
@@ -389,8 +396,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				Info(fields, fmt.Sprintf("Task '%s' complete", RenderedTask.Name))
 				PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
 					actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-
+				printShellModule(&RenderedTask)
 				printTaskResults(taskResult, &RenderedTask)
+
 				updatePlanStats(taskResult.State, actualMachine.Hostname)
 
 				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
