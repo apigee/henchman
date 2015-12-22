@@ -101,7 +101,11 @@ func executePlan(c *cli.Context) {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-	henchman.InitLog()
+
+	if err := henchman.InitLog(); err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 
 	// Step 1: Validate Modules path and see if it exists
 	modulesPath := c.String("modules")

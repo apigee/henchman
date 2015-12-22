@@ -124,24 +124,11 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 		return nil, HenchErr(err, nil, "request for psuedo terminal failed")
 	}
 
-	r, err := session.StdoutPipe()
-	err = session.Run(cmd)
+	b, err := session.CombinedOutput(cmd)
 	if err != nil {
-		return nil, HenchErr(err, nil, "")
+		return nil, HenchErr(err, nil, "While retrieving output from ssh")
 	}
 
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, HenchErr(err, nil, "")
-	}
-
-	/*
-		b, err := session.CombinedOutput(cmd)
-		if err != nil {
-			return nil, HenchErr(err, nil, "")
-		}
-
-	*/
 	return bytes.NewBuffer(b), nil
 }
 

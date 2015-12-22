@@ -130,7 +130,7 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 }
 
 // Creates and populates modules.tar
-func createModulesTar(isLocal *bool, tasks []*Task) error {
+func createModulesTar(tasks []*Task) error {
 	// initialize set to hold module names
 	modSet := make(map[string]bool)
 
@@ -153,9 +153,6 @@ func createModulesTar(isLocal *bool, tasks []*Task) error {
 				return HenchErr(err, map[string]interface{}{
 					"task": task.Name,
 				}, "")
-			}
-			if task.Local == true {
-				*isLocal = true
 			}
 			modSet[task.Module.Name] = false
 		}
@@ -204,8 +201,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	fmt.Println("Creating modules.tar")
 
 	// creates and populates modules.tar
-	var isLocal bool
-	if err := createModulesTar(&isLocal, plan.Tasks); err != nil {
+	if err := createModulesTar(plan.Tasks); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
 		}, "While creating modules.tar")
@@ -223,16 +219,13 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		}
 		fmt.Printf("Transferred to [ %s ]\n", machine.Hostname)
 	}
-
-	if isLocal == true {
-		if err := transferAndUntarModules(localhost(), remoteModDir); err != nil {
-			return HenchErr(err, map[string]interface{}{
-				"plan": plan.Name,
-				"host": "127.0.0.1",
-			}, "While transferring modules.tar")
-		}
-		fmt.Println("Transferred to [ 127.0.0.1 ]")
+	if err := transferAndUntarModules(localhost(), remoteModDir); err != nil {
+		return HenchErr(err, map[string]interface{}{
+			"plan": plan.Name,
+			"host": "127.0.0.1",
+		}, "While transferring modules.tar")
 	}
+	fmt.Println("Transferred to [ 127.0.0.1 ]")
 
 	// remove unnecessary modules.tar
 	os.Remove("modules.tar")
