@@ -17,3 +17,7 @@ tasks:
   - name: "Test Shell"
     shell: cmd="echo {{ vars.service }}"
     debug: true
+  - name: "Local hello"
+    shell: cmd="echo hello"
+    local: true
+    debug: true
