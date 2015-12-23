@@ -193,6 +193,13 @@ func createModulesTar(tasks []*Task) error {
  */
 // Moves all modules to each host
 func (plan *Plan) Setup(machines []*Machine) error {
+	if len(machines) == 0 {
+		return HenchErr(fmt.Errorf("This has no machines to execute on"), map[string]interface{}{
+			"plan":     plan.Name,
+			"solution": "Check if inventory is valid",
+		}, "")
+	}
+
 	Info(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
