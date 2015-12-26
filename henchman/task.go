@@ -268,15 +268,14 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			// creates temp directory to store templated files
 			tplDir := machine.Hostname + "_templates"
 
-			// double checks to see if tplDir already exists, if it does remove it
-			if _, err := os.Stat(tplDir); os.IsExist(err) {
+			// Checks the existence of previous template directory and creates new one
+			if err := os.Mkdir(tplDir, 0755); os.IsExist(err) {
 				if err := os.RemoveAll(tplDir); err != nil {
 					return &TaskResult{}, HenchErr(err, nil, "While removing old tplDir")
 				}
-			}
-
-			if err := os.Mkdir(tplDir, 0755); err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "Error creating tplDir for templating")
+				if err := os.Mkdir(tplDir, 0755); err != nil {
+					return &TaskResult{}, HenchErr(err, nil, "Error creating tplDir for templating")
+				}
 			}
 
 			// if the file(s) to template is a folder
