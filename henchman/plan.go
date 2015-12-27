@@ -278,10 +278,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, fmt.Sprintf("Executing plan '%s'", plan.Name))
+	
 	PrintfAndFill(75, "~", "EXECUTING PLAN [ %s ] ", plan.Name)
-
 	wg := new(sync.WaitGroup)
-
 	for _, _machine := range machines {
 		machine := _machine
 		wg.Add(1)
@@ -326,13 +325,6 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					}, "").(*HenchmanError)
 					Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
 					return
-					/*
-						return HenchErr(err, log.Fields{
-							"plan": plan.Name,
-							"task": task.Name,
-							"host": actualMachine.Hostname,
-						}, "Error rendering task")
-					*/
 				}
 
 				Info(map[string]interface{}{
@@ -371,13 +363,6 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						}, "").(*HenchmanError)
 						Fatal(henchErr.Fields, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
 						return
-						/*
-							return HenchErr(err, log.Fields{
-								"plan": plan.Name,
-								"task": task.Name,
-								"host": actualMachine.Hostname,
-							}, "Error running task")
-						*/
 					}
 
 					if taskResult.State == "ok" ||
