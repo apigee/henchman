@@ -9,18 +9,17 @@ yum_subcommands = {
     "absent": "remove",
 }
 
-
 # Params for this module
 # package: package name that will be installed via yum
+
 def is_installed(name, version):
     command = ["rpm", "-qa"] + name.split()
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, err = p.communicate()
     for pkg in output.split("\n"):
-        pkg_name, pkg_version = pkg.split("-")[0], "-".join(pkg.split("-")[1:])
-        if pkg_name == name:
+        if pkg.startswith(name):
             if version:
-                if pkg_version == version:
+                if pkg.endswith(version):
                     return True
             else:
                 return True
@@ -53,7 +52,7 @@ try:
         result['status'] = "ok"
     else:
         sub_command = yum_subcommands[state]
-        command = ["yum", sub_command, "-y"] + full_pkgname.split()
+        command = ["yum", sub_command, "-y", full_pkgname]
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, err = p.communicate()
         if err or p.returncode > 0:
