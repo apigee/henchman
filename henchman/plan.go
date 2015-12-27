@@ -358,6 +358,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						printTaskResults(taskResult, &RenderedTask)
 					}
 
+					PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
+						actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
+					printShellModule(&RenderedTask)
 					taskResult, err = RenderedTask.Run(actualMachine, vars, registerMap)
 					if err != nil {
 						henchErr := HenchErr(err, map[string]interface{}{
@@ -394,9 +397,6 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					fields["output"] = taskResult.Output
 				}
 				Info(fields, fmt.Sprintf("Task '%s' complete", RenderedTask.Name))
-				PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
-					actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-				printShellModule(&RenderedTask)
 				printTaskResults(taskResult, &RenderedTask)
 
 				updatePlanStats(taskResult.State, actualMachine.Hostname)
