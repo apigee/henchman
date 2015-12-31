@@ -21,9 +21,8 @@ do
         BINDIR="bin/$os/$arch"
         GOOS=$os GOARCH=$arch godep go build -o bin/$os/$arch/henchman
         cp -R modules ${BINDIR} 
-        cp conf.json ${BINDIR}
         cd ${BINDIR}
-        tar -cvf "henchman.${GIT_COMMIT_SHA1}.${os}.${arch}.tar.gz" henchman modules conf.json
+        tar -cvf "henchman.${GIT_COMMIT_SHA1}.${os}.${arch}.tar.gz" henchman modules
         cp *.tar.gz ${ARTIFACTS}
         cd -
     done
