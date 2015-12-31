@@ -126,7 +126,9 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 
 	b, err := session.CombinedOutput(cmd)
 	if err != nil {
-		return nil, HenchErr(err, nil, "While retrieving output from ssh")
+		return nil, HenchErr(err, map[string]interface{}{
+			"output": string(b),
+		}, "While retrieving output from ssh")
 	}
 
 	return bytes.NewBuffer(b), nil
