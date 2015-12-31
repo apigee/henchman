@@ -1,9 +1,0 @@
-{
-  "log": "~/.henchman/system.log",
-  "execOrder": {
-    "default": ["exec_module"],
-    "copy": ["put_for_copy", "copy_remote", "exec_module"],
-    "template": ["process_template", "put_for_copy", "copy_remote", "reset_src", "exec_module"]
-  }
-}
-   
