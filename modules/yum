@@ -56,15 +56,14 @@ try:
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, err = p.communicate()
         if err or p.returncode > 0:
-            raise Exception(err.decode('utf-8'))
+            raise Exception(err)
         else:
-            output = output.decode('utf-8')
             result['status'] = "changed"
-            result['msg'] = "State of package %s changed - %s" % (name, output.decode('utf-8'))
-            result['output'] = output.decode('utf-8')
+            result['msg'] = "State of package %s changed - %s" % (full_pkgname, output)
+            result['output'] = output
 except Exception, e:
     result['status'] = "error"
-    result['msg'] = "Error occurred while installing package %s - %s" % (name, e)
-    result['output'] = e
+    result['msg'] = "Error occurred while installing package %s - %s" % (full_pkgname, err)
+    result['output'] = err
 
 print json.dumps(result)
