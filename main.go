@@ -212,7 +212,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "henchman"
 	app.Usage = "Orchestration framework"
-	app.Version = "0.1"
+	app.Version = "0.1.193"
 	app.Commands = gatherCommands()
 	app.Run(os.Args)
 }
