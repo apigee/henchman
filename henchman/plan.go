@@ -278,7 +278,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, fmt.Sprintf("Executing plan '%s'", plan.Name))
-	
+
 	PrintfAndFill(75, "~", "EXECUTING PLAN [ %s ] ", plan.Name)
 	wg := new(sync.WaitGroup)
 	for _, _machine := range machines {
@@ -341,6 +341,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						Debug(map[string]interface{}{
 							"task":      RenderedTask.Name,
 							"host":      actualMachine.Hostname,
+							"mod":       RenderedTask.Module.Name,
 							"plan":      plan.Name,
 							"iteration": RenderedTask.Retry + 1 - numRuns,
 						}, fmt.Sprintf("Retrying Task '%s'", RenderedTask.Name))
@@ -358,6 +359,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 						henchErr := HenchErr(err, map[string]interface{}{
 							"plan":  plan.Name,
 							"task":  RenderedTask.Name,
+							"mod":   RenderedTask.Module.Name,
 							"host":  actualMachine.Hostname,
 							"error": err.Error(),
 						}, "").(*HenchmanError)

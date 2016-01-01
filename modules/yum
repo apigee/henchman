@@ -59,11 +59,11 @@ try:
             raise Exception(err)
         else:
             result['status'] = "changed"
-            result['msg'] = "State of package %s changed - %s" % (name, output)
-            result['output'] = output
+            result['msg'] = "State of package %s changed - %s" % (name, output.decode('utf-8'))
+            result['output'] = output.decode('utf-8')
 except Exception, e:
     result['status'] = "error"
-    result['msg'] = "Error occurred while installing package %s - %s" % (name, str(e))
-    result['output'] = str(e)
+    result['msg'] = "Error occurred while installing package %s - %s" % (name, e.decode('utf-8'))
+    result['output'] = e.decode('utf-8')
 
 print json.dumps(result)
