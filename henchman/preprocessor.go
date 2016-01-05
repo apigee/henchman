@@ -6,29 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/flosch/pongo2"
 	"gopkg.in/yaml.v2"
 )
-
-type PlanProxy struct {
-	Name            string       `yaml:"name"`
-	Sudo            bool         `yaml:"sudo"`
-	Debug           bool         `yaml:"debug"`
-	TaskProxies     []*TaskProxy `yaml:"tasks"`
-	VarsProxy       *VarsProxy   `yaml:"vars"`
-	InventoryGroups []string     `yaml:"hosts"`
-}
-
-// Task is for the general Task format.  Refer to task.go
-// Vars are kept in scope for each Task.  So there is a Vars
-// field for each task
-// Include is the file name for the included Tasks list
-type TaskProxy struct {
-	Task        `yaml:",inline"`
-	SudoState   string
-	DebugState  string
-	Include     string
-	IncludeVars VarsMap `yaml:"vars"`
-}
 
 type VarsProxy struct {
 	Vars VarsMap
@@ -78,6 +58,18 @@ func (vp *VarsProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	return nil
+}
+
+// Task is for the general Task format.  Refer to task.go
+// Vars are kept in scope for each Task.  So there is a Vars
+// field for each task
+// Include is the file name for the included Tasks list
+type TaskProxy struct {
+	Task        `yaml:",inline"`
+	SudoState   string
+	DebugState  string
+	Include     string
+	IncludeVars VarsMap `yaml:"vars"`
 }
 
 // Custom unmarshaller which accounts for module names
@@ -232,6 +224,15 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+type PlanProxy struct {
+	Name            string       `yaml:"name"`
+	Sudo            bool         `yaml:"sudo"`
+	Debug           bool         `yaml:"debug"`
+	TaskProxies     []*TaskProxy `yaml:"tasks"`
+	VarsProxy       *VarsProxy   `yaml:"vars"`
+	InventoryGroups []string     `yaml:"hosts"`
+}
+
 // Checks the a slice of TaskProxy ptrs passed in by a Plan and determines
 // whether if it's an include value or a normal task.  If it's a normal task
 // it appends it as a standard task, otherwise it recursively expands the include
@@ -269,6 +270,7 @@ func preprocessTasksHelper(taskFileName string, prevVars VarsMap, prevWhen strin
 	// gotta assign the original plan level variables
 	tmpPx.Sudo = px.Sudo
 	tmpPx.Debug = px.Debug
+	tmpPx.VarsProxy = px.VarsProxy
 	return parseTaskProxies(&tmpPx, prevVars, prevWhen)
 }
 
@@ -288,7 +290,20 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 		// recursive case
 		if tp.Include != "" {
 			// links previous vars
+			// And render and pongo2 syntax if there are included vars
+			if tp.IncludeVars != nil {
+				if err := renderIncludedVars(tp.IncludeVars, px.VarsProxy.Vars, prevVars); err != nil {
+					return nil, err
+				}
+			}
+
 			if prevVars != nil {
+
+				// If this is an nested included task without vars, create a blank map for it
+				// Use test includeAtTaskWithTemplateVars as a ref
+				if tp.IncludeVars == nil {
+					tp.IncludeVars = make(VarsMap)
+				}
 				MergeMap(prevVars, tp.IncludeVars, false)
 			}
 
@@ -360,6 +375,54 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 	return tasks, nil
 }
 
+// NOTE: may not work for nested maps in vars
+// renders the pongo2 templating format for included task vars
+// Accepts the vars with the template, the plan level vars, and the previous task vars
+// if this is a nested included task
+func renderIncludedVars(includedVars VarsMap, planVars VarsMap, prevVars VarsMap) error {
+	for k, v := range includedVars {
+		switch v.(type) {
+		case map[string]interface{}:
+			err := renderIncludedVars(includedVars, planVars, prevVars)
+			if err != nil {
+				return err
+			}
+		case string:
+			tmpl, err := pongo2.FromString(v.(string))
+			if err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"value":    v,
+					"solution": "Refer to wiki for proper pongo2 formatting",
+				}, "While templating")
+			}
+
+			ctxt := pongo2.Context{}
+			for x, y := range planVars {
+				ctxt = ctxt.Update(pongo2.Context{x.(string): y})
+			}
+			if prevVars != nil {
+				for x, y := range prevVars {
+					ctxt = ctxt.Update(pongo2.Context{x.(string): y})
+				}
+			}
+
+			out, err := tmpl.Execute(ctxt)
+			if err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"value":    v,
+					"context":  ctxt,
+					"solution": "Refer to wiki for proper pongo2 formatting",
+				}, "While executing")
+			}
+
+			includedVars[k] = out
+		default:
+		}
+	}
+
+	return nil
+}
+
 // Processes plan level vars with includes
 // All plan level vars will be in the vars map
 // And any repeat vars in the includes will be a FCFS priority
@@ -379,6 +442,8 @@ func (px PlanProxy) PreprocessVars() (VarsMap, error) {
 		}
 	}
 	delete(newVars, "include")
+	px.VarsProxy.Vars = newVars
+
 	return newVars, nil
 }
 
@@ -411,39 +476,7 @@ func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	return px.VarsProxy.Vars, nil
 }
 
-// Creates new plan proxy
-func newPlanProxy(buf []byte) (PlanProxy, error) {
-	var px PlanProxy
-	err := yaml.Unmarshal(buf, &px)
-	if err != nil {
-		return px, err
-	}
-	return px, nil
-}
-
-/**
- * Sets all_hosts, and groups with attached hosts lists
- * These can be accessed in vars.inv.whatevs
- */
-func setInventoryVars(plan *Plan, inv *Inventory) {
-	var all_hosts []string
-	invVars := make(map[interface{}]interface{})
-	duplicates := make(map[string]bool)
-	for group, hostGroup := range inv.Groups {
-		invVars[group] = hostGroup.Hosts
-		for _, host := range hostGroup.Hosts {
-			if _, present := duplicates[host]; !present {
-				duplicates[host] = true
-				all_hosts = append(all_hosts, host)
-			}
-		}
-	}
-
-	invVars["all_hosts"] = all_hosts
-	plan.Vars["inv"] = invVars
-}
-
-// For Plan
+// Calls the other Preprocessing Compenents
 func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	px, err := newPlanProxy(buf)
 	if err != nil {
@@ -481,4 +514,36 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	plan.Tasks = tasks
 
 	return &plan, nil
+}
+
+// Creates new plan proxy
+func newPlanProxy(buf []byte) (PlanProxy, error) {
+	var px PlanProxy
+	err := yaml.Unmarshal(buf, &px)
+	if err != nil {
+		return px, err
+	}
+	return px, nil
+}
+
+/**
+ * Sets all_hosts, and groups with attached hosts lists
+ * These can be accessed in vars.inv.whatevs
+ */
+func setInventoryVars(plan *Plan, inv *Inventory) {
+	var all_hosts []string
+	invVars := make(map[interface{}]interface{})
+	duplicates := make(map[string]bool)
+	for group, hostGroup := range inv.Groups {
+		invVars[group] = hostGroup.Hosts
+		for _, host := range hostGroup.Hosts {
+			if _, present := duplicates[host]; !present {
+				duplicates[host] = true
+				all_hosts = append(all_hosts, host)
+			}
+		}
+	}
+
+	invVars["all_hosts"] = all_hosts
+	plan.Vars["inv"] = invVars
 }

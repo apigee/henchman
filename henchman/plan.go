@@ -24,6 +24,7 @@ var statuses = map[string]string{
 // For plan stats.  Records the number of states for each machine
 var planStats = map[string]map[string]int{}
 
+// NOTE: eventually change this to map[string]interface{}
 type VarsMap map[interface{}]interface{}
 type RegMap map[string]interface{}
 

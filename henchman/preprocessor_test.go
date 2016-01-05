@@ -9,6 +9,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPreprocessNestedIncludeWithTemplate(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/includeAtTaskWithTemplateVars/plan.yaml")
+	require.NoError(t, err)
+	plan, err := PreprocessPlan(buf, &inv)
+	require.NoError(t, err)
+
+	assert.Equal(t, 3, len(plan.Tasks), "Wrong number of tasks.")
+	assert.Equal(t, "dummy", plan.Tasks[0].Name, "Wrong first task.")
+	assert.Equal(t, "Jordan", plan.Vars["profile"])
+	assert.Equal(t, "Alexander", plan.Vars["profile2"])
+	assert.Equal(t, "Jordan", plan.Tasks[0].Vars["component"])
+	assert.Equal(t, "Alexander", plan.Tasks[0].Vars["component2"])
+	assert.Equal(t, "Jordan", plan.Tasks[0].Vars["final"])
+	assert.Equal(t, "Jordan", plan.Tasks[1].Vars["component"])
+	assert.Equal(t, "Alexander", plan.Tasks[1].Vars["component2"])
+	assert.Equal(t, "Jordan", plan.Tasks[2].Vars["component"])
+	assert.Equal(t, "Alexander", plan.Tasks[2].Vars["component2"])
+}
+
 func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
