@@ -1,0 +1,10 @@
+name: "List of Task"
+tasks:
+  - name: "Include more tasks"
+    include: "test/plan/includeAtTaskWithTemplateVars/tasks2.yaml"
+    vars:
+       final: "{{ component }}"
+  - name: "Task 2"
+    shell: cmd="echo goodbye moon"
+  - name: "Task 3"
+    include: "test/plan/includeAtTaskWithTemplateVars/tasks2.yaml"

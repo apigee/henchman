@@ -1,0 +1,13 @@
+name: "Template Notation in Task Include"
+hosts:
+  - nginx 
+vars:
+  profile: "Jordan"
+  profile2: "Alexander"
+tasks:
+  - name: "Included Nested Task"
+    include: "test/plan/includeAtTaskWithTemplateVars/tasks1.yaml"
+    vars:
+      component: "{{ profile }}"
+      component2: "{{ profile2 }}"
+
