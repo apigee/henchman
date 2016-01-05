@@ -54,38 +54,19 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	return nil
 }
 
-// strings will be evaluated using pongo2 templating with context of
-// VarsMap and RegisterMap
-func renderValue(value string, varsMap VarsMap, registerMap map[string]interface{}) (string, error) {
-	tmpl, err := pongo2.FromString(value)
-	if err != nil {
-		return "", HenchErr(err, map[string]interface{}{
-			"value":    value,
-			"solution": "Refer to wiki for proper pongo2 formatting",
-		}, "While templating")
-	}
-
-	ctxt := pongo2.Context{"vars": varsMap}
-	ctxt = ctxt.Update(registerMap)
-
-	out, err := tmpl.Execute(ctxt)
-	if err != nil {
-		return "", HenchErr(err, map[string]interface{}{
-			"value":    value,
-			"context":  ctxt,
-			"solution": "Refer to wiki for proper pongo2 formatting",
-		}, "While executing")
-	}
-	return out, nil
-}
-
 // wrapper for Rendering each task
 // This will return the rendered task and not manipulate the pointer to the
 // task. b/c the pointer to the task is a template and a race condition can occur.
 func (task Task) Render(vars VarsMap, registerMap RegMap) (Task, error) {
 	renderLock.Lock()
 	defer renderLock.Unlock()
+
 	var err error
+	err = renderVars(vars, registerMap)
+	if err != nil {
+		return task, err
+	}
+
 	task.Name, err = renderValue(task.Name, vars, registerMap)
 	if err != nil {
 		return task, err
@@ -109,6 +90,77 @@ func (task Task) Render(vars VarsMap, registerMap RegMap) (Task, error) {
 
 	task.Module.Params = renderedModuleParams
 	return task, nil
+}
+
+// renders the task level variables with global vars
+func renderVars(varsMap VarsMap, registerMap map[string]interface{}) error {
+	ctxt := pongo2.Context{"vars": varsMap}
+	ctxt = ctxt.Update(registerMap)
+
+	if err := renderVarsHelper(varsMap, ctxt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func renderVarsHelper(varsMap VarsMap, ctxt pongo2.Context) error {
+	for key, value := range varsMap {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			if err := renderVarsHelper(varsMap, ctxt); err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"value_map": value,
+					"solution":  "Refer to wiki for proper pongo2 formatting",
+				}, "While templating")
+			}
+		case string:
+			tmpl, err := pongo2.FromString(v)
+			if err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"value":    value,
+					"solution": "Refer to wiki for proper pongo2 formatting",
+				}, "While templating")
+			}
+			out, err := tmpl.Execute(ctxt)
+			if err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"value":    value,
+					"context":  ctxt,
+					"solution": "Refer to wiki for proper pongo2 formatting",
+				}, "While executing")
+			}
+			varsMap[key] = out
+		default:
+		}
+	}
+
+	return nil
+}
+
+// strings will be evaluated using pongo2 templating with context of
+// VarsMap and RegisterMap
+func renderValue(value string, varsMap VarsMap, registerMap map[string]interface{}) (string, error) {
+	tmpl, err := pongo2.FromString(value)
+	if err != nil {
+		return "", HenchErr(err, map[string]interface{}{
+			"value":    value,
+			"solution": "Refer to wiki for proper pongo2 formatting",
+		}, "While templating")
+	}
+
+	ctxt := pongo2.Context{"vars": varsMap}
+	ctxt = ctxt.Update(registerMap)
+
+	out, err := tmpl.Execute(ctxt)
+	if err != nil {
+		return "", HenchErr(err, map[string]interface{}{
+			"value":    value,
+			"context":  ctxt,
+			"solution": "Refer to wiki for proper pongo2 formatting",
+		}, "While executing")
+	}
+	return out, nil
 }
 
 // checks and converts when to bool

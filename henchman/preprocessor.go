@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/flosch/pongo2"
 	"gopkg.in/yaml.v2"
 )
 
@@ -270,7 +269,6 @@ func preprocessTasksHelper(taskFileName string, prevVars VarsMap, prevWhen strin
 	// gotta assign the original plan level variables
 	tmpPx.Sudo = px.Sudo
 	tmpPx.Debug = px.Debug
-	tmpPx.VarsProxy = px.VarsProxy
 	return parseTaskProxies(&tmpPx, prevVars, prevWhen)
 }
 
@@ -290,15 +288,7 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 		// recursive case
 		if tp.Include != "" {
 			// links previous vars
-			// And render and pongo2 syntax if there are included vars
-			if tp.IncludeVars != nil {
-				if err := renderIncludedVars(tp.IncludeVars, px.VarsProxy.Vars, prevVars); err != nil {
-					return nil, err
-				}
-			}
-
 			if prevVars != nil {
-
 				// If this is an nested included task without vars, create a blank map for it
 				// Use test includeAtTaskWithTemplateVars as a ref
 				if tp.IncludeVars == nil {
@@ -375,54 +365,6 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 	return tasks, nil
 }
 
-// NOTE: may not work for nested maps in vars
-// renders the pongo2 templating format for included task vars
-// Accepts the vars with the template, the plan level vars, and the previous task vars
-// if this is a nested included task
-func renderIncludedVars(includedVars VarsMap, planVars VarsMap, prevVars VarsMap) error {
-	for k, v := range includedVars {
-		switch v.(type) {
-		case map[string]interface{}:
-			err := renderIncludedVars(includedVars, planVars, prevVars)
-			if err != nil {
-				return err
-			}
-		case string:
-			tmpl, err := pongo2.FromString(v.(string))
-			if err != nil {
-				return HenchErr(err, map[string]interface{}{
-					"value":    v,
-					"solution": "Refer to wiki for proper pongo2 formatting",
-				}, "While templating")
-			}
-
-			ctxt := pongo2.Context{}
-			for x, y := range planVars {
-				ctxt = ctxt.Update(pongo2.Context{x.(string): y})
-			}
-			if prevVars != nil {
-				for x, y := range prevVars {
-					ctxt = ctxt.Update(pongo2.Context{x.(string): y})
-				}
-			}
-
-			out, err := tmpl.Execute(ctxt)
-			if err != nil {
-				return HenchErr(err, map[string]interface{}{
-					"value":    v,
-					"context":  ctxt,
-					"solution": "Refer to wiki for proper pongo2 formatting",
-				}, "While executing")
-			}
-
-			includedVars[k] = out
-		default:
-		}
-	}
-
-	return nil
-}
-
 // Processes plan level vars with includes
 // All plan level vars will be in the vars map
 // And any repeat vars in the includes will be a FCFS priority
@@ -442,7 +384,6 @@ func (px PlanProxy) PreprocessVars() (VarsMap, error) {
 		}
 	}
 	delete(newVars, "include")
-	px.VarsProxy.Vars = newVars
 
 	return newVars, nil
 }
