@@ -305,6 +305,18 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				vars := make(VarsMap)
 				MergeMap(plan.Vars, vars, true)
 				MergeMap(machine.Vars, vars, true)
+
+				err := task.RenderVars(vars, registerMap)
+				if err != nil {
+					henchErr := HenchErr(err, map[string]interface{}{
+						"plan":  plan.Name,
+						"task":  task.Name,
+						"host":  actualMachine.Hostname,
+						"error": err.Error(),
+					}, "").(*HenchmanError)
+					Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task vars'%s'", task.Name))
+					return
+				}
 				MergeMap(task.Vars, vars, true)
 				vars["current_hostname"] = actualMachine.Hostname
 
