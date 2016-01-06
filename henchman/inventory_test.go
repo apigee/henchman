@@ -44,7 +44,6 @@ func TestGetInventoryGroups(t *testing.T) {
 
 func TestGetInventoryForGroups(t *testing.T) {
 	inventory, err := loadValidInventory()
-
 	require.NoError(t, err)
 	require.NotNil(t, inventory)
 

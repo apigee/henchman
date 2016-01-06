@@ -443,7 +443,6 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	// sets and merges vars for plans, and inv globals
 	plan.Vars = vars
 	MergeMap(inv.GlobalVars, plan.Vars, false)
-	setInventoryVars(&plan, inv)
 
 	tasks, err := px.PreprocessTasks()
 	if err != nil {
@@ -473,26 +472,4 @@ func newPlanProxy(buf []byte) (PlanProxy, error) {
 		return px, err
 	}
 	return px, nil
-}
-
-/**
- * Sets all_hosts, and groups with attached hosts lists
- * These can be accessed in vars.inv.whatevs
- */
-func setInventoryVars(plan *Plan, inv *Inventory) {
-	var all_hosts []string
-	invVars := make(map[interface{}]interface{})
-	duplicates := make(map[string]bool)
-	for group, hostGroup := range inv.Groups {
-		invVars[group] = hostGroup.Hosts
-		for _, host := range hostGroup.Hosts {
-			if _, present := duplicates[host]; !present {
-				duplicates[host] = true
-				all_hosts = append(all_hosts, host)
-			}
-		}
-	}
-
-	invVars["all_hosts"] = all_hosts
-	plan.Vars["inv"] = invVars
 }

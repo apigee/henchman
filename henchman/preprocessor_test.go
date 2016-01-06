@@ -274,11 +274,17 @@ func TestPreprocessInventoryWhenLocalhostIsSpecified(t *testing.T) {
 
 	invGroups, err := GetInventoryGroups(buf)
 	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
 	assert.Equal(t, []string{"localhost"}, invGroups, "inventory Groups invGroups do not match expected output")
 	plan, err := PreprocessPlan(buf, &inventory)
 	for _, task := range plan.Tasks {
 		assert.Equal(t, task.Local, true, "Task.Local should be set to true")
 	}
+	invValues := inv.GlobalVars["inv"].(map[string]interface{})
+	assert.Equal(t, invValues["db"], []string{"1.1.1.1", "1.1.1.2", "1.1.1.3"},
+		"Inv value for db does not match expected output")
+	assert.Equal(t, invValues["nginx"], []string{"192.168.1.1", "192.168.1.2"},
+		"Inv value for nginx does not match expected output")
 	require.NoError(t, err)
 }
 

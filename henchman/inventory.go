@@ -152,6 +152,27 @@ func (inv *Inventory) GetInventoryForGroups(groups []string) Inventory {
 	return filtered
 }
 
+/**
+ * Sets all_hosts, and groups with attached hosts lists
+ * These can be accessed in vars.inv.whatevs
+ */
+func (inv *Inventory) SetGlobalVarsFromInventoryGroups(groups map[string]HostGroup) {
+	var all_hosts []string
+	globalVars := make(map[string]interface{})
+	duplicates := make(map[string]bool)
+	for group, hostGroup := range groups {
+		globalVars[group] = hostGroup.Hosts
+		for _, host := range hostGroup.Hosts {
+			if _, present := duplicates[host]; !present {
+				duplicates[host] = true
+				all_hosts = append(all_hosts, host)
+			}
+		}
+	}
+	globalVars["all_hosts"] = all_hosts
+	inv.GlobalVars["inv"] = globalVars
+}
+
 func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 	var machines []*Machine
 	machineSet := make(map[string]bool)

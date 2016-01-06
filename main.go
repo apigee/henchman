@@ -172,8 +172,11 @@ func executePlan(c *cli.Context) {
 		}, "").(*henchman.HenchmanError)
 		henchman.Fatal(henchErr.Fields, "Error Getting Machines")
 	}
+	// Step 3.4: Add entire set of inventory variables in inv
+	// to inventory.groups GlobalVars
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
 
-	// Step 3.4: Preprocess plan to create plan struct
+	// Step 3.5: Preprocess plan to create plan struct
 	//           Setup final version of vars
 	plan, err := henchman.PreprocessPlan(planBuf, &inventory)
 	if err != nil {
