@@ -5,12 +5,18 @@ hosts:
 vars:
   service: iptables
 tasks:
+   - name: "Remove old files"
+     shell: cmd="rm -rf test"
    - name: "Task Template File"
      template: src="henchman/test/templates/temp1" dest="test/temp1.yaml"
      debug: true
    - name: "Task Template Folder"
-     template: src="henchman/test/templates" dest="test/templates"
+     template: src="henchman/test/templates" dest="test/templates" ext="zip,sh"
      debug: true
    - name: "Task Template Folder two"
-     template: src="henchman/test/templates/templates2" dest="test/templates"
+     template: src="henchman/test/templates" dest="test/templates" ext="zip,sh"
      debug: true
+   - name: "Copy One"
+     copy: src="henchman/test/templates/" dest="copies/copes"
+   - name: "Copy One"
+     copy: src="henchman/test/templates/" dest="copies/copes/"

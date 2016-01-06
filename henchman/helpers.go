@@ -59,6 +59,20 @@ func rmTempFile(fpath string) {
 	os.Remove(fpath)
 }
 
+// Removes old dir and creates new one
+func CreateDir(dir string) error {
+	if err := os.Mkdir(dir, 0755); os.IsExist(err) {
+		if err := os.RemoveAll(dir); err != nil {
+			return HenchErr(err, nil, "While removing old dir")
+		}
+		if err := os.Mkdir(dir, 0755); err != nil {
+			return HenchErr(err, nil, "Error creating dir")
+		}
+	}
+
+	return nil
+}
+
 /**
  * These functions deal with tar
  */
