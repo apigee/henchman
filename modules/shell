@@ -1,22 +1,20 @@
 #!/usr/bin/env python
 
 # Shell module to execute
+import traceback
 import sys
 import json
 import os
 import subprocess
 
-params = json.loads(sys.stdin.read())
-
+params = json.load(sys.stdin)
 
 # Params for this module
 # chdir: cd into the given directory to execute the shell command
-# shell: The shell to use, by default it's /bin/sh
 # cmd: The command to run. Wrapped by quotes if there are spaces
 # loglevel: if debug, it shows you the entire output as part of 'output' key
 result = {}
 try:
-    shell = params.get("shell", "/bin/sh")
     cmd   = params.get("cmd")
     if not cmd:
         raise Exception("Required parameter 'cmd' not found")
@@ -24,22 +22,18 @@ try:
     # FIXME: Error out if chdir cannot be stat'd
     if chdir:
         os.chdir(chdir)
-    shell_args = ["%s" % shell, "-c", "%s" % cmd]
-    p = subprocess.Popen(shell_args, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    output, err = p.communicate()
-    if p.returncode > 0:
-        raise Exception(err)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
     result["status"] = "changed"
-    result["msg"] = "Successfully exec'ed command.  Return code %d" % p.returncode
+    result["msg"] = "exec'ed command"
+    if p.returncode > 0:
+        result["status"] = "failure"
+    result["output"] = {"stderr": stderr, "stdout": stdout}
 except Exception as e:
     result["status"] = "error"
-    result["msg"] = "Command exec'ed with errors.  Return code %d" % p.returncode
+    result["msg"] = "Command exec'ed with errors.  Error - %s" % traceback.format_exc()
 
-result["output"] = {"stderr": err, "stdout": output}
+json_result = json.dumps(result)
+sys.stdout.write(json_result)
+sys.stdout.flush()
 
-#filename = os.path.join(os.environ['HOME'], "output.json")
-
-#with open(filename, 'w') as outfile:
-#    json.dump(result, outfile)
-#print json.dumps(result, sort_keys=true)
-json.dump(result, sys.stdout)
