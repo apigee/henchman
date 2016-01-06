@@ -16,39 +16,41 @@ import os
 import os.path
 import subprocess
 import pwd
+import grp
+import distutils.spawn
 
 params = json.loads(sys.stdin.read())
 
 result = {}
 try:
     owner = params.get("owner",pwd.getpwuid( os.getuid() ).pw_name)
-    group = params.get("owner",pwd.getpwuid( os.getuid() ).pw_name)
+    group = params.get("group",grp.getgrgid(os.getgid()).gr_name)
+
     mode = params.get("mode")
     dest = params.get("dest")
 
     if os.path.isdir(dest):
-      fType = "directory"
+        fType = "directory"
     else:
-      fType = "file"
+        fType = "file"
 
     if not dest:
         raise Exception("dest cannot be empty. Has to be a file")
-
     result["owner"] = owner
     result["group"] = group
-
-    command = ["/bin/chown","-R","%s:%s" % (owner,group), "%s" % dest]
+    chown_path = distutils.spawn.find_executable("chown")
+    command = [chown_path,"-R","%s:%s" % (owner,group), "%s" % dest]
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, err = p.communicate()
     if err != "":
         raise Exception(err)
     
     if mode:
-      command = ["/bin/chmod","-R","%s" % mode, "%s" % dest]
-      p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      output, err = p.communicate()
-      if err != "":
-          raise Exception(err)
+        command = ["/bin/chmod","-R","%s" % mode, "%s" % dest]
+        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = p.communicate()
+        if err != "":
+            raise Exception(err)
 
     result['status'] = "changed"
     result['msg'] = "State of %s %s changed" % (fType, dest)
