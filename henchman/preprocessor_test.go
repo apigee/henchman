@@ -85,8 +85,7 @@ func TestPreprocessIncludeAtVarsLevel(t *testing.T) {
 
 	plan, err := PreprocessPlan(buf, &inv)
 	require.NoError(t, err)
-
-	require.Equal(t, 9, len(plan.Vars), "Wrong number of vars.")
+	require.Equal(t, 8, len(plan.Vars), "Wrong number of vars.")
 
 	for key, val := range plan.Vars {
 		switch key {
