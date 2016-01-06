@@ -382,8 +382,10 @@ func processTemplate(moduleParams map[string]string, vars VarsMap, hostname stri
 			}
 
 			var buf []byte
-			if filepath.Ext(path) != "" &&
-				strings.Contains(moduleParams["ext"], strings.TrimPrefix(filepath.Ext(path), ".")) {
+			finfo, _ := os.Stat(path)
+			if (finfo.Mode()&0111) != 0 ||
+				filepath.Ext(path) != "" &&
+					strings.Contains(moduleParams["ext"], strings.TrimPrefix(filepath.Ext(path), ".")) {
 				buf, err = ioutil.ReadFile(path)
 				if err != nil {
 					return HenchErr(err, map[string]interface{}{

@@ -7,16 +7,18 @@ vars:
 tasks:
    - name: "Remove old files"
      shell: cmd="rm -rf test"
+   - name: "Remove old files"
+     shell: cmd="rm -rf copies"
    - name: "Task Template File"
      template: src="henchman/test/templates/temp1" dest="test/temp1.yaml"
      debug: true
    - name: "Task Template Folder"
-     template: src="henchman/test/templates" dest="test/templates" ext="zip,sh"
+     template: src="henchman/test/templates" dest="test/templates" ext="zip"
      debug: true
    - name: "Task Template Folder two"
-     template: src="henchman/test/templates" dest="test/templates" ext="zip,sh"
+     template: src="henchman/test/templates" dest="test/templates" ext="zip"
      debug: true
    - name: "Copy One"
-     copy: src="henchman/test/templates/" dest="copies/copes"
-   - name: "Copy One"
+     copy: src="henchman/test/templates/" dest="copies/copes/"
+   - name: "Copy Two"
      copy: src="henchman/test/templates/" dest="copies/copes/"
