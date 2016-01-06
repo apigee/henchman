@@ -21,6 +21,7 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 
 	invGroups, err := GetInventoryGroups(buf)
 	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
 	plan, err := PreprocessPlan(buf, &inventory)
 
 	require.NoError(t, err)
@@ -28,9 +29,8 @@ func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	assert.Equal(t, 4, len(plan.Tasks), "Wrong number of tasks.")
 	// NOTE: The inner hosts are ignored and the top level is taken
 	assert.Equal(t, 2, plan.Inventory.Count(), "Wrong number of machines")
-	fmt.Println(plan.Vars["inv"])
-	assert.Equal(t, 2, len(plan.Vars["inv"].(map[interface{}]interface{})["all_hosts"].([]string)), "Wrong number of machines")
-	assert.Equal(t, 2, len(plan.Vars["inv"].(map[interface{}]interface{})["nginx"].([]string)), "Wrong number of machines")
+	assert.Equal(t, 6, len(plan.Vars["inv"].(map[string]interface{})["all_hosts"].([]string)), "Wrong number of machines")
+	assert.Equal(t, 2, len(plan.Vars["inv"].(map[string]interface{})["nginx"].([]string)), "Wrong number of machines")
 }
 
 func TestPreprocessIncludeAtTaskLevel(t *testing.T) {
