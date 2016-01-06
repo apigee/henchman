@@ -192,7 +192,8 @@ func createModulesTar(tasks []*Task) error {
 /**
  * These functions are functions that can be utilized by plans
  */
-// Moves all modules to each host
+// Moves all modules to each host.
+// If machines only has localhost, ignore this activity since we anyway do that later
 func (plan *Plan) Setup(machines []*Machine) error {
 	if len(machines) == 0 {
 		return HenchErr(fmt.Errorf("This has no machines to execute on"), map[string]interface{}{
@@ -219,6 +220,9 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	// transport modules.tar to all machines
 	remoteModDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
+		if machine.Hostname == "localhost" {
+			continue
+		}
 		if err := transferAndUntarModules(machine, remoteModDir); err != nil {
 			return HenchErr(err, map[string]interface{}{
 				"plan": plan.Name,

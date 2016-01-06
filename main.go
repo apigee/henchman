@@ -165,7 +165,13 @@ func executePlan(c *cli.Context) {
 
 	// Step 3.3: For each machine assign group and host vars
 	machines, err := inventory.GetMachines(tc)
-	//_, err = inventory.GetMachines(tc)
+	if err != nil {
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
+			"plan":  planFile,
+			"error": err.Error(),
+		}, "").(*henchman.HenchmanError)
+		henchman.Fatal(henchErr.Fields, "Error Getting Machines")
+	}
 
 	// Step 3.4: Preprocess plan to create plan struct
 	//           Setup final version of vars

@@ -131,21 +131,25 @@ func (inv *Inventory) GetInventoryForGroups(groups []string) Inventory {
 	//	return fullInventory
 	if len(groups) == 0 {
 		return *inv
+	}
+	filtered := Inventory{}
+	filtered.Groups = make(map[string]HostGroup)
+	//filtered.HostVars = fullInventory.HostVars
+	if len(groups) == 1 &&
+		(groups[0] == "localhost" || groups[0] == "127.0.0.1") {
+		filtered.Groups["localhost"] = HostGroup{Hosts: []string{"localhost"},
+			Vars: nil}
 	} else {
-		filtered := Inventory{}
-		filtered.Groups = make(map[string]HostGroup)
-		//filtered.HostVars = fullInventory.HostVars
-		//log.Println(fullInventory)
 		for _, group := range groups {
 			machines, present := inv.Groups[group]
 			if present {
 				filtered.Groups[group] = machines
 			}
 		}
-		filtered.HostVars = inv.HostVars
-		filtered.GlobalVars = inv.GlobalVars
-		return filtered
 	}
+	filtered.HostVars = inv.HostVars
+	filtered.GlobalVars = inv.GlobalVars
+	return filtered
 }
 
 func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
@@ -178,7 +182,6 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 
 	// gets henchman specific vars from global_vars
 	globalInvHenchmanVars := GetHenchmanVars(inv.GlobalVars)
-
 	// update hostvars
 	for _, machine := range machines {
 		for hostname, vars := range inv.HostVars {
@@ -200,7 +203,6 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		for k, v := range henchmanVars {
 			tcCurr[k.(string)] = v.(string)
 		}
-
 		Debug(map[string]interface{}{
 			"host":   machine.Hostname,
 			"config": tcCurr,
@@ -208,11 +210,15 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 
 		// FIXME: This is frigging wrong
 		// See #47
-		ssht, err := NewSSH(&tcCurr)
-		if err != nil {
-			return nil, err
+		if machine.Hostname != "localhost" {
+			ssht, err := NewSSH(&tcCurr)
+			if err != nil {
+				return nil, err
+			}
+			machine.Transport = ssht
+		} else {
+			machine.Transport = nil
 		}
-		machine.Transport = ssht
 	}
 
 	return machines, nil

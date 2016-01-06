@@ -452,6 +452,14 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 			"while_processing": "tasks",
 		}, "Error processing tasks")
 	}
+	// set task local parameter if inventory consists only of localhost
+	if _, present := plan.Inventory.Groups["localhost"]; present {
+		if len(plan.Inventory.Groups) == 1 {
+			for _, task := range tasks {
+				task.Local = true
+			}
+		}
+	}
 	plan.Tasks = tasks
 
 	return &plan, nil

@@ -104,7 +104,6 @@ func TestSandboxRendering(t *testing.T) {
 	regMap := make(RegMap)
 	err = plan.Tasks[0].Render(plan.Vars, regMap)
 	require.NoError(t, err)
-	fmt.Println("HIHIHIH")
 	fmt.Println(plan.Tasks[0].Name)
 }
 */

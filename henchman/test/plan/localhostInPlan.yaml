@@ -1,0 +1,14 @@
+name: "Plan with debug"
+hosts:
+  - localhost
+vars:
+  service: iptables
+tasks:
+  - name: "Task One"
+    shell: cmd="echo hello"
+    debug: true
+  - name: "Task Two"
+    shell: cmd="echo goodbye"
+  - name: "Task Three"
+    shell: cmd="echo world"
+   

@@ -266,6 +266,22 @@ func TestPreprocessWithRetry(t *testing.T) {
 	assert.Equal(t, 0, plan.Tasks[1].Retry, "Retry should default to zero if not present")
 }
 
+// Test inventory and task.Local when inventory has localhost
+func TestPreprocessInventoryWhenLocalhostIsSpecified(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/localhostInPlan.yaml")
+	require.NoError(t, err)
+
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	assert.Equal(t, []string{"localhost"}, invGroups, "inventory Groups invGroups do not match expected output")
+	plan, err := PreprocessPlan(buf, &inventory)
+	for _, task := range plan.Tasks {
+		assert.Equal(t, task.Local, true, "Task.Local should be set to true")
+	}
+	require.NoError(t, err)
+}
+
 // Table driven test for Invalids
 func TestInvalid(t *testing.T) {
 	var tests = []struct {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	_ "path"
 	"path/filepath"
 	"strconv"
@@ -55,7 +56,6 @@ type SSHTransport struct {
 
 func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 	_config := *config
-
 	// Get hostname and port
 	sshTransport.Host = _config["hostname"]
 	port, parseErr := strconv.ParseUint(_config["port"], 10, 16)
@@ -81,6 +81,13 @@ func (sshTransport *SSHTransport) Initialize(config *TransportConfig) error {
 
 	password, present := _config["password"]
 	if password == "" || !present {
+		if strings.Contains(_config["keyfile"], "~/") {
+			currentUser, err := user.Current()
+			if err != nil {
+				return HenchErr(fmt.Errorf(err.Error()), nil, "SSH transport")
+			}
+			_config["keyfile"] = strings.Replace(_config["keyfile"], "~", currentUser.HomeDir, -1)
+		}
 		keyfile, present := _config["keyfile"]
 		if !present {
 			return HenchErr(fmt.Errorf("Invalid SSH Keyfile"), nil, "SSH transport")
