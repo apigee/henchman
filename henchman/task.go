@@ -38,13 +38,14 @@ type TaskResult struct {
 }
 
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
-	resultInBytes := []byte(buf.String())
+	resultStr := buf.String()
+	resultInBytes := []byte(resultStr)
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
 		// Temp fix for current end of json input bug
 		return HenchErr(err, map[string]interface{}{
-			"input": strings.TrimSpace(buf.String()) + "\"}",
-		}, "While unmarshalling task results")
+			"input": ":" + resultStr + ":",
+		}, "Task result json string")
 	}
 	return nil
 }
