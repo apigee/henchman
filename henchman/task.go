@@ -262,52 +262,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "Putting File")
 			}
-		case "copy_remote":
-			//copies file from remote .henchman location to expected location
-			srcPath, present := moduleParams["src"]
-			if !present {
-				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'src' parameter"), nil, "")
-			}
-
-			remoteDstPath, present := moduleParams["dest"]
-			if !present {
-				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'dest' parameter"), nil, "")
-			}
-
-			dstFldr := filepath.Dir(remoteDstPath)
-			cmd := fmt.Sprintf("/bin/mkdir -p %s", dstFldr)
-			buf, err := machine.Transport.Exec(cmd, nil, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "While copying file")
-			}
-
-			// If the src is a folder than append / otherwise it will create the folder within
-			// dest
-			remoteSrcPath := filepath.Join(remoteModDir, filepath.Base(srcPath))
-			finfo, _ := os.Stat(srcPath)
-			if finfo.IsDir() {
-				remoteSrcPath += "/"
-			}
-
-			cmd = fmt.Sprintf("/bin/cp -r %s %s", remoteSrcPath, remoteDstPath)
-			Debug(map[string]interface{}{
-				"dstFldr":       dstFldr,
-				"remoteSrcPath": remoteSrcPath,
-				"remoteDstPath": remoteDstPath,
-				"task":          task.Name,
-				"mod":           task.Module.Name,
-				"hostname":      machine.Hostname,
-			}, "Copy remote path data")
-			buf, err = machine.Transport.Exec(cmd, nil, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "While copying file")
-			}
-			if len(buf.String()) != 0 {
-				err = setTaskResult(&taskResult, buf)
-				if err != nil {
-					return &TaskResult{}, HenchErr(err, nil, "Setting task result from copying file")
-				}
-			}
+			moduleParams["rmtSrc"] = filepath.Join(".henchman/", filepath.Base(srcPath))
 		case "process_template":
 			if err := processTemplate(moduleParams, vars, machine.Hostname); err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While processing templates")
@@ -333,6 +288,8 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 	return &taskResult, nil
 }
+
+const IGNORED_EXTS = "zip,tar,tar.gz"
 
 func processTemplate(moduleParams map[string]string, vars VarsMap, hostname string) error {
 	srcPath, present := moduleParams["src"]
@@ -385,6 +342,7 @@ func processTemplate(moduleParams map[string]string, vars VarsMap, hostname stri
 			finfo, _ := os.Stat(path)
 			if (finfo.Mode()&0111) != 0 ||
 				filepath.Ext(path) != "" &&
+					strings.Contains(IGNORED_EXTS, strings.TrimPrefix(filepath.Ext(path), ".")) &&
 					strings.Contains(moduleParams["ext"], strings.TrimPrefix(filepath.Ext(path), ".")) {
 				buf, err = ioutil.ReadFile(path)
 				if err != nil {

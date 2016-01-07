@@ -18,6 +18,7 @@ import subprocess
 import pwd
 import grp
 import distutils.spawn
+import shutil
 
 params = json.loads(sys.stdin.read())
 
@@ -28,14 +29,39 @@ try:
 
     mode = params.get("mode")
     dest = params.get("dest")
+    override = params.get("override", "true")
+
+    if override.lower() == "false":
+      override = False
+    elif override.lower() == "true":
+      override = True
+    else:
+      raise Exception("override param must be true or false")
+
+    if not dest:
+        raise Exception("dest cannot be empty. Has to be a file")
+
+    # if the dest has multiple parts make the folders
+    if len(params.get("dest").split('/')) > 1:
+      dirs = params.get("dest").split('/')
+      dirs = '/'.join(dirs[:-1])
+      if not os.path.exists(dirs):
+        os.makedirs(dirs)
 
     if os.path.isdir(dest):
         fType = "directory"
     else:
         fType = "file"
 
-    if not dest:
-        raise Exception("dest cannot be empty. Has to be a file")
+    if override and os.path.exists(dest):
+      if os.path.isdir(dest):
+        shutil.rmtree(dest)
+      else:
+        os.remove(dest)
+
+    rmtSrc = "%s/%s" % (os.getcwd(), params.get("rmtSrc"))
+    shutil.move(rmtSrc, dest)
+
     result["owner"] = owner
     result["group"] = group
     chown_path = distutils.spawn.find_executable("chown")

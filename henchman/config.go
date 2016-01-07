@@ -33,7 +33,7 @@ func InitConfiguration(filename string) error {
 		fmt.Printf("conf.json is not present. Applying default configuration\n")
 		buf = []byte(DEFAULT_CONFIGURATION)
 	} else {
-		buf, err := ioutil.ReadFile(filename)
+		buf, err = ioutil.ReadFile(filename)
 		if err != nil {
 			return fmt.Errorf("Error reading conf.json :: " + err.Error())
 		}

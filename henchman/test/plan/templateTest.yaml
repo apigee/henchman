@@ -10,12 +10,15 @@ tasks:
    - name: "Remove old files"
      shell: cmd="rm -rf copies"
    - name: "Task Template Folder"
-     template: src="henchman/test/templates" dest="test/templates" ext="zip"
+     template: src="henchman/test/templates" dest="test/templates/" ext="zip"
      debug: true
    - name: "Task Template Folder two"
-     template: src="henchman/test/templates" dest="test/templates" ext="zip"
+     template: src="henchman/test/templates" dest="test/templates/" ext="zip"
      debug: true
+     sudo: true
    - name: "Copy One"
-     copy: src="henchman/test/templates/" dest="copies/copes"
+     copy: src="henchman/test/templates/" dest="copies/copes/"
+     debug: true
    - name: "Copy Two"
-     copy: src="henchman/test/templates/" dest="copies/copes"
+     copy: src="henchman/test/templates/" dest="copies/copes/"
+     debug: true

@@ -88,20 +88,11 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	iv.HostVars = yi.HostVars
 	iv.Groups = yi.Groups
 	iv.GlobalVars = yi.GlobalVars
+	if iv.GlobalVars == nil {
+		iv.GlobalVars = make(map[interface{}]interface{})
+	}
 	return *iv, nil
 }
-
-//NOTE: Not being used.  Remove at 1/4/16
-/*
-func (inv *Inventory) MergeHostVars(hostname string, taskVars map[interface{}]interface{}) {
-	if len(inv.HostVars) == 0 {
-		return
-	}
-	if _, present := inv.HostVars[hostname]; present {
-		MergeMap(inv.HostVars[hostname], taskVars, true)
-	}
-}
-*/
 
 /**
  * gets the groups under hosts section from plan file
