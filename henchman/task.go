@@ -241,7 +241,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
 			}
-		case "put_for_copy":
+		case "stage":
 			//scp's file from local location to remote location
 			srcPath, present := moduleParams["src"]
 			if !present {
@@ -264,35 +264,40 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			}
 		case "copy_remote":
 			//copies file from remote .henchman location to expected location
-			remoteSrcPath, present := moduleParams["src"]
+			srcPath, present := moduleParams["src"]
 			if !present {
 				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'src' parameter"), nil, "")
 			}
 
-			dstPath, present := moduleParams["dest"]
-			dstFldr := filepath.Dir(dstPath)
-
+			remoteDstPath, present := moduleParams["dest"]
 			if !present {
 				return &TaskResult{}, HenchErr(fmt.Errorf("Unable to find 'dest' parameter"), nil, "")
 			}
 
-			srcPath := filepath.Join(remoteModDir, filepath.Base(remoteSrcPath))
-
+			dstFldr := filepath.Dir(remoteDstPath)
 			cmd := fmt.Sprintf("/bin/mkdir -p %s", dstFldr)
 			buf, err := machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While copying file")
 			}
 
+			// If the src is a folder than append / otherwise it will create the folder within
+			// dest
+			remoteSrcPath := filepath.Join(remoteModDir, filepath.Base(srcPath))
+			finfo, _ := os.Stat(srcPath)
+			if finfo.IsDir() {
+				remoteSrcPath += "/"
+			}
+
+			cmd = fmt.Sprintf("/bin/cp -r %s %s", remoteSrcPath, remoteDstPath)
 			Debug(map[string]interface{}{
-				"dstFldr":  dstFldr,
-				"srcPath":  srcPath,
-				"dstPath":  dstPath,
-				"task":     task.Name,
-				"mod":      task.Module.Name,
-				"hostname": machine.Hostname,
+				"dstFldr":       dstFldr,
+				"remoteSrcPath": remoteSrcPath,
+				"remoteDstPath": remoteDstPath,
+				"task":          task.Name,
+				"mod":           task.Module.Name,
+				"hostname":      machine.Hostname,
 			}, "Copy remote path data")
-			cmd = fmt.Sprintf("/bin/cp -r %s %s", srcPath, dstPath)
 			buf, err = machine.Transport.Exec(cmd, nil, task.Sudo)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While copying file")
