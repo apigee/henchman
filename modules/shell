@@ -34,6 +34,9 @@ except Exception as e:
     result["msg"] = "Command exec'ed with errors.  Error - %s" % traceback.format_exc()
 
 json_result = json.dumps(result)
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+
 sys.stdout.write(json_result)
 sys.stdout.flush()
 
