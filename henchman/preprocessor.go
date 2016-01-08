@@ -136,11 +136,12 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				}, "")
 			}
 		case "with_items":
+
 			for _, v := range val.([]interface{}) {
 				tp.WithItems = append(tp.WithItems, v.(string))
 			}
 			if !found {
-				return HenchErr(ErrWrongType(field, val, "interface{}"), map[string]interface{}{
+				return HenchErr(ErrWrongType(field, val, "[]interface{}"), map[string]interface{}{
 					"task":     tp.Name,
 					"solution": "Make sure the field is of proper type",
 				}, "")
