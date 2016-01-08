@@ -287,6 +287,50 @@ func TestPreprocessInventoryWhenLocalhostIsSpecified(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// Test with_items
+func TestPreprocessTaskListWhenWithItemsIsSpecified(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/withItemsAtTaskLevel.yaml")
+	require.NoError(t, err)
+
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
+	assert.Equal(t, []string{"localhost"}, invGroups, "inventory Groups invGroups do not match expected output")
+	plan, err := PreprocessPlan(buf, &inventory)
+	assert.Equal(t, len(plan.Tasks), 3, "Number of expected tasks don't match with_items")
+	for _, task := range plan.Tasks {
+		assert.Equal(t, task.Debug, true, "Task.Local should be set to true")
+	}
+	require.NoError(t, err)
+}
+
+// Test with_items
+func TestPreprocessTaskListWhenWithItemsWhenHenchmanitemIsSpecified(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/withItemsAtTaskLevelWithHenchmanitem.yaml")
+	require.NoError(t, err)
+
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
+	assert.Equal(t, []string{"localhost"}, invGroups, "inventory Groups invGroups do not match expected output")
+	plan, err := PreprocessPlan(buf, &inventory)
+	assert.Equal(t, len(plan.Tasks), 3, "Number of expected tasks don't match with_items")
+	for _, task := range plan.Tasks {
+		assert.Equal(t, task.Debug, true, "Task.Local should be set to true")
+	}
+	assert.Equal(t, plan.Tasks[0].Module.Params["params"], "test1", "Params value doesn't match expected value")
+	assert.Equal(t, plan.Tasks[1].Module.Params["params"], "test2", "Params value doesn't match expected value")
+	assert.Equal(t, plan.Tasks[2].Module.Params["params"], "test3", "Params value doesn't match expected value")
+
+	assert.Equal(t, plan.Tasks[0].Name, "Task 1 test1", "Module name doesn't match expected value")
+	assert.Equal(t, plan.Tasks[1].Name, "Task 1 test2", "Module name doesn't match expected value")
+	assert.Equal(t, plan.Tasks[2].Name, "Task 1 test3", "Module name doesn't match expected value")
+
+	require.NoError(t, err)
+}
+
 // Table driven test for Invalids
 func TestInvalid(t *testing.T) {
 	var tests = []struct {
