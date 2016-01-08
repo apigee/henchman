@@ -68,6 +68,7 @@ type TaskProxy struct {
 	SudoState   string
 	DebugState  string
 	Include     string
+	WithItems   []string
 	IncludeVars VarsMap `yaml:"vars"`
 }
 
@@ -95,7 +96,6 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}, "")
 		}
 	}
-
 	for field, val := range tmap {
 		switch field {
 		case "name":
@@ -131,6 +131,16 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			tp.IgnoreErrors, found = val.(bool)
 			if !found {
 				return HenchErr(ErrWrongType(field, val, "bool"), map[string]interface{}{
+					"task":     tp.Name,
+					"solution": "Make sure the field is of proper type",
+				}, "")
+			}
+		case "with_items":
+			for _, v := range val.([]interface{}) {
+				tp.WithItems = append(tp.WithItems, v.(string))
+			}
+			if !found {
+				return HenchErr(ErrWrongType(field, val, "interface{}"), map[string]interface{}{
 					"task":     tp.Name,
 					"solution": "Make sure the field is of proper type",
 				}, "")
@@ -358,7 +368,33 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 					}, "")
 				}
 			}
-			tasks = append(tasks, &task)
+			if tp.WithItems != nil {
+				for index, item := range tp.WithItems {
+					t := task
+					// This is to make sure we have different copies.
+					// This helps while replacing values
+					t.Module.Params = nil
+					t.Module.Params = make(map[string]string)
+					for k, v := range task.Module.Params {
+						t.Module.Params[k] = v
+					}
+					if strings.Contains(t.Name, "henchman_item") {
+						t.Name = strings.Replace(t.Name, "henchman_item", item, -1)
+					} else {
+						s := strconv.Itoa(index)
+						t.Name = strings.Replace(t.Name, t.Name, t.Name+s, -1)
+					}
+					for k, v := range t.Module.Params {
+						if strings.Contains(v, "henchman_item") {
+							v = strings.Replace(v, "henchman_item", item, -1)
+							t.Module.Params[k] = v
+						}
+					}
+					tasks = append(tasks, &t)
+				}
+			} else {
+				tasks = append(tasks, &task)
+			}
 		}
 	}
 

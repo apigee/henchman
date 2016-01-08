@@ -6,8 +6,8 @@ vars:
 hosts:
    - localhost
 tasks:
-   - name: "Task 1"
-     shell: cmd=echo params=hi
+   - name: "Task 1 henchman_item"
+     shell: cmd=echo params=henchman_item
      debug: true
      with_items:
         - test1
