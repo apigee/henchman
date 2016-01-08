@@ -59,7 +59,8 @@ try:
       else:
         os.remove(dest)
 
-    rmtSrc = "%s/%s" % (os.getcwd(), params.get("rmtSrc"))
+    rmtSrc = "%s/%s" % (os.path.expanduser('~'), params.get("rmtSrc"))
+
     shutil.move(rmtSrc, dest)
 
     result["owner"] = owner
