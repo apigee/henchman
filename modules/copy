@@ -40,9 +40,10 @@ try:
         raise Exception("dest cannot be empty. Has to be a file")
 
     # if the dest has multiple parts make the folders
-    if len(params.get("dest").split('/')) > 1:
-      dirs = params.get("dest").split('/') 
-      dirs = '/'.join(dirs[:-1])
+    dirs = params.get("dest").split('/') 
+    dirs = [x for x in dirs if x != ""]
+    if len(dirs) > 1:
+      dirs = '/'.join(dirs)
       if not os.path.exists(dirs):
         os.makedirs(dirs)
 
@@ -53,15 +54,17 @@ try:
 
     rmtSrc = os.path.relpath(params.get("rmtSrc"))
     if override:
+      # remove the existing dest
       if os.path.exists(dest):
         if os.path.isdir(dest):
           shutil.rmtree(dest)
         else:
           os.remove(dest)
-      shutil.move(rmtSrc, dest)
     else:
-      new_dest = os.path.join(dest, os.path.basename(rmtSrc))
-      shutil.move(rmtSrc, new_dest)
+      # extend dest so the folder/file will be nested
+      dest = os.path.join(dest, os.path.basename(rmtSrc))
+
+    shutil.move(rmtSrc, dest)
 
     result["owner"] = owner
     result["group"] = group
