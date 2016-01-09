@@ -379,7 +379,7 @@ func processTemplate(moduleParams map[string]string, vars VarsMap, hostname stri
 				renderFilePath = filepath.Join(baseDir, strings.TrimPrefix(path, srcPath))
 			}
 
-			err = ioutil.WriteFile(renderFilePath, buf, 0644)
+			err = ioutil.WriteFile(renderFilePath, buf, finfo.Mode())
 			if err != nil {
 				return HenchErr(err, nil, "While processing template file")
 			}

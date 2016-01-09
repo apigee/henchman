@@ -64,7 +64,7 @@ try:
     else:
       dest = os.path.join(dest, os.path.basename(rmtSrc))
 
-    shutil.move(rmtSrc, new_dest)
+    shutil.move(rmtSrc, dest)
 
     result["owner"] = owner
     result["group"] = group
