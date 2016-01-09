@@ -217,11 +217,13 @@ func executePlan(c *cli.Context) {
 	*/
 }
 
+var minversion string
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "henchman"
 	app.Usage = "Orchestration framework"
-	app.Version = "0.1.194"
+	app.Version = "0.1." + minversion
 	app.Commands = gatherCommands()
 	app.Run(os.Args)
 }

@@ -19,7 +19,8 @@ do
     do
         echo "**** Building $os.$arch ****"
         BINDIR="bin/$os/$arch"
-        GOOS=$os GOARCH=$arch godep go build -o bin/$os/$arch/henchman
+        CIRCLE_BUILD_NUM
+        GOOS=$os GOARCH=$arch godep go build -ldflags '-X main.minversion=$(CIRCLE_BUILD_NUM)' -o bin/$os/$arch/henchman
         cp -R modules ${BINDIR} 
         cd ${BINDIR}
         tar -cvf "henchman.${GIT_COMMIT_SHA1}.${os}.${arch}.tar.gz" henchman modules
