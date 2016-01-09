@@ -51,14 +51,17 @@ try:
     else:
       fType = "file"
 
-    if override and os.path.exists(dest):
-      if os.path.isdir(dest):
-        shutil.rmtree(dest)
-      else:
-        os.remove(dest)
-        
-    rmtSrc = "%s/%s" % (os.getcwd(), params.get("rmtSrc"))
-    shutil.move(rmtSrc, dest)
+    rmtSrc = os.path.relpath(params.get("rmtSrc"))
+    if override:
+      if os.path.exists(dest):
+        if os.path.isdir(dest):
+          shutil.rmtree(dest)
+        else:
+          os.remove(dest)
+      shutil.move(rmtSrc, dest)
+    else:
+      new_dest = os.path.join(dest, os.path.basename(rmtSrc))
+      shutil.move(rmtSrc, new_dest)
 
     result["owner"] = owner
     result["group"] = group

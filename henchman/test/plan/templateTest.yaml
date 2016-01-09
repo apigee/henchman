@@ -7,8 +7,10 @@ vars:
 tasks:
    - name: "Remove old files"
      shell: cmd="rm -rf test"
+     sudo: true
    - name: "Remove old files"
      shell: cmd="rm -rf copies"
+     sudo: true
    - name: "Task Template Folder"
      template: src="henchman/test/templates" dest="test/templates/" ext="zip"
      debug: true
@@ -17,8 +19,8 @@ tasks:
      debug: true
      sudo: true
    - name: "Copy One"
-     copy: src="henchman/test/templates/" dest="copies/copes/"
+     copy: src="henchman/test/templates/" dest="copies/copes/" 
      debug: true
    - name: "Copy Two"
-     copy: src="henchman/test/templates/" dest="copies/copes/"
+     copy: src="henchman/test/templates/" dest="copies/copes/" override="false"
      debug: true
