@@ -1,29 +1,33 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'json'
-
-#stdin, stdout, stderr = Open3.popen3('dc')
-#puts STDIN.read
-#params = JSON.parse(STDIN.read)
-#puts params
 params = ''
 while line = $stdin.gets
   params = JSON.parse(line)
 end
-
-cmd = params["cmd"]
-overall_cmd = [cmd.split(" "), :err =>[:child, :out]].flatten
 result = {}
-#chdir = params["chdir"]
 ls_result_with_error = ""
-IO.popen(overall_cmd) {|ls_io|
-	ls_result_with_error = ls_io.read
-}
-if $?.exitstatus != 0
-	result["stderr"] = ls_result_with_error
-else
-	result["stdout"] = ls_result_with_error
+begin
+  if params.keys.include?("chdir")
+  	Dir.chdir params['chdir']
+  end
+  cmd = params["cmd"]
+  overall_cmd = [cmd.split(" "), :err =>[:child, :out]].flatten
+  result = {}
+  #chdir = params["chdir"]
+  ls_result_with_error = ""
+  IO.popen(overall_cmd) {|ls_io|
+  	ls_result_with_error = ls_io.read
+  }
+  if $?.exitstatus != 0
+  	result["stderr"] = ls_result_with_error
+  else
+  	result["stdout"] = ls_result_with_error
+  end
+  result["status"] = "changed"
+  result["msg"] = "exec'ed command"
+rescue Exception => e
+  result["status"] = "error"
+  result["msg"] = e
 end
-result["status"] = "changed"
-result["msg"] = "exec'ed command"
 puts result.to_json
