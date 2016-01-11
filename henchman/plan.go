@@ -263,7 +263,7 @@ func (plan *Plan) Cleanup(machines []*Machine) error {
 	return nil
 }
 
-func merge(cs ...<-chan error) <-chan error {
+func mergeErrs(cs []<-chan error) <-chan error {
 	var wg sync.WaitGroup
 	out := make(chan error)
 
@@ -275,6 +275,7 @@ func merge(cs ...<-chan error) <-chan error {
 		}
 		wg.Done()
 	}
+
 	wg.Add(len(cs))
 	for _, c := range cs {
 		go output(c)
@@ -289,14 +290,15 @@ func merge(cs ...<-chan error) <-chan error {
 	return out
 }
 
-func runMachine(machine *Machine) <-chan error {
+func (plan Plan) executeTasks(machine *Machine) <-chan error {
 	errs := make(chan error, 1)
 	registerMap := make(RegMap)
 	go func() {
+		defer close(errs)
 		var actualMachine *Machine
 		for _, task := range plan.Tasks {
 			if task.Local == true {
-				actualMachine = local
+				actualMachine = localhost()
 			} else {
 				actualMachine = machine
 			}
@@ -318,21 +320,11 @@ func runMachine(machine *Machine) <-chan error {
 			RenderedTask, err := task.Render(vars, registerMap)
 
 			if err != nil {
-				/*
-					henchErr := HenchErr(err, map[string]interface{}{
-						"plan":  plan.Name,
-						"task":  RenderedTask.Name,
-						"host":  actualMachine.Hostname,
-						"error": err.Error(),
-					}, "").(*HenchmanError)
-					Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
-					return
-				*/
 				errs <- HenchErr(err, map[string]interface{}{
 					"plan": plan.Name,
 					"task": RenderedTask.Name,
 					"host": actualMachine.Hostname,
-				}, "Error rendering task '%s'", RenderedTask.Name)
+				}, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
 				return
 			}
 
@@ -361,21 +353,11 @@ func runMachine(machine *Machine) <-chan error {
 
 				taskResult, err = RenderedTask.Run(actualMachine, vars, registerMap)
 				if err != nil {
-					/*
-						henchErr := HenchErr(err, map[string]interface{}{
-							"plan":  plan.Name,
-							"task":  RenderedTask.Name,
-							"host":  actualMachine.Hostname,
-							"error": err.Error(),
-						}, "").(*HenchmanError)
-						Fatal(henchErr.Fields, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
-						return
-					*/
 					errs <- HenchErr(err, map[string]interface{}{
 						"plan": plan.Name,
 						"task": task.Name,
 						"host": actualMachine.Hostname,
-					}, "Error running task '%s'", RenderedTask.Name)
+					}, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
 					return
 				}
 
@@ -408,7 +390,6 @@ func runMachine(machine *Machine) <-chan error {
 				break
 			}
 		}
-		close(errs)
 	}()
 
 	return errs
@@ -416,21 +397,25 @@ func runMachine(machine *Machine) <-chan error {
 
 // Does execution of tasks
 func (plan *Plan) Execute(machines []*Machine) error {
-	local := localhost()
-
 	Info(map[string]interface{}{
 		"plan":         plan.Name,
 		"num machines": len(machines),
 	}, fmt.Sprintf("Executing plan '%s'", plan.Name))
 	PrintfAndFill(75, "~", "EXECUTING PLAN [ %s ] ", plan.Name)
 
-	machChans := []<-chan error{}
+	machineChans := []<-chan error{}
 	for _, _machine := range machines {
 		machine := _machine
-		machChans = append(machChans, runMachine(machine))
+		machineChans = append(machineChans, plan.executeTasks(machine))
 	}
 
-	out := merge(machChans)
+	out := mergeErrs(machineChans)
+
+	err := <-out
+	if err != nil {
+		fmt.Println(len(out))
+		return err
+	}
 
 	Info(map[string]interface{}{
 		"plan":         plan.Name,
