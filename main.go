@@ -195,7 +195,12 @@ func executePlan(c *cli.Context) {
 		henchman.Fatal(henchErr.Fields, "Error in plan setup")
 	}
 
-	plan.Execute(machines)
+	if err := plan.Execute(machines); err != nil {
+		henchErr := henchman.HenchErr(err, map[string]interface{}{
+			"error": err.Error(),
+		}, "").(*henchman.HenchmanError)
+		henchman.Fatal(henchErr.Fields, "Error in executing plan")
+	}
 
 	if c.Bool("cleanup") {
 		if err := plan.Cleanup(machines); err != nil {
@@ -206,15 +211,6 @@ func executePlan(c *cli.Context) {
 		}
 	}
 
-	// NOTE: use when we implement channels
-	/*
-		if err := plan.Execute(machines); err != nil {
-			henchErr := henchman.HenchErr(err, log.Fields{
-				"error": err.Error(),
-			}, "").(*henchman.HenchmanError)
-			log.WithFields(henchErr.Fields).Fatal("Error in executing plan")
-		}
-	*/
 }
 
 var minversion string

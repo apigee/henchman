@@ -14,6 +14,10 @@ tasks:
     curl: url="http://httpbin.org/ip" http="GET"
     register: first
     debug: true
+  - name: "Test bad echo"
+    shell: cmd="echo &(*&@^"
+    debug: true
+    when: 'vars.current_hostname == "192.168.33.11"' 
   - name: "Test Shell"
     shell: cmd="echo {{ vars.service }}"
     debug: true
