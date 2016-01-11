@@ -13,16 +13,15 @@ begin
   end
   cmd = params["cmd"]
   overall_cmd = [cmd.split(" "), :err =>[:child, :out]].flatten
-  result = {}
   #chdir = params["chdir"]
   ls_result_with_error = ""
   IO.popen(overall_cmd) {|ls_io|
   	ls_result_with_error = ls_io.read
   }
   if $?.exitstatus != 0
-  	result["stderr"] = ls_result_with_error
+  	result["output"] = {"stdout" => "", "stderr" => ls_result_with_error}
   else
-  	result["stdout"] = ls_result_with_error
+  	result["output"] = {"stderr" => "", "stdout" => ls_result_with_error}
   end
   result["status"] = "changed"
   result["msg"] = "exec'ed command"
