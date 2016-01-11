@@ -198,12 +198,17 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				}, "")
 			}
 		case "vars":
-			tp.IncludeVars, found = val.(map[interface{}]interface{})
+			_, found = val.(map[interface{}]interface{})
 			if !found {
 				return HenchErr(ErrWrongType(field, val, "map[interface{}]interface{}"), map[string]interface{}{
 					"task":     tp.Name,
 					"solution": "Make sure the field is of proper type",
 				}, "")
+			}
+
+			tp.IncludeVars = make(VarsMap)
+			for k, v := range val.(map[interface{}]interface{}) {
+				tp.IncludeVars[k.(string)] = v
 			}
 		default:
 			// We have a module

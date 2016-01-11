@@ -20,17 +20,7 @@ import (
  */
 // source values will override dest values if override is true
 // else dest values will not be overridden
-func MergeMap(src map[interface{}]interface{}, dst map[interface{}]interface{}, override bool) {
-	for variable, value := range src {
-		if override == true {
-			dst[variable] = value
-		} else if _, present := dst[variable]; !present {
-			dst[variable] = value
-		}
-	}
-}
-
-func MergeLogrusFields(src map[string]interface{}, dst map[string]interface{}, override bool) {
+func MergeMap(src map[string]interface{}, dst map[string]interface{}, override bool) {
 	for variable, value := range src {
 		if override == true {
 			dst[variable] = value

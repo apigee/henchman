@@ -2,6 +2,7 @@ package henchman
 
 import (
 	"fmt"
+	"reflect"
 )
 
 type HenchmanError struct {
@@ -18,7 +19,7 @@ func HenchErr(err error, fields map[string]interface{}, extMsg string) error {
 	switch val := err.(type) {
 	case *HenchmanError:
 		if fields != nil {
-			MergeLogrusFields(fields, val.Fields, false)
+			MergeMap(fields, val.Fields, false)
 		}
 		if extMsg != "" {
 			val.msg = (extMsg + " :: " + val.msg)
@@ -42,16 +43,8 @@ func HenchErr(err error, fields map[string]interface{}, extMsg string) error {
 	}
 }
 
-type CustomUnmarshalError struct {
-	Err error
-}
-
-func (cue *CustomUnmarshalError) Error() string {
-	return cue.Err.Error()
-}
-
 func ErrWrongType(field interface{}, val interface{}, _type string) error {
-	return fmt.Errorf("For field '%v', '%v' is not of type %v", field, val, _type)
+	return fmt.Errorf("For field '%v', '%v' is of typ '%v' not of type %v", field, val, reflect.TypeOf(val), _type)
 }
 
 func ErrNotValidVariable(val interface{}) error {

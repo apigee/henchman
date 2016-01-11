@@ -25,7 +25,7 @@ var statuses = map[string]string{
 var planStats = map[string]map[string]int{}
 
 // NOTE: eventually change this to map[string]interface{}
-type VarsMap map[interface{}]interface{}
+type VarsMap map[string]interface{}
 type RegMap map[string]interface{}
 
 type Plan struct {

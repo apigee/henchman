@@ -16,14 +16,14 @@ type InventoryInterface interface {
 //type Inventory map[string][]*Machine
 type Inventory struct {
 	//GroupHosts map[string][]*Machine
-	Groups     map[string]HostGroup                   `yaml:"groups"`
-	HostVars   map[string]map[interface{}]interface{} `yaml:"host_vars"`
-	GlobalVars map[interface{}]interface{}            `yaml:"global_vars"`
+	Groups     map[string]HostGroup `yaml:"groups"`
+	HostVars   map[string]VarsMap   `yaml:"host_vars"`
+	GlobalVars VarsMap              `yaml:"global_vars"`
 }
 
 type HostGroup struct {
-	Hosts []string                    `yaml:"hosts"`
-	Vars  map[interface{}]interface{} `yaml:"vars"`
+	Hosts []string `yaml:"hosts"`
+	Vars  VarsMap  `yaml:"vars"`
 }
 
 func (inv Inventory) Count() int {
@@ -36,9 +36,9 @@ func (inv Inventory) Count() int {
 
 // FIXME: Have a way to provide specifics
 type YAMLInventory struct {
-	Groups     map[string]HostGroup                   `yaml:"groups"`
-	HostVars   map[string]map[interface{}]interface{} `yaml:"host_vars"`
-	GlobalVars map[interface{}]interface{}            `yaml:"global_vars"`
+	Groups     map[string]HostGroup `yaml:"groups"`
+	HostVars   map[string]VarsMap   `yaml:"host_vars"`
+	GlobalVars VarsMap              `yaml:"global_vars"`
 }
 
 func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
@@ -89,7 +89,7 @@ func (yi *YAMLInventory) Load(ic InventoryConfig) (Inventory, error) {
 	iv.Groups = yi.Groups
 	iv.GlobalVars = yi.GlobalVars
 	if iv.GlobalVars == nil {
-		iv.GlobalVars = make(map[interface{}]interface{})
+		iv.GlobalVars = make(VarsMap)
 	}
 	return *iv, nil
 }
@@ -213,7 +213,7 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 		MergeMap(globalInvHenchmanVars, henchmanVars, false)
 
 		for k, v := range henchmanVars {
-			tcCurr[k.(string)] = v.(string)
+			tcCurr[k] = v.(string)
 		}
 		Debug(map[string]interface{}{
 			"host":   machine.Hostname,
@@ -243,8 +243,8 @@ func GetHenchmanVars(vars VarsMap) VarsMap {
 	henchmanVars := VarsMap{}
 
 	for k, v := range vars {
-		if strings.Contains(k.(string), HENCHMAN_PREFIX) {
-			parts := strings.Split(k.(string), HENCHMAN_PREFIX)
+		if strings.Contains(k, HENCHMAN_PREFIX) {
+			parts := strings.Split(k, HENCHMAN_PREFIX)
 			henchmanVars[parts[len(parts)-1]] = v
 		}
 	}
