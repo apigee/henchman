@@ -29,4 +29,6 @@ rescue Exception => e
   result["status"] = "error"
   result["msg"] = e
 end
-puts result.to_json
+written = $stdout.write(result.to_json)
+`echo #{written} > /tmp/shell_bytes`
+#print result.to_json
