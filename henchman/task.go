@@ -29,6 +29,7 @@ type Task struct {
 	Sudo         bool
 	Vars         VarsMap
 	When         string
+	WithItems    interface{}
 }
 
 type TaskResult struct {

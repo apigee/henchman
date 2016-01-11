@@ -331,6 +331,13 @@ func (plan *Plan) Execute(machines []*Machine) error {
 					"host": actualMachine.Hostname,
 				}, "Vars for Task")
 
+				//This is when you have with_items.
+				//Waiting till the end to create more tasks from the main task
+				//sub_tasks := task.GetSubTasks()
+				//if sub_tasks != nil {
+				//	for _, task := range sub_tasks {
+				//	}
+				//}
 				RenderedTask, err := task.Render(vars, registerMap)
 
 				if err != nil {
@@ -352,42 +359,9 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 				// handles the retries
 				var taskResult *TaskResult
-				for numRuns := RenderedTask.Retry + 1; numRuns > 0; numRuns-- {
-					// If this is a retry print some info
-					if numRuns <= RenderedTask.Retry {
-						Debug(map[string]interface{}{
-							"task":      RenderedTask.Name,
-							"host":      actualMachine.Hostname,
-							"mod":       RenderedTask.Module.Name,
-							"plan":      plan.Name,
-							"iteration": RenderedTask.Retry + 1 - numRuns,
-						}, fmt.Sprintf("Retrying Task '%s'", RenderedTask.Name))
-						PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
-							actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-						printShellModule(&RenderedTask)
-						printTaskResults(taskResult, &RenderedTask)
-					}
-
-					PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
-						actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-					printShellModule(&RenderedTask)
-					taskResult, err = RenderedTask.Run(actualMachine, vars, registerMap)
-					if err != nil {
-						henchErr := HenchErr(err, map[string]interface{}{
-							"plan":  plan.Name,
-							"task":  RenderedTask.Name,
-							"mod":   RenderedTask.Module.Name,
-							"host":  actualMachine.Hostname,
-							"error": err.Error(),
-						}, "").(*HenchmanError)
-						Fatal(henchErr.Fields, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
-						return
-					}
-
-					if taskResult.State == "ok" ||
-						taskResult.State == "changed" {
-						numRuns = 0
-					}
+				err = manageTaskRetry(&RenderedTask, taskResult, actualMachine, plan, vars, registerMap)
+				if err != nil {
+					return
 				}
 
 				// Fields for info
@@ -421,5 +395,45 @@ func (plan *Plan) Execute(machines []*Machine) error {
 	PrintfAndFill(75, "~", "PLAN STATS [ %s ] ", plan.Name)
 
 	printPlanStats()
+	return nil
+}
+func manageTaskRetry(RenderedTask *Task, taskResult *TaskResult, actualMachine *Machine, plan *Plan, vars VarsMap, registerMap RegMap) error {
+	for numRuns := RenderedTask.Retry + 1; numRuns > 0; numRuns-- {
+		// If this is a retry print some info
+		if numRuns <= RenderedTask.Retry {
+			Debug(map[string]interface{}{
+				"task":      RenderedTask.Name,
+				"host":      actualMachine.Hostname,
+				"mod":       RenderedTask.Module.Name,
+				"plan":      plan.Name,
+				"iteration": RenderedTask.Retry + 1 - numRuns,
+			}, fmt.Sprintf("Retrying Task '%s'", RenderedTask.Name))
+			PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
+				actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
+			printShellModule(RenderedTask)
+			printTaskResults(taskResult, RenderedTask)
+		}
+
+		PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
+			actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
+		printShellModule(RenderedTask)
+		taskResult, err := RenderedTask.Run(actualMachine, vars, registerMap)
+		if err != nil {
+			henchErr := HenchErr(err, map[string]interface{}{
+				"plan":  plan.Name,
+				"task":  RenderedTask.Name,
+				"mod":   RenderedTask.Module.Name,
+				"host":  actualMachine.Hostname,
+				"error": err.Error(),
+			}, "").(*HenchmanError)
+			Fatal(henchErr.Fields, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
+			return henchErr
+		}
+
+		if taskResult.State == "ok" ||
+			taskResult.State == "changed" {
+			numRuns = 0
+		}
+	}
 	return nil
 }
