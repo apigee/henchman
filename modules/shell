@@ -12,16 +12,16 @@ begin
   	Dir.chdir params['chdir']
   end
   cmd = params["cmd"]
+  env_params = params["env"] 
   env =  {}
-  parts = cmd.split(" ")
-  parts.each do |part|
+  env_params.split(" ").each do |part|
     if part.include?("=")
       k,v = part.split("=") 	
       env[k] = v
-      parts.delete(part)
+      env_params.delete(part)
 	end
   end
-  overall_cmd = [env, parts, :err =>[:child, :out]].flatten
+  overall_cmd = [env, cmd.split(" "), :err =>[:child, :out]].flatten
   #chdir = params["chdir"]
   ls_result_with_error = ""
   IO.popen(overall_cmd) {|ls_io|
