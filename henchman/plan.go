@@ -286,7 +286,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 	machineChans := []<-chan error{}
 	for _, machine := range machines {
-		machineChans = append(machineChans, plan.executeTasks(machine))
+		machineChans = append(machineChans, executeTasks(machine, plan))
 	}
 
 	errorsChan := mergeErrs(machineChans)
@@ -334,7 +334,7 @@ func mergeErrs(cs []<-chan error) <-chan error {
 	return out
 }
 
-func (plan Plan) executeTasks(machine *Machine) <-chan error {
+func executeTasks(machine *Machine, plan *Plan) <-chan error {
 	errs := make(chan error, 1)
 	registerMap := make(RegMap)
 	go func() {
