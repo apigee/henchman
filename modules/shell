@@ -19,7 +19,6 @@ begin
       if part.include?("=")
         k,v = part.split("=") 	
         env[k] = v
-        env_params.delete(part)
       end
     end
   end  
