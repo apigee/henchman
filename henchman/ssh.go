@@ -131,14 +131,15 @@ func (sshTransport *SSHTransport) execCmd(session *ssh.Session, cmd string) (*by
 		return nil, HenchErr(err, nil, "request for psuedo terminal failed")
 	}
 
-	b, err := session.CombinedOutput(cmd)
+	var stdoutbuf bytes.Buffer
+	session.Stdout = &stdoutbuf
+	err := session.Run(cmd)
 	if err != nil {
 		return nil, HenchErr(err, map[string]interface{}{
-			"output": string(b),
+			"output": string(stdoutbuf.String()),
 		}, "While retrieving output from ssh")
 	}
-
-	return bytes.NewBuffer(b), nil
+	return &stdoutbuf, nil
 }
 
 func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled bool) (*bytes.Buffer, error) {
@@ -154,7 +155,6 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 	if sudoEnabled {
 		cmd = fmt.Sprintf("/bin/bash -c 'sudo -H -u root %s'", cmd)
 	}
-
 	cmd = fmt.Sprintf("echo '%s' | %s", stdin, cmd)
 
 	bytesBuf, err := sshTransport.execCmd(session, cmd)
@@ -162,7 +162,6 @@ func (sshTransport *SSHTransport) Exec(cmd string, stdin []byte, sudoEnabled boo
 	if err != nil {
 		return nil, HenchErr(err, nil, "While executing command")
 	}
-
 	return bytesBuf, nil
 }
 
