@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,7 +30,7 @@ type Task struct {
 	Sudo         bool
 	Vars         VarsMap
 	When         string
-	WithItems    interface{}
+	WithItems    interface{} `yaml:"with_items"`
 }
 
 type TaskResult struct {
@@ -41,7 +42,6 @@ type TaskResult struct {
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultStr := buf.String()
 	resultInBytes := []byte(resultStr)
-	fmt.Printf("DEBUG: taskresult - %s - length - %d\n", resultStr, len(resultStr))
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
 		// Temp fix for current end of json input bug
@@ -50,6 +50,39 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 		}, "Task result json string")
 	}
 	return nil
+}
+
+func (task Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]Task, error) {
+	// NOTE: placing item variables into regMap since item is a keyword and
+	// no register can be called item
+	var itemList []interface{}
+	var newTasks []Task
+	var err error
+	if task.WithItems != nil {
+		itemList = task.WithItems.([]interface{})
+		// FIXME: this is for {{somelist}} case
+		if reflect.TypeOf(task.WithItems).Name() == "string" {
+			_, err = renderValue(task.WithItems.(string), varsMap, regMap)
+			if err != nil {
+				return newTasks, err
+			}
+		}
+
+		newTasks = []Task{}
+		for _, v := range itemList {
+			switch v.(type) {
+			case string, map[interface{}]interface{}:
+				regMap["item"] = v
+				newTask, err := task.Render(varsMap, regMap)
+				if err != nil {
+					return nil, err
+				}
+				newTasks = append(newTasks, newTask)
+			}
+		}
+	}
+
+	return newTasks, nil
 }
 
 // wrapper for Rendering each task

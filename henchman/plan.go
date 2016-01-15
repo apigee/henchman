@@ -324,64 +324,86 @@ func (plan *Plan) Execute(machines []*Machine) error {
 				MergeMap(task.Vars, vars, true)
 				vars["current_hostname"] = actualMachine.Hostname
 
-				Debug(map[string]interface{}{
-					"vars": fmt.Sprintf("%v", vars),
-					"plan": plan.Name,
-					"task": task.Name,
-					"host": actualMachine.Hostname,
-				}, "Vars for Task")
+				subTasks, err := task.ProcessWithItems(vars, registerMap)
+				taskResult := TaskResult{}
+				if subTasks != nil {
+					fmt.Printf("THERE ARE %d SUB TASKS\n", len(subTasks))
+					for _, subTask := range subTasks {
+						// handles the retries
+						err = manageTaskRetry(&subTask, &taskResult, actualMachine, plan, vars, registerMap)
+						if err != nil {
+							return
+						}
 
-				//This is when you have with_items.
-				//Waiting till the end to create more tasks from the main task
-				//sub_tasks := task.GetSubTasks()
-				//if sub_tasks != nil {
-				//	for _, task := range sub_tasks {
-				//	}
-				//}
-				RenderedTask, err := task.Render(vars, registerMap)
+						// Fields for info
+						fields := map[string]interface{}{
+							"host":  actualMachine.Hostname,
+							"state": taskResult.State,
+							"msg":   taskResult.Msg,
+						}
+						if subTask.Debug {
+							fields["output"] = taskResult.Output
+						}
+						printTaskResults(&taskResult, &subTask)
 
-				if err != nil {
-					henchErr := HenchErr(err, map[string]interface{}{
-						"plan":  plan.Name,
+						updatePlanStats(taskResult.State, actualMachine.Hostname)
+
+						// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
+						if taskResult.State == "error" || taskResult.State == "failure" {
+							break
+						}
+					}
+				} else {
+					Debug(map[string]interface{}{
+						"vars": fmt.Sprintf("%v", vars),
+						"plan": plan.Name,
+						"task": task.Name,
+						"host": actualMachine.Hostname,
+					}, "Vars for Task")
+
+					RenderedTask, err := task.Render(vars, registerMap)
+
+					if err != nil {
+						henchErr := HenchErr(err, map[string]interface{}{
+							"plan":  plan.Name,
+							"task":  RenderedTask.Name,
+							"host":  actualMachine.Hostname,
+							"error": err.Error(),
+						}, "").(*HenchmanError)
+						Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
+						return
+					}
+					Info(map[string]interface{}{
+						"task": RenderedTask.Name,
+						"host": actualMachine.Hostname,
+						"plan": plan.Name,
+					}, fmt.Sprintf("Starting Task '%s'", RenderedTask.Name))
+
+					// handles the retries
+					err = manageTaskRetry(&RenderedTask, &taskResult, actualMachine, plan, vars, registerMap)
+					if err != nil {
+						return
+					}
+
+					// Fields for info
+					fields := map[string]interface{}{
 						"task":  RenderedTask.Name,
 						"host":  actualMachine.Hostname,
-						"error": err.Error(),
-					}, "").(*HenchmanError)
-					Fatal(henchErr.Fields, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
-					return
-				}
+						"state": taskResult.State,
+						"msg":   taskResult.Msg,
+					}
+					if RenderedTask.Debug {
+						fields["output"] = taskResult.Output
+					}
+					Info(fields, fmt.Sprintf("Task '%s' complete", RenderedTask.Name))
+					printTaskResults(&taskResult, &RenderedTask)
 
-				Info(map[string]interface{}{
-					"task": RenderedTask.Name,
-					"host": actualMachine.Hostname,
-					"plan": plan.Name,
-				}, fmt.Sprintf("Starting Task '%s'", RenderedTask.Name))
+					updatePlanStats(taskResult.State, actualMachine.Hostname)
 
-				// handles the retries
-				var taskResult *TaskResult
-				err = manageTaskRetry(&RenderedTask, taskResult, actualMachine, plan, vars, registerMap)
-				if err != nil {
-					return
-				}
-
-				// Fields for info
-				fields := map[string]interface{}{
-					"task":  RenderedTask.Name,
-					"host":  actualMachine.Hostname,
-					"state": taskResult.State,
-					"msg":   taskResult.Msg,
-				}
-				if RenderedTask.Debug {
-					fields["output"] = taskResult.Output
-				}
-				Info(fields, fmt.Sprintf("Task '%s' complete", RenderedTask.Name))
-				printTaskResults(taskResult, &RenderedTask)
-
-				updatePlanStats(taskResult.State, actualMachine.Hostname)
-
-				// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
-				if taskResult.State == "error" || taskResult.State == "failure" {
-					break
+					// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
+					if taskResult.State == "error" || taskResult.State == "failure" {
+						break
+					}
 				}
 			}
 		}()
