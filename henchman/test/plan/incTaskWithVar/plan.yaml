@@ -1,0 +1,19 @@
+name: "Template Notation in Task Include"
+hosts:
+  - individual 
+vars:
+  service: "iptables"
+  key:
+    first: "abcd1234"
+    second: "efgh5678"
+tasks:
+  - name: "Included Nested Task"
+    include: "henchman/test/plan/incTaskWithVar/tasks1.yaml"
+    vars:
+      service: "notIpTables"
+      orig_service: "{{ vars.service }}"
+      key: "{{ vars.key.first }}" 
+  - name: "Included Nested Task"
+    include: "henchman/test/plan/incTaskWithVar/tasks1.yaml"
+    vars:
+      key: "{{ vars.key.second }}" 

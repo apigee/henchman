@@ -51,7 +51,7 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	regMap["cmd"] = "touch"
 	regMap["name"] = "Task 2"
 
-	renderedTasks := []Task{}
+	renderedTasks := []*Task{}
 	for _, task := range plan.Tasks {
 		MergeMap(plan.Vars, task.Vars, false)
 		renderedTask, err := task.Render(task.Vars, regMap)
@@ -90,6 +90,25 @@ func TestTaskRenderAndProcessWhen(t *testing.T) {
 	proceed, err = task.ProcessWhen()
 	require.NoError(t, err, "When should only have a true or false string")
 	assert.Equal(t, false, proceed, "When should evaluate to false")
+}
+
+func TestProccessWithItems(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/withItemsAtTaskLevelWithHenchmanitem.yaml")
+	require.NoError(t, err)
+
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
+	assert.Equal(t, []string{"localhost"}, invGroups, "inventory Groups invGroups do not match expected output")
+
+	plan, err := PreprocessPlan(buf, &inventory)
+	require.NoError(t, err)
+	subTasks, err := plan.Tasks[0].ProcessWithItems(make(VarsMap), make(RegMap))
+	require.NoError(t, err)
+	assert.Equal(t, "Task 1 test1", subTasks[0].Name)
+	assert.Equal(t, "Task 1 test2", subTasks[1].Name)
+	assert.Equal(t, "Task 1 test3", subTasks[2].Name)
 }
 
 /*

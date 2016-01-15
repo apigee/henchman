@@ -1,0 +1,22 @@
+name: "With Items test"
+hosts:
+  - individual
+debug: true
+tasks:
+  - name: "Task {{ item }}"
+    shell: cmd="echo {{ item }}"
+    with_items:
+      - itemOne
+      - itemTwo
+      - itemThree
+  - name: "Middle Task"
+    shell: cmd="echo success"
+  - name: "Task {{ item.name }}"
+    shell: cmd="echo {{ item.value }}"
+    with_items:
+      - { name: 'itemOne', value: 'one' }
+      - { name: 'itemTwo', value: 'two' }
+      - { name: 'itemThree', value: 'three' }
+#  - name: "Task {{ item }}"
+#    shell: cmd="echo {{ item }}"
+#    with_items: "{{somelist}}"

@@ -68,7 +68,6 @@ type TaskProxy struct {
 	SudoState   string
 	DebugState  string
 	Include     string
-	WithItems   []string
 	IncludeVars VarsMap `yaml:"vars"`
 }
 
@@ -136,12 +135,11 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				}, "")
 			}
 		case "with_items":
-
-			for _, v := range val.([]interface{}) {
-				tp.WithItems = append(tp.WithItems, v.(string))
-			}
-			if !found {
-				return HenchErr(ErrWrongType(field, val, "[]interface{}"), map[string]interface{}{
+			switch val.(type) {
+			case string, []interface{}:
+				tp.WithItems = val
+			default:
+				return HenchErr(ErrWrongType(field, val, "string or []string or []map[inteface{}]interface{}"), map[string]interface{}{
 					"task":     tp.Name,
 					"solution": "Make sure the field is of proper type",
 				}, "")
@@ -324,87 +322,71 @@ func parseTaskProxies(px *PlanProxy, prevVars VarsMap, prevWhen string) ([]*Task
 
 			tasks = append(tasks, includedTasks...)
 		} else {
-			// Checking for name because module is not a pointer
-			if tp.Module.Name == "" {
-				return nil, HenchErr(fmt.Errorf("This task doesn't have a valid module"), map[string]interface{}{
-					"task":     tp.Name,
-					"solution": "Each task needs to have exactly one module",
-				}, "")
-			}
-			task.Name = tp.Name
-			task.Module = tp.Module
-			task.IgnoreErrors = tp.IgnoreErrors
-			task.Local = tp.Local
-			task.Register = tp.Register
-			task.Retry = tp.Retry
-			task.When = tp.When
-
-			// NOTE: plan.Vars is merged in plan.execute(...) before Render
-			// Creates an empty map for later use if there are no included vars
-			if prevVars == nil {
-				task.Vars = make(VarsMap)
-			} else {
-				task.Vars = prevVars
+			if err := extractTaskProxy(&task, tp, prevVars, px); err != nil {
+				return nil, err
 			}
 
-			// takes plan sudo, changes it to task Sudo if there is one
-			// does the same for Debug
-			task.Sudo = px.Sudo
-			if tp.SudoState != "" {
-				var err error
-				task.Sudo, err = strconv.ParseBool(tp.SudoState)
-				if err != nil {
-					return nil, HenchErr(err, map[string]interface{}{
-						"task":          tp.Name,
-						"while_parsing": "sudo",
-						"solution":      "Verify the 'sudo' field is a boolean",
-					}, "")
-				}
-			}
-
-			task.Debug = px.Debug
-			if tp.DebugState != "" {
-				var err error
-				task.Debug, err = strconv.ParseBool(tp.DebugState)
-				if err != nil {
-					return nil, HenchErr(err, map[string]interface{}{
-						"task":          tp.Name,
-						"while_parsing": "debug",
-						"solution":      "Verify the 'debug' field is a boolean",
-					}, "")
-				}
-			}
-			if tp.WithItems != nil {
-				for index, item := range tp.WithItems {
-					t := task
-					// This is to make sure we have different copies.
-					// This helps while replacing values
-					t.Module.Params = nil
-					t.Module.Params = make(map[string]string)
-					for k, v := range task.Module.Params {
-						t.Module.Params[k] = v
-					}
-					if strings.Contains(t.Name, "henchman_item") {
-						t.Name = strings.Replace(t.Name, "henchman_item", item, -1)
-					} else {
-						s := strconv.Itoa(index)
-						t.Name = strings.Replace(t.Name, t.Name, t.Name+s, -1)
-					}
-					for k, v := range t.Module.Params {
-						if strings.Contains(v, "henchman_item") {
-							v = strings.Replace(v, "henchman_item", item, -1)
-							t.Module.Params[k] = v
-						}
-					}
-					tasks = append(tasks, &t)
-				}
-			} else {
-				tasks = append(tasks, &task)
-			}
+			tasks = append(tasks, &task)
 		}
 	}
 
 	return tasks, nil
+}
+
+func extractTaskProxy(task *Task, tp *TaskProxy, prevVars VarsMap, px *PlanProxy) error {
+	// Checking for name because module is not a pointer
+	if tp.Module.Name == "" {
+		return HenchErr(fmt.Errorf("This task doesn't have a valid module"), map[string]interface{}{
+			"task":     tp.Name,
+			"solution": "Each task needs to have exactly one module",
+		}, "")
+	}
+	task.Name = tp.Name
+	task.Module = tp.Module
+	task.IgnoreErrors = tp.IgnoreErrors
+	task.Local = tp.Local
+	task.Register = tp.Register
+	task.Retry = tp.Retry
+	task.When = tp.When
+	task.WithItems = tp.WithItems
+
+	// NOTE: plan.Vars is merged in plan.execute(...) before Render
+	// Creates an empty map for later use if there are no included vars
+	if prevVars == nil {
+		task.Vars = make(VarsMap)
+	} else {
+		task.Vars = prevVars
+	}
+
+	// takes plan sudo, changes it to task Sudo if there is one
+	// does the same for Debug
+	task.Sudo = px.Sudo
+	if tp.SudoState != "" {
+		var err error
+		task.Sudo, err = strconv.ParseBool(tp.SudoState)
+		if err != nil {
+			return HenchErr(err, map[string]interface{}{
+				"task":          tp.Name,
+				"while_parsing": "sudo",
+				"solution":      "Verify the 'sudo' field is a boolean",
+			}, "")
+		}
+	}
+
+	task.Debug = px.Debug
+	if tp.DebugState != "" {
+		var err error
+		task.Debug, err = strconv.ParseBool(tp.DebugState)
+		if err != nil {
+			return HenchErr(err, map[string]interface{}{
+				"task":          tp.Name,
+				"while_parsing": "debug",
+				"solution":      "Verify the 'debug' field is a boolean",
+			}, "")
+		}
+	}
+
+	return nil
 }
 
 // Processes plan level vars with includes

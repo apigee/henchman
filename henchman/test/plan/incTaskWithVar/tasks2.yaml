@@ -1,0 +1,5 @@
+name: "Filler tasks"
+tasks:
+  - name: "dummy"
+    shell: cmd="echo is {{ vars.final }}"
+    debug: true

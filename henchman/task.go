@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,6 +30,7 @@ type Task struct {
 	Sudo         bool
 	Vars         VarsMap
 	When         string
+	WithItems    interface{} `yaml:"with_items"`
 }
 
 type TaskResult struct {
@@ -50,23 +52,58 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	return nil
 }
 
+// Checks for the with_items field in Task.  If it's valid it will generate an
+// already rendered list of Tasks
+func (task Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, error) {
+	// NOTE: placing item variables into regMap since item is a keyword and
+	// no register can be called item
+	var itemList []interface{}
+	var newTasks []*Task
+	var err error
+	if task.WithItems != nil {
+		itemList = task.WithItems.([]interface{})
+		// FIXME: this is for {{somelist}} case
+		if reflect.TypeOf(task.WithItems).Name() == "string" {
+			_, err = renderValue(task.WithItems.(string), varsMap, regMap)
+			if err != nil {
+				return newTasks, err
+			}
+		}
+
+		newTasks = []*Task{}
+		for _, v := range itemList {
+			switch v.(type) {
+			case string, map[interface{}]interface{}:
+				regMap["item"] = v
+				newTask, err := task.Render(varsMap, regMap)
+				if err != nil {
+					return nil, err
+				}
+				newTasks = append(newTasks, newTask)
+			}
+		}
+	}
+
+	return newTasks, nil
+}
+
 // wrapper for Rendering each task
 // This will return the rendered task and not manipulate the pointer to the
 // task. b/c the pointer to the task is a template and a race condition can occur.
-func (task Task) Render(vars VarsMap, registerMap RegMap) (Task, error) {
+func (task Task) Render(vars VarsMap, registerMap RegMap) (*Task, error) {
 	renderLock.Lock()
 	defer renderLock.Unlock()
 
 	var err error
 	task.Name, err = renderValue(task.Name, vars, registerMap)
 	if err != nil {
-		return task, err
+		return nil, err
 	}
 
 	if task.When != "" {
 		task.When, err = renderValue("{{"+task.When+"}}", vars, registerMap)
 		if err != nil {
-			return task, err
+			return nil, err
 		}
 	}
 
@@ -75,12 +112,12 @@ func (task Task) Render(vars VarsMap, registerMap RegMap) (Task, error) {
 	for k, v := range task.Module.Params {
 		renderedModuleParams[k], err = renderValue(v, vars, registerMap)
 		if err != nil {
-			return task, err
+			return nil, err
 		}
 	}
 
 	task.Module.Params = renderedModuleParams
-	return task, nil
+	return &task, nil
 }
 
 // strings will be evaluated using pongo2 templating with context of

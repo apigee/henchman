@@ -1,0 +1,12 @@
+name: "List of Task"
+tasks:
+  - name: "Include more tasks"
+    include: "henchman/test/plan/incTaskWithVar/tasks2.yaml"
+    vars:
+       final: "{{ vars.original_service }}"
+  - name: "Task 2"
+    shell: cmd="echo {{ vars.service }}"
+  - name: "Task 4"
+    shell: cmd="echo {{ vars.key }}"
+  - name: "Task 5"
+    include: "henchman/test/plan/incTaskWithVar/tasks2.yaml"

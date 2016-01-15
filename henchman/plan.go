@@ -372,81 +372,128 @@ func executeTasks(machine *Machine, plan *Plan) <-chan error {
 				"host": actualMachine.Hostname,
 			}, "Vars for Task")
 
-			RenderedTask, err := task.Render(vars, registerMap)
+			// Checks for subtasks in the with_items field
+			subTasks, err := task.ProcessWithItems(vars, registerMap)
 			if err != nil {
 				errs <- HenchErr(err, map[string]interface{}{
 					"plan": plan.Name,
-					"task": RenderedTask.Name,
+					"task": task.Name,
 					"host": actualMachine.Hostname,
-				}, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
+				}, fmt.Sprintf("Error generating with_items tasks '%s'", task.Name))
 				return
 			}
 
-			Info(map[string]interface{}{
-				"task": RenderedTask.Name,
-				"host": actualMachine.Hostname,
-				"plan": plan.Name,
-			}, fmt.Sprintf("Starting Task '%s'", RenderedTask.Name))
-
-			// handles the retries
-			var taskResult *TaskResult
-			for numRuns := RenderedTask.Retry + 1; numRuns > 0; numRuns-- {
-				// If this is a retry print some info
-				if numRuns <= RenderedTask.Retry {
-					Debug(map[string]interface{}{
-						"task":      RenderedTask.Name,
-						"host":      actualMachine.Hostname,
-						"mod":       RenderedTask.Module.Name,
-						"plan":      plan.Name,
-						"iteration": RenderedTask.Retry + 1 - numRuns,
-					}, fmt.Sprintf("Retrying Task '%s'", RenderedTask.Name))
-					PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
-						actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-					printShellModule(&RenderedTask)
-					printTaskResults(taskResult, &RenderedTask)
+			if subTasks != nil {
+				for _, subTask := range subTasks {
+					acceptedState, err := plan.manageTaskRun(subTask, actualMachine, vars, registerMap)
+					if !acceptedState {
+						if err != nil {
+							errs <- err
+						}
+						return
+					}
 				}
-
-				PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
-					actualMachine.Hostname, RenderedTask.Name, RenderedTask.Module.Name)
-				printShellModule(&RenderedTask)
-				taskResult, err = RenderedTask.Run(actualMachine, vars, registerMap)
+			} else {
+				RenderedTask, err := task.Render(vars, registerMap)
 				if err != nil {
 					errs <- HenchErr(err, map[string]interface{}{
 						"plan": plan.Name,
 						"task": RenderedTask.Name,
-						"mod":  RenderedTask.Module.Name,
 						"host": actualMachine.Hostname,
-					}, fmt.Sprintf("Error running task '%s'", RenderedTask.Name))
+					}, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
 					return
 				}
 
-				if taskResult.State == "ok" ||
-					taskResult.State == "changed" {
-					numRuns = 0
+				acceptedState, err := plan.manageTaskRun(RenderedTask, actualMachine, vars, registerMap)
+				if !acceptedState {
+					if err != nil {
+						errs <- err
+					}
+					return
 				}
-			}
-
-			// Fields for info
-			fields := map[string]interface{}{
-				"task":  RenderedTask.Name,
-				"host":  actualMachine.Hostname,
-				"state": taskResult.State,
-				"msg":   taskResult.Msg,
-			}
-			if RenderedTask.Debug {
-				fields["output"] = taskResult.Output
-			}
-			Info(fields, fmt.Sprintf("Task '%s' complete", RenderedTask.Name))
-			printTaskResults(taskResult, &RenderedTask)
-
-			updatePlanStats(taskResult.State, actualMachine.Hostname)
-
-			// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
-			if taskResult.State == "error" || taskResult.State == "failure" {
-				break
 			}
 		}
 	}()
 
 	return errs
+}
+
+// Manages all the print outs and updating of planStats for running a task
+func (plan Plan) manageTaskRun(task *Task, machine *Machine, vars VarsMap, registerMap RegMap) (bool, error) {
+	Info(map[string]interface{}{
+		"task": task.Name,
+		"host": machine.Hostname,
+		"plan": plan.Name,
+	}, fmt.Sprintf("Starting Task '%s'", task.Name))
+
+	// handles the running and retrying of tasks
+	taskResult, err := taskRunAndRetries(task, machine, vars, registerMap)
+	if err != nil {
+		return false, HenchErr(err, map[string]interface{}{
+			"plan": plan.Name,
+		}, fmt.Sprintf("Error rendering task '%s'", task.Name))
+	}
+
+	// Fields for info
+	fields := map[string]interface{}{
+		"task":  task.Name,
+		"host":  machine.Hostname,
+		"state": taskResult.State,
+		"msg":   taskResult.Msg,
+	}
+	if task.Debug {
+		fields["output"] = taskResult.Output
+	}
+	Info(fields, fmt.Sprintf("Task '%s' complete", task.Name))
+	printTaskResults(taskResult, task)
+
+	updatePlanStats(taskResult.State, machine.Hostname)
+
+	// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
+	if taskResult.State == "error" || taskResult.State == "failure" {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// Runs the task and the retries
+func taskRunAndRetries(task *Task, machine *Machine, vars VarsMap, registerMap RegMap) (*TaskResult, error) {
+	var err error
+	var taskResult *TaskResult
+	for numRuns := task.Retry + 1; numRuns > 0; numRuns-- {
+		// If this is a retry print some info
+		if numRuns <= task.Retry {
+			Debug(map[string]interface{}{
+				"task":      task.Name,
+				"host":      machine.Hostname,
+				"mod":       task.Module.Name,
+				"iteration": task.Retry + 1 - numRuns,
+			}, fmt.Sprintf("Retrying Task '%s'", task.Name))
+			PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
+				machine.Hostname, task.Name, task.Module.Name)
+			printShellModule(task)
+			printTaskResults(taskResult, task)
+		}
+
+		PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
+			machine.Hostname, task.Name, task.Module.Name)
+		printShellModule(task)
+
+		taskResult, err = task.Run(machine, vars, registerMap)
+		if err != nil {
+			return nil, HenchErr(err, map[string]interface{}{
+				"task": task.Name,
+				"mod":  task.Module.Name,
+				"host": machine.Hostname,
+			}, fmt.Sprintf("Error running task '%s'", task.Name))
+		}
+
+		if taskResult.State == "ok" ||
+			taskResult.State == "changed" {
+			break
+		}
+	}
+
+	return taskResult, nil
 }
