@@ -11,6 +11,7 @@ vars:
     - { name: 'objOne', value: 'oOne' }
     - { name: 'objTwo', value: 'oTwo' }
     - { name: 'objThree', value: 'oThree' }
+  bad_array: "hello"
 tasks:
   - name: "Task {{ item }}"
     shell: cmd="echo {{ item }}"
@@ -29,6 +30,9 @@ tasks:
   - name: "Task {{ item }}"
     shell: cmd="echo {{ item }}"
     with_items: "{{vars.somelist}}"
-  #- name: "Task {{ item }}"
-  #  shell: cmd="echo {{ item }}"
-  #  with_items: "{{vars.obj_array}}"
+  - name: "Task {{ item.name }}"
+    shell: cmd="echo {{ item.value }}"
+    with_items: "{{vars.obj_array}}"
+  - name: "Task {{ item }}"
+    shell: cmd="echo {{ item }}"
+    with_items: "{{vars.bad_array}}"

@@ -62,17 +62,15 @@ func (task Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, erro
 	if task.WithItems != nil {
 		// {{ somelist }} case
 		if reflect.TypeOf(task.WithItems).Name() == "string" {
-			// some string magic since pongo2 only returns strings
-			newWithItems := strings.Trim(task.WithItems.(string), "{{}}") + "|join:\",\""
-			newWithItems = "{{" + newWithItems + "}}"
-			arr, err := renderValue(newWithItems, varsMap, regMap)
-			if err != nil {
-				return newTasks, HenchErr(err, nil, "Error reading array specified")
-			}
+			// some string parsing magic to simulate pongo2
+			newWithItems := strings.Trim(task.WithItems.(string), "{{}}")
+			newWithItems = strings.TrimSpace(newWithItems)
+			newWithItems = strings.TrimPrefix(newWithItems, "vars.")
 
-			itemList = []interface{}{}
-			for _, v := range strings.Split(arr, ",") {
-				itemList = append(itemList, v)
+			var present bool
+			itemList, present = varsMap[newWithItems].([]interface{})
+			if !present {
+				return nil, fmt.Errorf("The rendered variable '%s' is not of type []interface{}", task.WithItems)
 			}
 		} else {
 			itemList = task.WithItems.([]interface{})
