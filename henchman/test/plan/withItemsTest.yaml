@@ -2,6 +2,15 @@ name: "With Items test"
 hosts:
   - individual
 debug: true
+vars:
+  somelist:
+    - listItemOne
+    - listItemTwo
+    - listItemThree
+  obj_array:
+    - { name: 'objOne', value: 'oOne' }
+    - { name: 'objTwo', value: 'oTwo' }
+    - { name: 'objThree', value: 'oThree' }
 tasks:
   - name: "Task {{ item }}"
     shell: cmd="echo {{ item }}"
@@ -17,6 +26,9 @@ tasks:
       - { name: 'itemOne', value: 'one' }
       - { name: 'itemTwo', value: 'two' }
       - { name: 'itemThree', value: 'three' }
-#  - name: "Task {{ item }}"
-#    shell: cmd="echo {{ item }}"
-#    with_items: "{{somelist}}"
+  - name: "Task {{ item }}"
+    shell: cmd="echo {{ item }}"
+    with_items: "{{vars.somelist}}"
+  #- name: "Task {{ item }}"
+  #  shell: cmd="echo {{ item }}"
+  #  with_items: "{{vars.obj_array}}"

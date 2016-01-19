@@ -57,17 +57,25 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 func (task Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, error) {
 	// NOTE: placing item variables into regMap since item is a keyword and
 	// no register can be called item
-	var itemList []interface{}
 	var newTasks []*Task
-	var err error
+	var itemList []interface{}
 	if task.WithItems != nil {
-		itemList = task.WithItems.([]interface{})
-		// FIXME: this is for {{somelist}} case
+		// {{ somelist }} case
 		if reflect.TypeOf(task.WithItems).Name() == "string" {
-			_, err = renderValue(task.WithItems.(string), varsMap, regMap)
+			// some string magic since pongo2 only returns strings
+			newWithItems := strings.Trim(task.WithItems.(string), "{{}}") + "|join:\",\""
+			newWithItems = "{{" + newWithItems + "}}"
+			arr, err := renderValue(newWithItems, varsMap, regMap)
 			if err != nil {
-				return newTasks, err
+				return newTasks, HenchErr(err, nil, "Error reading array specified")
 			}
+
+			itemList = []interface{}{}
+			for _, v := range strings.Split(arr, ",") {
+				itemList = append(itemList, v)
+			}
+		} else {
+			itemList = task.WithItems.([]interface{})
 		}
 
 		newTasks = []*Task{}
