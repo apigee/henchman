@@ -479,7 +479,6 @@ func taskRunAndRetries(task *Task, machine *Machine, vars VarsMap, registerMap R
 		PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
 			machine.Hostname, task.Name, task.Module.Name)
 		printShellModule(task)
-
 		taskResult, err = task.Run(machine, vars, registerMap)
 		if err != nil {
 			return nil, HenchErr(err, map[string]interface{}{
@@ -490,7 +489,8 @@ func taskRunAndRetries(task *Task, machine *Machine, vars VarsMap, registerMap R
 		}
 
 		if taskResult.State == "ok" ||
-			taskResult.State == "changed" {
+			taskResult.State == "changed" ||
+			taskResult.State == "skipped" {
 			break
 		}
 	}
