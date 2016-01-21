@@ -464,21 +464,22 @@ func taskRunAndRetries(task *Task, machine *Machine, vars VarsMap, registerMap R
 	for numRuns := task.Retry + 1; numRuns > 0; numRuns-- {
 		// If this is a retry print some info
 		if numRuns <= task.Retry {
+			printTaskResults(taskResult, task)
 			Debug(map[string]interface{}{
 				"task":      task.Name,
 				"host":      machine.Hostname,
 				"mod":       task.Module.Name,
 				"iteration": task.Retry + 1 - numRuns,
 			}, fmt.Sprintf("Retrying Task '%s'", task.Name))
-			PrintfAndFill(75, "~", "TASK FAILED. RETRYING [ %s | %s | %s ] ",
+			PrintfAndFill(75, "~", "TASK RETRY %v [ %s | %s | %s ] ",
+				task.Retry-numRuns+1, machine.Hostname, task.Name, task.Module.Name)
+			printShellModule(task)
+		} else {
+			PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
 				machine.Hostname, task.Name, task.Module.Name)
 			printShellModule(task)
-			printTaskResults(taskResult, task)
 		}
 
-		PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
-			machine.Hostname, task.Name, task.Module.Name)
-		printShellModule(task)
 		taskResult, err = task.Run(machine, vars, registerMap)
 		if err != nil {
 			return nil, HenchErr(err, map[string]interface{}{

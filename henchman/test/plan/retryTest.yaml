@@ -1,0 +1,10 @@
+name: "Test"
+hosts:
+  - individual
+vars:
+  cond: true
+tasks:
+  - name: "asdf"
+    shell: cmd="echo eskjef(*&239u4()*!"
+    retry: 3
+    when: 'vars.cond == true'
