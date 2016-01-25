@@ -164,8 +164,38 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 	return out, nil
 }
 
+// Creates the final Vars to be executed for the task
+// Needs to produce a separate vars map because other tasks may use task.Vars
+func (task Task) SetupVars(plan *Plan, machine *Machine, vars VarsMap, registerMap RegMap) error {
+	MergeMap(plan.Vars, vars, true)
+	MergeMap(machine.Vars, vars, true)
+
+	if err := task.RenderVars(vars, registerMap); err != nil {
+		return HenchErr(err, map[string]interface{}{
+			"plan":      plan.Name,
+			"task":      task.Name,
+			"host":      machine.Hostname,
+			"task_vars": task.Vars,
+		}, fmt.Sprintf("Error rendering task vars '%s'", task.Name))
+	}
+
+	MergeMap(task.Vars, vars, true)
+	vars["current_hostname"] = machine.Hostname
+
+	Debug(map[string]interface{}{
+		"vars": fmt.Sprintf("%v", vars),
+		"plan": plan.Name,
+		"task": task.Name,
+		"host": machine.Hostname,
+	}, "Vars for Task")
+
+	return nil
+}
+
 // renders the task level variables with global vars
 func (task Task) RenderVars(varsMap VarsMap, registerMap map[string]interface{}) error {
+	renderLock.Lock()
+	defer renderLock.Unlock()
 	ctxt := pongo2.Context{"vars": varsMap}
 	ctxt = ctxt.Update(registerMap)
 

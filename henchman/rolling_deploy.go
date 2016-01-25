@@ -31,28 +31,10 @@ func (rollingDeploy RollingDeploy) executeTasks(machine *Machine, plan *Plan, er
 
 		// copy of task.Vars. It'll be different for each machine
 		vars := make(VarsMap)
-		MergeMap(plan.Vars, vars, true)
-		MergeMap(machine.Vars, vars, true)
-
-		if err := task.RenderVars(vars, registerMap); err != nil {
-			errs <- HenchErr(err, map[string]interface{}{
-				"plan":      plan.Name,
-				"task":      task.Name,
-				"host":      actualMachine.Hostname,
-				"task_vars": task.Vars,
-			}, fmt.Sprintf("Error rendering task vars '%s'", task.Name))
+		if err := task.SetupVars(plan, actualMachine, vars, registerMap); err != nil {
+			errs <- err
 			return
 		}
-
-		MergeMap(task.Vars, vars, true)
-		vars["current_hostname"] = actualMachine.Hostname
-
-		Debug(map[string]interface{}{
-			"vars": fmt.Sprintf("%v", vars),
-			"plan": plan.Name,
-			"task": task.Name,
-			"host": actualMachine.Hostname,
-		}, "Vars for Task")
 
 		// Checks for subtasks in the with_items field
 		subTasks, err := task.ProcessWithItems(vars, registerMap)

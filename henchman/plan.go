@@ -329,6 +329,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 }
 
 // Manages all the print outs and updating of planStats for running a task
+// FIXME: shouldn't be making this a plan function just b/c we need plan.Name...
 func (plan Plan) ManageTaskRun(task *Task, machine *Machine, vars VarsMap, registerMap RegMap) (bool, error) {
 	Info(map[string]interface{}{
 		"task": task.Name,
