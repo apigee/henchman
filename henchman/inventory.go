@@ -194,6 +194,7 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 
 	// gets henchman specific vars from global_vars
 	globalInvHenchmanVars := GetHenchmanVars(inv.GlobalVars)
+
 	// update hostvars
 	for _, machine := range machines {
 		for hostname, vars := range inv.HostVars {
