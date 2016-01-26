@@ -103,13 +103,13 @@ func (task Task) Render(vars VarsMap, registerMap RegMap) (*Task, error) {
 	var err error
 	task.Name, err = renderValue(task.Name, vars, registerMap)
 	if err != nil {
-		return nil, err
+		return &task, err
 	}
 
 	if task.When != "" {
 		task.When, err = renderValue("{{"+task.When+"}}", vars, registerMap)
 		if err != nil {
-			return nil, err
+			return &task, err
 		}
 	}
 
@@ -118,7 +118,7 @@ func (task Task) Render(vars VarsMap, registerMap RegMap) (*Task, error) {
 	for k, v := range task.Module.Params {
 		renderedModuleParams[k], err = renderValue(v, vars, registerMap)
 		if err != nil {
-			return nil, err
+			return &task, err
 		}
 	}
 
