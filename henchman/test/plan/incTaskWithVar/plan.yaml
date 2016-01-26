@@ -1,6 +1,6 @@
 name: "Template Notation in Task Include"
 hosts:
-  - individual 
+  - test 
 vars:
   service: "iptables"
   key:

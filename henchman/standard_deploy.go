@@ -57,18 +57,18 @@ func (stdDeploy StandardDeploy) executeTasks(machine *Machine, plan *Plan) <-cha
 					}
 				}
 			} else {
-				RenderedTask, err := task.Render(vars, registerMap)
+				renderedTask, err := task.Render(vars, registerMap)
 				if err != nil {
 					errs <- HenchErr(err, map[string]interface{}{
 						"plan": plan.Name,
-						"task": RenderedTask.Name,
+						"task": renderedTask.Name,
 						"host": actualMachine.Hostname,
-					}, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
+					}, fmt.Sprintf("Error rendering task '%s'", renderedTask.Name))
 					return
 				}
 
 				// accepted states are ok, success, ignored
-				acceptedState, err := plan.ManageTaskRun(RenderedTask, actualMachine, vars, registerMap)
+				acceptedState, err := plan.ManageTaskRun(renderedTask, actualMachine, vars, registerMap)
 				if !acceptedState {
 					if err != nil {
 						errs <- err

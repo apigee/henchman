@@ -6,6 +6,7 @@ import (
 
 type RollingDeploy struct{}
 
+// ExecuteTasksOnMachines creates a go func to run the task set on a given slice of machines
 func (rollingDeploy RollingDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan) <-chan error {
 	errChan := make(chan error, 1)
 	go func() {
@@ -18,7 +19,7 @@ func (rollingDeploy RollingDeploy) ExecuteTasksOnMachines(machines []*Machine, p
 	return errChan
 }
 
-// Uses plans ManageTaskRun(...)
+// executeTasks sets up the final variable map, then renders and runs the task list
 func (rollingDeploy RollingDeploy) executeTasks(machine *Machine, plan *Plan, errs chan error) {
 	registerMap := make(RegMap)
 	var actualMachine *Machine
@@ -53,29 +54,54 @@ func (rollingDeploy RollingDeploy) executeTasks(machine *Machine, plan *Plan, er
 				if !acceptedState {
 					if err != nil {
 						errs <- err
+						return
 					}
-					return
+					if !promptContinue() {
+						return
+					}
 				}
 			}
 		} else {
-			RenderedTask, err := task.Render(vars, registerMap)
+			renderedTask, err := task.Render(vars, registerMap)
 			if err != nil {
 				errs <- HenchErr(err, map[string]interface{}{
 					"plan": plan.Name,
-					"task": RenderedTask.Name,
+					"task": renderedTask.Name,
 					"host": actualMachine.Hostname,
-				}, fmt.Sprintf("Error rendering task '%s'", RenderedTask.Name))
+				}, fmt.Sprintf("Error rendering task '%s'", renderedTask.Name))
 				return
 			}
 
 			// accepted states are ok, success, ignored
-			acceptedState, err := plan.ManageTaskRun(RenderedTask, actualMachine, vars, registerMap)
+			acceptedState, err := plan.ManageTaskRun(renderedTask, actualMachine, vars, registerMap)
 			if !acceptedState {
 				if err != nil {
 					errs <- err
+					return
 				}
-				return
+				if !promptContinue() {
+					return
+				}
 			}
 		}
 	}
+}
+
+// promptContinue asks the user if s/he wants to continue executing the plan
+// if a task fails
+func promptContinue() bool {
+	fmt.Println("Task failed. Continue? (y/n)")
+
+	var ans string
+	fmt.Scanf("%s\n", &ans)
+	for ans != "y" && ans != "Y" {
+		if ans == "n" || ans == "N" {
+			return false
+		} else {
+			fmt.Println("Invalid answer.")
+			fmt.Scanf("%s\n", &ans)
+		}
+	}
+
+	return true
 }
