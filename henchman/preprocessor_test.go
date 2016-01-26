@@ -9,6 +9,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPreprocessWithDeploy(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/rollingCurlTest.yaml")
+	require.NoError(t, err)
+
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
+	plan, err := PreprocessPlan(buf, &inventory)
+
+	require.NoError(t, err)
+	assert.Equal(t, "rolling", plan.Deploy.Method, "wrong deploy method")
+	assert.Equal(t, 1.0, plan.Deploy.NumHosts, "wrong num of hosts for deploy")
+}
+
 func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/inventoryAtHostLevel.yaml")
