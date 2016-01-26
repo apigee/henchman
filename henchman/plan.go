@@ -33,6 +33,7 @@ type RegMap map[string]interface{}
 type Plan struct {
 	Name      string
 	Inventory Inventory
+	Deploy    Deploy
 	Vars      VarsMap
 	Tasks     []*Task
 }
@@ -308,7 +309,8 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 		errorsChan := mergeErrs(machineChans)
 	*/
-	errorsChan := Deploy.ExecuteTasksOnMachines(machines, plan)
+	plan.Deploy.InitDeployMethod()
+	errorsChan := plan.Deploy.DeployInterface.ExecuteTasksOnMachines(machines, plan)
 	err := <-errorsChan
 	if err != nil {
 		return err
@@ -356,6 +358,9 @@ func (plan Plan) ManageTaskRun(task *Task, machine *Machine, vars VarsMap, regis
 		fields["output"] = taskResult.Output
 	}
 	Info(fields, fmt.Sprintf("Task '%s' complete", task.Name))
+	PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
+		machine.Hostname, task.Name, task.Module.Name)
+	printShellModule(task)
 	printTaskResults(taskResult, task)
 
 	updatePlanStats(taskResult.State, machine.Hostname)
@@ -386,9 +391,6 @@ func taskRunAndRetries(task *Task, machine *Machine, vars VarsMap, registerMap R
 				task.Retry-numRuns+1, machine.Hostname, task.Name, task.Module.Name)
 			printShellModule(task)
 		} else {
-			PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
-				machine.Hostname, task.Name, task.Module.Name)
-			printShellModule(task)
 		}
 
 		taskResult, err = task.Run(machine, vars, registerMap)

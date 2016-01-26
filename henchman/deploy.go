@@ -1,16 +1,21 @@
 package henchman
 
-var Deploy DeployInterface
-
 type DeployInterface interface {
 	ExecuteTasksOnMachines(machines []*Machine, plan *Plan) <-chan error
 }
 
-func SetDeployType(deployType string) {
-	switch deployType {
+type Deploy struct {
+	DeployInterface DeployInterface `yaml:-`
+	Method          string
+	NumHosts        float64 `yaml:"num_hosts"`
+}
+
+// InitDeployMethod links a deployment method to the DeployInterface.
+func (d *Deploy) InitDeployMethod() {
+	switch d.Method {
 	case "rolling":
-		Deploy = RollingDeploy{}
+		d.DeployInterface = RollingDeploy{numHosts: d.NumHosts}
 	default:
-		Deploy = StandardDeploy{}
+		d.DeployInterface = StandardDeploy{}
 	}
 }

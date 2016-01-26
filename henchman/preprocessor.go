@@ -241,6 +241,7 @@ type PlanProxy struct {
 	Name            string       `yaml:"name"`
 	Sudo            bool         `yaml:"sudo"`
 	Debug           bool         `yaml:"debug"`
+	Deploy          Deploy       `yaml:"deploy"`
 	TaskProxies     []*TaskProxy `yaml:"tasks"`
 	VarsProxy       *VarsProxy   `yaml:"vars"`
 	InventoryGroups []string     `yaml:"hosts"`
@@ -441,7 +442,7 @@ func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	return px.VarsProxy.Vars, nil
 }
 
-// Calls the other Preprocessing Compenents
+// PreprocessPlan calls the other preprocessing compenents to create a plan struct.
 func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	px, err := newPlanProxy(buf)
 	if err != nil {
@@ -451,6 +452,7 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	plan := Plan{}
 	plan.Inventory = *inv
 	plan.Name = px.Name
+	plan.Deploy = px.Deploy
 
 	//common vars processing
 	vars := make(VarsMap)
@@ -488,7 +490,7 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	return &plan, nil
 }
 
-// Creates new plan proxy
+// newPlanProxy creates a new plan proxy.
 func newPlanProxy(buf []byte) (PlanProxy, error) {
 	var px PlanProxy
 	err := yaml.Unmarshal(buf, &px)

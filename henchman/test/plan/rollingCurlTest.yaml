@@ -3,6 +3,9 @@ vars:
    service: iptables
 hosts:
   - test
+deploy:
+  method: "rolling"
+  num_hosts: 1
 tasks:
   - name: "Test xml Curl"
     curl: url="http://ci.apigeng.com/v1/data/1k.xml" http="GET" loglevel=debug

@@ -4,7 +4,9 @@ import (
 	"fmt"
 )
 
-type RollingDeploy struct{}
+type RollingDeploy struct {
+	numHosts float64
+}
 
 // ExecuteTasksOnMachines creates a go func to run the task set on a given slice of machines
 func (rollingDeploy RollingDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan) <-chan error {

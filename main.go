@@ -56,11 +56,6 @@ func gatherCommands() []cli.Command {
 		Name:  "debug",
 		Usage: "Allows indepth output.  E.G the register map after every task",
 	}
-	deployTypeFlag := cli.StringFlag{
-		Name:  "deploy",
-		Value: "standard",
-		Usage: "How henchman deploys the plan.  E.G rolling deployment",
-	}
 	cleanupFlag := cli.BoolFlag{
 		Name:  "cleanup",
 		Usage: "Will removed .henchman directory from all remote machines",
@@ -86,7 +81,7 @@ func gatherCommands() []cli.Command {
 			Name:   "exec",
 			Usage:  "Execute a plan on the given group in the inventory",
 			Action: executePlan,
-			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag, debugFlag, cleanupFlag, configurationFlag, deployTypeFlag),
+			Flags:  append(globalFlags, moduleFlag, inventoryFlag, usernameFlag, keyFileFlag, debugFlag, cleanupFlag, configurationFlag),
 		},
 	}
 }
@@ -111,8 +106,6 @@ func executePlan(c *cli.Context) {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-
-	henchman.SetDeployType(c.String("deploy"))
 
 	// Step 1: Validate Modules path and see if it exists
 	modulesPath := c.String("modules")
