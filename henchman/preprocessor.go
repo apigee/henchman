@@ -139,7 +139,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			case string, []interface{}:
 				tp.WithItems = val
 			default:
-				return HenchErr(ErrWrongType(field, val, "string or []string or []map[inteface{}]interface{}"), map[string]interface{}{
+				return HenchErr(ErrWrongType(field, val, "string or []string or []map[interface{}]interface{}"), map[string]interface{}{
 					"task":     tp.Name,
 					"solution": "Make sure the field is of proper type",
 				}, "")

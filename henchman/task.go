@@ -52,11 +52,9 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	return nil
 }
 
-// Checks for the with_items field in Task.  If it's valid it will generate an
-// already rendered list of Tasks
-func (task Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, error) {
+// ProcessWithItems checks for the with_items files in a task.  If it's present it will generate a list of rendered tasks.
+func (task *Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, error) {
 	// NOTE: placing item variables into regMap since item is a keyword and
-	// no register can be called item
 	var newTasks []*Task
 	var itemList []interface{}
 	if task.WithItems != nil {
@@ -70,7 +68,7 @@ func (task Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, erro
 			var present bool
 			itemList, present = varsMap[newWithItems].([]interface{})
 			if !present {
-				return nil, fmt.Errorf("The rendered variable '%s' is not of type []interface{}", task.WithItems)
+				return nil, fmt.Errorf("The with_item rendered variable '%s' is not of type []interface{}", task.WithItems)
 			}
 		} else {
 			itemList = task.WithItems.([]interface{})
@@ -79,14 +77,28 @@ func (task Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, erro
 		newTasks = []*Task{}
 		for _, v := range itemList {
 			switch v.(type) {
-			case string, map[interface{}]interface{}:
-				regMap["item"] = v
-				newTask, err := task.Render(varsMap, regMap)
+			case string:
+				renderedVal, err := renderValue(v.(string), varsMap, regMap)
 				if err != nil {
 					return nil, err
 				}
-				newTasks = append(newTasks, newTask)
+				regMap["item"] = renderedVal
+			case map[interface{}]interface{}:
+				//NOTE: will use this for rendering if needed in the future
+				regMap["item"] = v
+			default:
+				return nil, HenchErr(
+					fmt.Errorf("Components in with_items must be a string or a json object."),
+					map[string]interface{}{
+						"item": v,
+					}, "")
 			}
+
+			newTask, err := task.Render(varsMap, regMap)
+			if err != nil {
+				return nil, err
+			}
+			newTasks = append(newTasks, newTask)
 		}
 	}
 
