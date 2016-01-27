@@ -82,7 +82,7 @@ func printTaskResults(taskResult *TaskResult, task *Task) {
 
 func printShellModule(task *Task) {
 	if task.Module.Name == "shell" {
-		PrintfAndFill(75, "~", "SHELL [ cmd => %v ]", task.Module.Params["cmd"])
+		PrintfAndFill(75, "~", "SHELL [ cmd => %v | env => %v ]", task.Module.Params["cmd"], task.Module.Params["env"])
 	}
 }
 
