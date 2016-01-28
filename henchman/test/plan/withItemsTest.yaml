@@ -45,6 +45,7 @@ tasks:
     with_items:
       - "{{ vars.val1 }}"
       - "{{ vars.val2 }}"
+      - "val3"
 
 #  Verified this test case works for the default case in task.ProcessWithItems
 #  - name: "Bad Task {{ item }}"
