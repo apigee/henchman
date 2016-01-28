@@ -1,73 +1,85 @@
-#!/usr/bin/env python
-import sys
-import os
-import json
-import subprocess
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'json'
+params = ''
+while line = $stdin.gets
+  params = JSON.parse(line)
+end
+
+result = {}
+ls_result_with_error = ""
+possible_states = ["absent", "present"]
 
 yum_subcommands = {
-    "present": "install",
-    "absent": "remove",
+    "present"=> "install",
+    "absent"=>"remove",
 }
 
-# Params for this module
-# package: package name that will be installed via yum
+def run_cmd(cmd)
+  ls_result_with_error = ""
+  overall_cmd = [cmd.split(" "), :err =>[:child, :out]].flatten
+  IO.popen(overall_cmd) {|ls_io|
+    ls_result_with_error = ls_io.read
+  }
+  return {"exit_status" => $?,
+        "cmd_result" => ls_result_with_error}
+end
 
-def is_installed(name, version):
-    command = ["rpm", "-qa"] + name.split()
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, err = p.communicate()
-    for pkg in output.split("\n"):
-        if pkg.startswith(name):
-            if version:
-                if pkg.endswith(version):
-                    return True
-            else:
-                return True
-    return False
+def is_installed?(name,version)
+  cmd = "rpm -qa #{name}"
+  output = run_cmd(cmd)
+  output["cmd_result"].split("\n") do |pkg|
+    if pkg.start_with?(name)
+      if version != ""
+        if pkg.end_with?(version)
+          return true
+        else
+          return false
+        end
+      end
+    end
+  end
+  return false
+end
 
-params = json.loads(sys.stdin.read())
-result = {}
-possible_states = ["absent", "present"]
-try:
-    name = params.get('name')
-    version = params.get('version')
-    state = params.get('state', 'present')
-    repo = params.get('repo', "")
-    if repo != "":
-      repo = "--enablerepo=" + repo
-
-    # If version is latest. Just ignore it
-    if version == 'latest':
-        version = None
-    # check if state provided is valid
-    if state not in possible_states:
-        raise Exception("Valid states are one of %s " % ','.join(possible_states))
-
-    full_pkgname = name
-    if version:
-        full_pkgname = name + "-" + version
-
-    installed = is_installed(name, version)
-    if installed and state == "present":
-        result['msg'] = "Package %s already present" % full_pkgname
-        result['status'] = "ok"
-    elif not installed and state == "absent":
-        result['msg'] = "Package %s already absent" % full_pkgname
-        result['status'] = "ok"
-    else:
-        sub_command = yum_subcommands[state]
-        command = ["yum", sub_command, "-y", full_pkgname, repo]
-        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, err = p.communicate()
-        if p.returncode > 0:
-            raise Exception(err)
-        else:
-            result['status'] = "changed"
-            result['msg'] = "State of package %s changed - %s" % (full_pkgname, output)
-            result['output'] = output
-except Exception, e:
-    result['status'] = "error"
-    result['msg'] = "Error occurred while installing package %s - %s" % (full_pkgname, err)
-    result['output'] = err
-
-print json.dumps(result)
+begin
+  name = params['name']
+  version = params['version']
+  state = params['state'] || "present"
+  if version == "latest"
+    version = ''
+  end
+  if not possible_states.include?(state)
+    raise "Valid states are one of #{possible_states.join(',')}"
+  end
+  full_pkgname = name
+  if version != ""
+    full_pkgname = name + "-" + version
+  end
+  installed = is_installed?(name, version)
+  if installed and state == "present"
+    result['msg'] = "Package #{full_pkgname} already present"
+    result['status'] = "ok"
+  elif (not installed) and (state == "absent")
+    result['msg'] = "Package #{full_pkgname} already absent"
+    result['status'] = "ok"
+  else
+    sub_command = yum_subcommands[state]
+    command = "yum #{sub_command} -y #{full_pkgname}"
+    output = run_cmd(command)
+    if output["exit_status"].exitstatus > 0
+      raise output["cmd_result"]
+    else
+      result['status'] = "changed"
+      result['msg'] = "State of package #{full_pkgname} changed"
+      result['output'] = output
+    end
+  end
+rescue Exception => e
+  result['status'] = "error"
+  result['msg'] = "Error occurred while installing package #{full_pkgname}"
+  result['output'] = e
+end
+#print result.to_json
+written = $stdout.write(result.to_json)
+`echo #{written} > /tmp/yum_bytes`

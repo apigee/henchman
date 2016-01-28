@@ -42,6 +42,7 @@ type TaskResult struct {
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultStr := buf.String()
 	resultInBytes := []byte(resultStr)
+	//fmt.Printf("DEBUG: taskresult - %s - length - %d\n", resultStr, len(resultStr))
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
 		// Temp fix for current end of json input bug
