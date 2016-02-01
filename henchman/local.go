@@ -43,7 +43,7 @@ func (local *LocalTransport) Exec(cmdStr string, stdin []byte, sudoEnabled bool)
 		cmd.Stdin, err = stdinPipe.StdoutPipe()
 		if err != nil {
 			return nil, HenchErr(err, map[string]interface{}{
-				"solution": "Sumbit an issue starting with STDIN PIPE LOCAL EXEC",
+				"solution": "Submit an issue starting with STDIN PIPE LOCAL EXEC",
 			}, "While creating stdin pipe")
 		}
 	}
