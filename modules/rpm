@@ -5,19 +5,33 @@ import os
 import json
 import subprocess
 import json
+import re
 
 # Params for this module
 # url: url that provides the rpm that should be installed
 # loglevel: if debug, it shows you the entire output as part of 'output' key
+
 params = json.loads(sys.stdin.read())
 result = {}
+url = ""
 try:
     loglevel = params.pop("loglevel", "info")
-    url = params.pop('url', None)
+    state = params.pop("state", "present")
+    url = params.pop('url', url)
     if not url:
         raise "Missing required param 'url'"
+    url = "'%s'" % url
 
-    commands = ["rpm", "-ivh", url]
+    msg = ""
+    if state == "present":
+        commands = ["rpm", "-ivh", url]
+        msg = "Successfully installed package %s" % url
+    elif state == "absent":
+        commands = ["rpm", "-e", url]
+        msg = "Successfully uninstalled package %s" % url
+    else:
+        raise Exception("state should be either 'present' or 'absent'. Got %s" % state)
+
     replacepkgs = params.get("replacepkgs", False)
     if replacepkgs and replacepkgs in ["yes", "true", True]:
         commands.append("--replacepkgs")
@@ -25,20 +39,15 @@ try:
     p = subprocess.Popen(commands, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output, err = p.communicate()
 
-    msg = "Successfully installed package %s" % url
     if p.returncode > 0:
-      if "installed" in err:
-        # contains the install message
-        msg = err.capitalize()
-      else:
         raise Exception(err)
 
     result['status'] = "changed"
-    result['msg'] = msg 
+    result['msg'] = msg
     result['output'] = {'stdout': output, 'stderr': err}
 
 except Exception as e:
     result['status'] = "error"
-    result['msg'] = "Error occurred while installing package %s" % url
+    result['msg'] = "Error occurred while installing package {0} - {1}".format(url, e.message)
     result['output'] = {'stdout': output, 'stderr': err}
 print json.dumps(result)
