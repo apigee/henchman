@@ -49,9 +49,21 @@ func TestValidModuleWithVariousChars(t *testing.T) {
 	assert.Equal(t, "ls -al", mod.Params["cmd"], "Mod params wasn't initialized properly")
 	assert.Equal(t, "http://foo.com/abc", mod.Params["url"], "Expected value for foo to be bar")
 	assert.Equal(t, "abc-def", mod.Params["baz"], "Expected a snowman")
-	assert.Equal(t, "sed -i s,store.enable=true,store.enable=false,g", mod.Params["test"], "Expected s,store.enable=true,store.enable=false,g")
+	assert.Equal(t, "sed -i 's,store.enable=true,store.enable=false,g'", mod.Params["test"], "Expected 's,store.enable=true,store.enable=false,g'")
 
 }
+
+
+func TestValidModuleWithQuotes(t *testing.T) {
+	name := "shell"
+	args := "cmd=\"echo 'foo bar'\""
+	mod, err := NewModule(name, args)
+	require.NoError(t, err)
+
+	assert.Equal(t, name, mod.Name, "Module names should match")
+	assert.Equal(t, "echo 'foo bar'", mod.Params["test"], "Expected \"echo 'foo bar\"")	
+}
+
 
 func TestInvalidArgsModule(t *testing.T) {
 	name := "invalid"
