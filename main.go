@@ -210,7 +210,6 @@ func executePlan(c *cli.Context) {
 			henchman.Fatal(henchErr.Fields, "Error in plan cleanup")
 		}
 	}
-
 }
 
 var minversion string
