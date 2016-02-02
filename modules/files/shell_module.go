@@ -8,18 +8,13 @@ import (
 	"strings"
 
 	"encoding/json"
+	"github.com/flynn/go-shlex"
 )
 
 type ShellModule struct {
 	Cmd   string
 	Chdir string
 	Env   string
-}
-
-type ShellResult struct {
-	Status string
-	Msg    string
-	Output interface{}
 }
 
 var result map[string]interface{} = map[string]interface{}{}
@@ -56,7 +51,10 @@ func main() {
 		panic("While setting env vars, " + err.Error())
 	}
 
-	shellCmdList := strings.Split(shellParams.Cmd, " ")
+	shellCmdList, err := shlex.Split(shellParams.Cmd)
+	if err != nil {
+		panic("While shlexing cmd, " + err.Error())
+	}
 
 	var cmd *exec.Cmd
 	if len(shellCmdList) > 1 {

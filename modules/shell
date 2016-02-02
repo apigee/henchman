@@ -1,44 +1,61 @@
-#!/usr/bin/env ruby
-require 'rubygems'
-require 'json'
-params = ''
-while line = $stdin.gets
-  params = JSON.parse(line)
-end
+#!/usr/bin/env python
+
+# Shell module to execute
+import traceback
+import sys
+import json
+import os
+import subprocess
+
+params = json.load(sys.stdin)
+
+# Params for this module
+# chdir: cd into the given directory to execute the shell command
+# cmd: The command to run. Wrapped by quotes if there are spaces
+# loglevel: if debug, it shows you the entire output as part of 'output' key
+def parse_env_vars(line):
+    """Returns a dictionary of env variables
+    NOTE: How about duplicate keys?
+    FIXME: Breaks if there are '=' that within the value itself. Need a way to escape it.
+    """
+    split_line = [x.strip() for x in line.split()]
+    vars = {}
+    for s in split_line:
+        splitvars = s.split("=")
+        try:
+            k, v = splitvars[0].strip(), splitvars[1].strip()
+        except:
+            raise Exception("env vars should be in k=v format")
+        vars[k] = v
+    return vars
+
+
 result = {}
-ls_result_with_error = ""
-begin
-  if params.keys.include?("chdir")
-  	Dir.chdir params['chdir']
-  end
-  cmd = params["cmd"]
-  env_params = params["env"] || ""
-  env =  {}
-  if env_params != "" 
-    env_params.split(" ").each do |part|
-      if part.include?("=")
-        k,v = part.split("=") 	
-        env[k] = v
-      end
-    end
-  end  
-  overall_cmd = [env, cmd.split(" "), :err =>[:child, :out]].flatten
-  #chdir = params["chdir"]
-  ls_result_with_error = ""
-  IO.popen(overall_cmd) {|ls_io|
-  	ls_result_with_error = ls_io.read
-  }
-  if $?.exitstatus != 0
-  	result["output"] = {"stdout" => "", "stderr" => ls_result_with_error}
-  else
-  	result["output"] = {"stderr" => "", "stdout" => ls_result_with_error}
-  end
-  result["status"] = "changed"
-  result["msg"] = "exec'ed command"
-rescue Exception => e
-  result["status"] = "error"
-  result["msg"] = e
-end
-written = $stdout.write(result.to_json)
-`echo #{written} > /tmp/shell_bytes`
-#print result.to_json
+try:
+    cmd = params.get("cmd")
+    os_env = os.environ.copy()
+    parsed_env = parse_env_vars(params.get("env", ""))
+    os_env.update(parsed_env)
+    if not cmd:
+        raise Exception("Required parameter 'cmd' not found")
+    chdir = params.get("chdir")
+    # FIXME: Error out if chdir cannot be stat'd
+    if chdir:
+        os.chdir(chdir)
+    p = subprocess.Popen(cmd, shell=True, env=os_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    result["status"] = "changed"
+    result["msg"] = "exec'ed command"
+    if p.returncode > 0:
+        result["status"] = "failure"
+    result["output"] = {"stderr": stderr, "stdout": stdout}
+except Exception as e:
+    result["status"] = "error"
+    result["msg"] = "Command exec'ed with errors.  Error - %s" % traceback.format_exc()
+
+json_result = json.dumps(result)
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+
+sys.stdout.write(json_result)
+sys.stdout.flush()

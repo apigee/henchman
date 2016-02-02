@@ -6,5 +6,6 @@ var (
 
 const (
 	HENCHMAN_PREFIX = "henchman_"
-	TARGET          = "modules.tar"
+	MODULES_TARGET  = "modules.tar"
+	IGNORED_EXTS    = "zip,tar,tar.gz"
 )

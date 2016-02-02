@@ -4,8 +4,9 @@ import (
 	"archive/tar"
 	"fmt"
 	"os"
-	"path/filepath"
+	_ "path/filepath"
 	_ "reflect"
+	"strings"
 	"sync"
 
 	"github.com/mgutz/ansi"
@@ -104,9 +105,17 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 		}, "While creating dir")
 	}
 
-	// throw a check the check sum stuff in here somewhere
+	// gets the name of the proper module tar
+	modulesTar, err := getModuleTar(machine)
+	if err != nil {
+		return HenchErr(err, map[string]interface{}{
+			"remotePath": remoteModDir,
+			"host":       machine.Hostname,
+		}, "While getting system info")
+	}
+
 	// transfer tar module
-	if err := machine.Transport.Put(TARGET, remoteModDir, "file"); err != nil {
+	if err := machine.Transport.Put(modulesTar, remoteModDir, "file"); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
 			"host":       machine.Hostname,
@@ -114,7 +123,7 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 	}
 
 	// untar the modules
-	cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModDir+TARGET, remoteModDir)
+	cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModDir+modulesTar, remoteModDir)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
@@ -123,7 +132,7 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 	}
 
 	// remove tar file
-	cmd = fmt.Sprintf("/bin/rm %s", remoteModDir+TARGET)
+	cmd = fmt.Sprintf("/bin/rm %s", remoteModDir+modulesTar)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"remotePath": remoteModDir,
@@ -134,16 +143,27 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 	return nil
 }
 
+// getModuleTar returns the name of the module tar file based off the system's os
+func getModuleTar(machine *Machine) (string, error) {
+	bytesBuf, err := machine.Transport.Exec("uname -a", nil, false)
+	if err != nil {
+		return "", err
+	}
+
+	osName := strings.ToLower(strings.Split(bytesBuf.String(), " ")[0])
+	return osName + "_" + MODULES_TARGET, nil
+}
+
 // Creates and populates modules.tar
-func createModulesTar(tasks []*Task) error {
-	// initialize set to hold module names
-	modSet := make(map[string]bool)
+func createModulesTar(tasks []*Task, osName string) error {
+	// initialize set to hold module names and paths
+	modSet := make(map[string]string)
 
 	// os.Create will O_TRUNC the file if it exists
-	tarfile, err := os.Create(TARGET)
+	tarfile, err := os.Create(osName + "_" + MODULES_TARGET)
 	if err != nil {
 		return HenchErr(err, map[string]interface{}{
-			"target": TARGET,
+			"target": osName + "_" + MODULES_TARGET,
 		}, "")
 	}
 	tarball := tar.NewWriter(tarfile)
@@ -154,39 +174,24 @@ func createModulesTar(tasks []*Task) error {
 	// NOTE: just transfer everything to local
 	for _, task := range tasks {
 		if _, ok := modSet[task.Module.Name]; !ok {
-			if _, _, err := task.Module.Resolve(); err != nil {
+			modulePath, err := task.Module.Resolve(osName)
+			if err != nil {
 				return HenchErr(err, map[string]interface{}{
 					"task": task.Name,
 				}, "")
 			}
-			modSet[task.Module.Name] = false
+			modSet[task.Module.Name] = modulePath
 		}
 	}
 
 	// tars all modules needed on remote machines
 	// NOTE: maybe we gotta zip them too
-	for _, modPath := range ModuleSearchPath {
-
-		// add all modules in every search path
-		for modName, added := range modSet {
-
-			// if module has not been tarred add it
-			if !added {
-				filePath := filepath.Join(modPath, modName)
-				_, err := os.Stat(filePath)
-
-				// if module does not exists don't error out because it just doesn't
-				// exist in this seach path
-				if err == nil {
-					if err := tarit(filePath, "", tarball); err != nil {
-						return HenchErr(err, map[string]interface{}{
-							"modPath": modPath,
-						}, "While populating modules.tar")
-					}
-					// set module added to be true
-					modSet[modName] = true
-				}
-			}
+	// add all modules in every search path
+	for _, modPath := range modSet {
+		if err := tarit(modPath, "", tarball); err != nil {
+			return HenchErr(err, map[string]interface{}{
+				"modPath": modPath,
+			}, "While populating modules.tar")
 		}
 	}
 
@@ -214,13 +219,16 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	fmt.Println("Creating modules.tar")
 
 	// creates and populates modules.tar
-	if err := createModulesTar(plan.Tasks); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"plan": plan.Name,
-		}, "While creating modules.tar")
+	osNames := []string{"darwin", "linux"}
+	for _, osName := range osNames {
+		if err := createModulesTar(plan.Tasks, osName); err != nil {
+			return HenchErr(err, map[string]interface{}{
+				"plan": plan.Name,
+			}, "While creating modules.tar")
+		}
 	}
 
-	fmt.Println("Transferring modules to all systems...")
+	Println("Transferring modules to all systems...")
 	// transport modules.tar to all machines
 	remoteModDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
@@ -233,7 +241,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 				"host": machine.Hostname,
 			}, "While transferring modules.tar")
 		}
-		fmt.Printf("Transferred to [ %s ]\n", machine.Hostname)
+		Printf("Transferred to [ %s ]\n", machine.Hostname)
 	}
 	if err := transferAndUntarModules(localhost(), remoteModDir); err != nil {
 		return HenchErr(err, map[string]interface{}{
@@ -241,10 +249,12 @@ func (plan *Plan) Setup(machines []*Machine) error {
 			"host": "127.0.0.1",
 		}, "While transferring modules.tar")
 	}
-	fmt.Println("Transferred to [ 127.0.0.1 ]")
+	Println("Transferred to [ 127.0.0.1 ]")
 
 	// remove unnecessary modules.tar
-	os.Remove("modules.tar")
+	for _, osName := range osNames {
+		os.Remove(osName + "_" + MODULES_TARGET)
+	}
 
 	Info(map[string]interface{}{
 		"plan":         plan.Name,

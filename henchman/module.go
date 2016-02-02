@@ -125,6 +125,8 @@ func NewModule(name string, params string) (Module, error) {
 }
 
 // Checks to see if a modules is valid and if it's a standalone module
+// NOTE: the first string return value is not used anywhere in code
+/*
 func (module Module) Resolve() (string, bool, error) {
 	standalone := true
 	for _, dir := range ModuleSearchPath {
@@ -150,6 +152,25 @@ func (module Module) Resolve() (string, bool, error) {
 	return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), map[string]interface{}{
 		"module":   module.Name,
 		"solution": "Check if module exists",
+	}, "")
+}
+*/
+
+func (module Module) Resolve(osName string) (string, error) {
+	for _, dir := range ModuleSearchPath {
+		fullPath := path.Join(dir, osName, module.Name)
+		finfo, err := os.Stat(fullPath)
+		if err != nil || finfo.IsDir() {
+			return fullPath, HenchErr(fmt.Errorf("Module %s couldn't be resolved. Not found or is a directory", module.Name), map[string]interface{}{
+				"module": module.Name,
+			}, "")
+		} else {
+			return fullPath, nil
+		}
+	}
+
+	return "", HenchErr(fmt.Errorf("Module %s couldn't be found.", module.Name), map[string]interface{}{
+		"module": module.Name,
 	}, "")
 }
 

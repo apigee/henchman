@@ -269,14 +269,16 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			// Checks if the module is a standalone or has dependecies
 			modPath := remoteModPath
-			_, standalone, err := task.Module.Resolve()
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
-			}
+			/*
+				_, standalone, err := task.Module.Resolve()
+				if err != nil {
+					return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
+				}
 
-			if !standalone {
-				modPath += "/exec"
-			}
+				if !standalone {
+					modPath += "/exec"
+				}
+			*/
 
 			Info(map[string]interface{}{
 				"mod path": remoteModPath,
@@ -345,8 +347,6 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 	return &taskResult, nil
 }
-
-const IGNORED_EXTS = "zip,tar,tar.gz"
 
 func processTemplate(moduleParams map[string]string, vars VarsMap, hostname string) error {
 	srcPath, present := moduleParams["src"]
