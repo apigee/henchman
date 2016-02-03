@@ -269,16 +269,20 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 
 			// Checks if the module is a standalone or has dependecies
 			modPath := remoteModPath
-			/*
-				_, standalone, err := task.Module.Resolve()
-				if err != nil {
-					return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
-				}
 
-				if !standalone {
-					modPath += "/exec"
-				}
-			*/
+			osName, err := getOsName(machine)
+			if err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "While retrieving osName")
+			}
+
+			_, standalone, err := task.Module.Resolve(osName)
+			if err != nil {
+				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
+			}
+
+			if !standalone {
+				modPath += "/exec"
+			}
 
 			Info(map[string]interface{}{
 				"mod path": remoteModPath,
