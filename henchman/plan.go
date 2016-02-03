@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	_ "reflect"
 	"sync"
+	"errors"
 
 	"github.com/mgutz/ansi"
 )
@@ -55,16 +56,24 @@ func updatePlanStats(state string, hostname string) {
 	planStats[hostname][state]++
 }
 
-func printPlanStats() {
+// NOTE: This function in addition to printing stats also figures out
+// if there were any errors or failures when executing the plan. A boolean true
+// is returned in that case
+func printPlanStats() (taskError bool) {
 	var str string
+	taskError = false
 	for hostname, states := range planStats {
 		str = SprintfAndFill(25, " ", "[ %s ]", hostname)
 		str += "=> "
 		for state, counter := range states {
+			if state == "failure" || state == "error" {
+				taskError = true
+			}
 			str += SprintfAndFill(20, " ", "%s: %d", state, counter)
 		}
 		fmt.Println(str)
 	}
+	return
 }
 
 func printTaskResults(taskResult *TaskResult, task *Task) {
@@ -305,7 +314,10 @@ func (plan *Plan) Execute(machines []*Machine) error {
 	}, "Plan Complete")
 	PrintfAndFill(75, "~", "PLAN STATS [ %s ] ", plan.Name)
 
-	printPlanStats()
+	taskError := printPlanStats()
+	if taskError {
+		return errors.New("One of the tasks failed or error'ed out")
+	}
 
 	return nil
 }
