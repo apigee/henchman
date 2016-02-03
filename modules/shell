@@ -10,7 +10,7 @@ import shlex
 
 params = json.load(sys.stdin)
 
-def construct_pipes(cmd):
+def construct_pipes(cmd, env):
     cmd_list = shlex.split(cmd, comments=True)
     splits = [[]]
     for a in cmd_list:
@@ -22,6 +22,7 @@ def construct_pipes(cmd):
     last_stdout = None
     for cmd_list in splits:
         p = subprocess.Popen(cmd_list,
+                             env=env,
                              stdin=last_stdout,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
@@ -30,6 +31,24 @@ def construct_pipes(cmd):
         last_stdout = p.stdout
         pipes.append(p)
     return pipes
+
+
+def parse_env_vars(line):
+    """Returns a dictionary of env variables
+    NOTE: How about duplicate keys?
+    FIXME: Breaks if there are '=' that within the value itself. Need a way to escape it.
+    """
+    split_line = [x.strip() for x in line.split()]
+    vars = {}
+    for s in split_line:
+        splitvars = s.split("=")
+        try:
+            k, v = splitvars[0].strip(), splitvars[1].strip()
+        except:
+            raise Exception("env vars should be in k=v format")
+        vars[k] = v
+    return vars
+
 
 # Params for this module
 # chdir: cd into the given directory to execute the shell command
@@ -40,8 +59,13 @@ pipes = []
 try:
     cmd = params.get("cmd")
     if not cmd:
-        raise Exception("Required parameter 'cmd' not found")        
-    pipes = construct_pipes(cmd)
+        raise Exception("Required parameter 'cmd' not found")
+    
+    os_env = os.environ.copy()
+    parsed_env = parse_env_vars(params.get("env", ""))
+    os_env.update(parsed_env)
+    
+    pipes = construct_pipes(cmd, os_env)
     last_pipe = pipes[-1]
     chdir = params.get("chdir")
     # FIXME: Error out if chdir cannot be stat'd
