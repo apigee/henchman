@@ -143,14 +143,24 @@ func transferAndUntarModules(machine *Machine, remoteModDir string) error {
 	return nil
 }
 
-// getModuleTar returns the name of the module tar file based off the system's os
-func getModuleTar(machine *Machine) (string, error) {
+// getOsName returns the os name of the machine
+func getOsName(machine *Machine) (string, error) {
 	bytesBuf, err := machine.Transport.Exec("uname -a", nil, false)
 	if err != nil {
 		return "", err
 	}
 
 	osName := strings.ToLower(strings.Split(bytesBuf.String(), " ")[0])
+	return osName, nil
+}
+
+// getModuleTar returns the name of the module tar file based off the system's os
+func getModuleTar(machine *Machine) (string, error) {
+	osName, err := getOsName(machine)
+	if err != nil {
+		return "", err
+	}
+
 	return osName + "_" + MODULES_TARGET, nil
 }
 
@@ -174,7 +184,7 @@ func createModulesTar(tasks []*Task, osName string) error {
 	// NOTE: just transfer everything to local
 	for _, task := range tasks {
 		if _, ok := modSet[task.Module.Name]; !ok {
-			modulePath, err := task.Module.Resolve(osName)
+			modulePath, _, err := task.Module.Resolve(osName)
 			if err != nil {
 				return HenchErr(err, map[string]interface{}{
 					"task": task.Name,

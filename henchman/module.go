@@ -126,11 +126,21 @@ func NewModule(name string, params string) (Module, error) {
 
 // Checks to see if a modules is valid and if it's a standalone module
 // NOTE: the first string return value is not used anywhere in code
-/*
-func (module Module) Resolve() (string, bool, error) {
+func (module Module) Resolve(osName string) (string, bool, error) {
 	standalone := true
+
+	// checks specific osName folder
 	for _, dir := range ModuleSearchPath {
-		fullPath := path.Join(dir, module.Name)
+		fullPath := path.Join(dir, osName, module.Name)
+		finfo, err := os.Stat(fullPath)
+		if err == nil && !finfo.IsDir() {
+			return fullPath, standalone, nil
+		}
+	}
+
+	// checks general folder
+	for _, dir := range ModuleSearchPath {
+		fullPath := path.Join(dir, "general", module.Name)
 		finfo, err := os.Stat(fullPath)
 		if err == nil {
 			if finfo.IsDir() {
@@ -154,8 +164,8 @@ func (module Module) Resolve() (string, bool, error) {
 		"solution": "Check if module exists",
 	}, "")
 }
-*/
 
+/*
 func (module Module) Resolve(osName string) (string, error) {
 	for _, dir := range ModuleSearchPath {
 		fullPath := path.Join(dir, osName, module.Name)
@@ -173,7 +183,7 @@ func (module Module) Resolve(osName string) (string, error) {
 		"module": module.Name,
 	}, "")
 }
-
+*/
 func (module Module) ExecOrder() ([]string, error) {
 	/*
 		execOrder := map[string][]string{"default": []string{"exec_module"},
