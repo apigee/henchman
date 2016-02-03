@@ -61,7 +61,7 @@ func TestValidModuleWithQuotes(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, name, mod.Name, "Module names should match")
-	assert.Equal(t, "echo 'foo bar'", mod.Params["test"], "Expected \"echo 'foo bar\"")	
+	assert.Equal(t, "echo 'foo bar'", mod.Params["cmd"], "Expected \"echo 'foo bar\"")
 }
 
 

@@ -90,14 +90,13 @@ func parseModuleArgs(args string) (map[string]string, error) {
 }
 
 func stripQuotes(args map[string]string) map[string]string {
-	removeQuotes := func(r rune) rune {
-		if r == '"' || r == '\'' {
-			return -1
-		}
-		return r
-	}
 	for k, v := range args {
-		args[k] = strings.Map(removeQuotes, v)
+		trimmed := strings.Trim(v, "\"")
+		if len(trimmed) == len(v) {
+			// Don't double trim the string
+			trimmed = strings.Trim(trimmed, "'")
+		}
+		args[k] = trimmed
 	}
 	return args
 }
