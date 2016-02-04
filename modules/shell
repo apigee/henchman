@@ -4,12 +4,20 @@
 import sys
 import json
 import os
+import os.path
 import subprocess
 import shlex
 
 params = json.load(sys.stdin)
 
+class SkipTaskException(Exception):
+    """Dummy exception to force a task skip"""
+    pass
+
+
 def construct_pipes(cmd, env):
+    """Given a command string figure out if there are pipes and
+    open a pipeline of sorts and return it"""
     cmd_list = shlex.split(cmd, comments=True)
     splits = [[]]
     for a in cmd_list:
@@ -52,14 +60,21 @@ def parse_env_vars(line):
 # Params for this module
 # chdir: cd into the given directory to execute the shell command
 # cmd: The command to run. Wrapped by quotes if there are spaces
+# creates: The file/directory that this cmd creates. Useful in cases where tasks has to be skipped the next time it's run.
+#          At the end of the command execution the path in creates is checked to see if the file/directory was created.
+#          If not, raises a failure.
 # loglevel: if debug, it shows you the entire output as part of 'output' key
 result = {}
 pipes = []
 try:
     cmd = params.get("cmd")
+    creates = params.get("creates")
     if not cmd:
         raise Exception("Required parameter 'cmd' not found")
     
+    if creates and os.path.exists(creates):
+        raise SkipTaskException("'{0}' exists. Nothing to do".format(creates))
+                    
     os_env = os.environ.copy()
     parsed_env = parse_env_vars(params.get("env", ""))
     os_env.update(parsed_env)
@@ -70,18 +85,24 @@ try:
     # FIXME: Error out if chdir cannot be stat'd
     if chdir:
         os.chdir(chdir)        
-    stdout, stderr = last_pipe.communicate()       
+    stdout, stderr = last_pipe.communicate()
+    # Check if the command created the file defined in creates
+    if creates and not os.path.exists(creates):
+        raise Exception("Expected {0} to be created.".format(creates))
+    
     result["status"] = "changed"
     result["msg"] = "exec'ed command"
     if last_pipe.returncode > 0:
         result["status"] = "failure"
-    result["output"] = {"stderr": stderr, "stdout": stdout}
+    result["output"] = {"stderr": stderr, "stdout": stdout}    
+except SkipTaskException as e:
+    result["status"] = "skipped"
+    result["msg"] = e.message
 except Exception as e:
     result["status"] = "error"
     result["msg"] = "Command exec'ed with error - {0}".format(e.message)
 
 json_result = json.dumps(result)
-
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
 sys.stdout.write(json_result)
