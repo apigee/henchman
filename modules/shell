@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # Shell module to execute
-import traceback
 import sys
 import json
 import os
@@ -79,7 +78,7 @@ try:
     result["output"] = {"stderr": stderr, "stdout": stdout}
 except Exception as e:
     result["status"] = "error"
-    result["msg"] = "Command exec'ed with errors.  Error - %s - %s" % (traceback.format_exc(), len(pipes))
+    result["msg"] = "Command exec'ed with error - {0}".format(e.message)
 
 json_result = json.dumps(result)
 
