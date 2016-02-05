@@ -58,7 +58,8 @@ func main() {
 
 	var cmd *exec.Cmd
 	if len(shellCmdList) > 1 {
-		cmd = exec.Command(shellCmdList[0], shellCmdList[1:]...)
+		cmd = exec.Command("bash", "-c", shellParams.Cmd)
+		//cmd = exec.Command(shellCmdList[0], shellCmdList[1:]...)
 	} else {
 		cmd = exec.Command(shellCmdList[0])
 	}
