@@ -2,27 +2,59 @@ package henchman
 
 import (
 	"fmt"
+	"sync"
 )
 
 type RollingDeploy struct {
-	numHosts float64
+	NumHosts float64
 }
 
 // ExecuteTasksOnMachines creates a go func to run the task set on a given slice of machines
-func (rollingDeploy RollingDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan) <-chan error {
+func (rd RollingDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan) <-chan error {
+	var wg sync.WaitGroup
 	errChan := make(chan error, 1)
-	go func() {
-		defer close(errChan)
-		for _, machine := range machines {
-			rollingDeploy.executeTasks(machine, plan, errChan)
-		}
-	}()
+
+	// NOTE: work in progress laid out to get ideas
+	// case 1 no num hosts variable
+	if rd.NumHosts == 0 {
+		go func() {
+			defer close(errChan)
+			for _, machine := range machines {
+				rd.executeTasks(machine, plan, errChan)
+			}
+		}()
+		// case 2 "whole number" specified
+	} else if rd.NumHosts > 1.0 {
+		go func() {
+			defer close(errChan)
+			for i := 0; i < len(machines); i += rd.NumHosts {
+				if i+rd.NumHosts < len(machines) {
+					for _, machine := range machines[i:(i + rd.NumHosts)] {
+						wg.Add(1)
+						go func(m *Machine) {
+							defer wg.Done()
+							rd.executeTasks(machine, plan, errChan)
+						}(machine)
+					}
+				} else {
+					for _, machine := range machines[i:] {
+						wg.Add(1)
+						go func(m *Machine) {
+							defer wg.Done()
+							rd.executeTasks(machine, plan, errChan)
+						}(machine)
+					}
+				}
+				wg.Wait()
+			}
+		}()
+	}
 
 	return errChan
 }
 
 // executeTasks sets up the final variable map, then renders and runs the task list
-func (rollingDeploy RollingDeploy) executeTasks(machine *Machine, plan *Plan, errs chan error) {
+func (rd RollingDeploy) executeTasks(machine *Machine, plan *Plan, errs chan error) {
 	registerMap := make(RegMap)
 	var actualMachine *Machine
 	for _, task := range plan.Tasks {
