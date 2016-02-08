@@ -13,6 +13,9 @@ mkdir -p artifacts
 
 ARTIFACTS=`pwd`/artifacts
 
+echo "Creating go module binaries"
+generateModulesBinaries.py
+
 for os in ${GOOSES}
 do
     for arch in ${GOARCHS}
