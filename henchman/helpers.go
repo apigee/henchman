@@ -2,24 +2,16 @@ package henchman
 
 import (
 	"archive/tar"
-	_ "encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	_ "reflect"
 	"strings"
 )
 
-// NOTE: This file is getting out of hand....
-
-/**
- * These functions deal with merging of maps
- */
-// source values will override dest values if override is true
-// else dest values will not be overridden
+// MergeMap(...) merges two map[string]interface{}.  Source values will override dest values if override is true
 func MergeMap(src map[string]interface{}, dst map[string]interface{}, override bool) {
 	for variable, value := range src {
 		if override == true {
