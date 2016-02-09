@@ -1,8 +1,9 @@
 package henchman
 
 import (
-	//"fmt"
 	"io/ioutil"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,14 +11,20 @@ import (
 )
 
 func TestTaskRunForSingleMachine(t *testing.T) {
-	mod := moduleTestSetup("sample_module")
-	defer moduleTestTeardown(mod)
-
 	origSearchPath := ModuleSearchPath
-	ModuleSearchPath = append(ModuleSearchPath, "/tmp")
+	modDir := createTempDir("henchman")
+	ModuleSearchPath = append(ModuleSearchPath, modDir)
 	defer func() {
 		ModuleSearchPath = origSearchPath
 	}()
+	defer os.RemoveAll(modDir)
+
+	shellPath := path.Join(modDir, "shell")
+	err := os.Mkdir(shellPath, 0755)
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(path.Join(shellPath, "shell"), []byte("ls -al"), 0644)
+	mod, err := NewModule("shell", "foo=bar")
 
 	task := Task{}
 	task.Name = "test"
@@ -31,7 +38,7 @@ func TestTaskRunForSingleMachine(t *testing.T) {
 
 	regMap := make(RegMap)
 
-	_, err := task.Run(&localhost, task.Vars, regMap)
+	_, err = task.Run(&localhost, task.Vars, regMap)
 	require.NoError(t, err, "There shouldn't have been any errors")
 }
 

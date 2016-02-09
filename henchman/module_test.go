@@ -83,41 +83,44 @@ func TestInvalidArgsModule2(t *testing.T) {
 
 func TestModuleResolve(t *testing.T) {
 	origSearchPath := ModuleSearchPath
-	ModuleSearchPath = append(ModuleSearchPath, "/tmp")
+	modDir := createTempDir("henchman")
+	ModuleSearchPath = append(ModuleSearchPath, modDir)
 	defer func() {
 		ModuleSearchPath = origSearchPath
 	}()
-	writeTempFile([]byte("ls -al"), "shell")
-	defer rmTempFile("/tmp/shell")
+	defer os.RemoveAll(modDir)
+
+	shellPath := path.Join(modDir, "shell")
+	err := os.Mkdir(shellPath, 0755)
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(path.Join(shellPath, "shell.linux"), []byte("ls -al"), 0644)
 	mod, err := NewModule("shell", "foo=bar")
-	//mod, err := setupTestShellModule()
 
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
-	fullPath, standalone, err := mod.Resolve()
+	fullPath, standalone, err := mod.Resolve("linux")
 
 	require.NoError(t, err)
 	assert.Equal(t, true, standalone)
-	assert.Equal(t, "/tmp/shell", fullPath, "Got incorrect fullPath")
+	assert.Equal(t, path.Join(shellPath, "shell.linux"), fullPath, "Got incorrect fullPath")
 
-	err = os.Mkdir("/tmp/curl", 0777)
-	assert.NoError(t, err)
+	curlPath := path.Join(modDir, "curl", "curl")
+	err = os.MkdirAll(curlPath, 0755)
+	require.NoError(t, err)
 
-	err = ioutil.WriteFile("/tmp/curl/exec", []byte("ls -al"), 0644)
-	assert.NoError(t, err)
-	defer os.RemoveAll("/tmp/curl")
-
+	err = ioutil.WriteFile(path.Join(curlPath, "exec"), []byte("ls -al"), 0644)
 	mod, err = NewModule("curl", "foo=bar")
-	//mod, err := setupTestShellModule()
+
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
-	fullPath, standalone, err = mod.Resolve()
-	assert.Equal(t, false, standalone)
+	fullPath, standalone, err = mod.Resolve("linux")
 
 	require.NoError(t, err)
-	assert.Equal(t, "/tmp/curl", fullPath, "Got incorrect fullPath")
+	assert.Equal(t, false, standalone)
+	assert.Equal(t, curlPath, fullPath, "Got incorrect fullPath")
 }
 
 func setupTestShellModule() (Module, error) {
@@ -133,7 +136,7 @@ func TestNonexistentModuleResolve(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mod)
 
-	fullPath, _, err := mod.Resolve()
+	fullPath, _, err := mod.Resolve("linux")
 
 	require.Error(t, err)
 	require.Equal(t, "", fullPath, "Fullpath should have been empty")
