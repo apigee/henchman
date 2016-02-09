@@ -25,5 +25,5 @@ _testmain.go
 *.swp
 
 bin
-modules/*/darwin
-modules/*/linux
+modules/*/*.darwin
+modules/*/*.linux
