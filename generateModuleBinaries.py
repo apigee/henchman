@@ -7,7 +7,7 @@ import os.path
 
 def create_binary_name(source, os_name):
   binary_name = source.split("/")
-  binary_name[2] = os_name
+  binary_name[2] = binary_name[1]+"."+os_name
   return "/".join(binary_name)
 
 recompile_all = False

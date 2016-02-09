@@ -104,49 +104,34 @@ func printShellModule(task *Task) {
  * These functions are helpers of plan.Setup
  */
 // transfers the modules.tar to each machine, untars, and removes the tar file
-func transferAndUntarModules(machine *Machine, remoteModDir string) error {
+func transferAndUntarModules(machine *Machine) error {
 	// create dir
-	if _, err := machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", remoteModDir),
+	if _, err := machine.Transport.Exec(fmt.Sprintf("mkdir -p %s", REMOTE_DIR),
 		nil, false); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"remotePath": remoteModDir,
-			"host":       machine.Hostname,
-		}, "While creating dir")
+		return HenchErr(err, nil, "While creating dir")
 	}
 
 	// gets the name of the proper module tar
 	modulesTar, err := getModuleTar(machine)
 	if err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"remotePath": remoteModDir,
-			"host":       machine.Hostname,
-		}, "While getting system info")
+		return HenchErr(err, nil, "While getting system info")
 	}
 
 	// transfer tar module
-	if err := machine.Transport.Put(modulesTar, remoteModDir, "file"); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"remotePath": remoteModDir,
-			"host":       machine.Hostname,
-		}, "While transfering tar")
+	if err := machine.Transport.Put(modulesTar, REMOTE_DIR, "file"); err != nil {
+		return HenchErr(err, nil, "While transfering tar")
 	}
 
 	// untar the modules
-	cmd := fmt.Sprintf("tar -xvf %s -C %s", remoteModDir+modulesTar, remoteModDir)
+	cmd := fmt.Sprintf("tar -xvf %s -C %s", REMOTE_DIR+modulesTar, REMOTE_DIR)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"remotePath": remoteModDir,
-			"host":       machine.Hostname,
-		}, "While untarring")
+		return HenchErr(err, nil, "While untarring")
 	}
 
 	// remove tar file
-	cmd = fmt.Sprintf("/bin/rm %s", remoteModDir+modulesTar)
+	cmd = fmt.Sprintf("/bin/rm %s", REMOTE_DIR+modulesTar)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-		return HenchErr(err, map[string]interface{}{
-			"remotePath": remoteModDir,
-			"host":       machine.Hostname,
-		}, "While removing tar in remote path")
+		return HenchErr(err, nil, "While removing tar in remote path")
 	}
 
 	return nil
@@ -238,8 +223,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	fmt.Println("Creating modules.tar")
 
 	// creates and populates modules.tar
-	osNames := []string{"darwin", "linux"}
-	for _, osName := range osNames {
+	for _, osName := range OsNames {
 		if err := createModulesTar(plan.Tasks, osName); err != nil {
 			return HenchErr(err, map[string]interface{}{
 				"plan": plan.Name,
@@ -249,20 +233,20 @@ func (plan *Plan) Setup(machines []*Machine) error {
 
 	Println("Transferring modules to all systems...")
 	// transport modules.tar to all machines
-	remoteModDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
 		if machine.Hostname == "localhost" {
 			continue
 		}
-		if err := transferAndUntarModules(machine, remoteModDir); err != nil {
+		if err := transferAndUntarModules(machine); err != nil {
 			return HenchErr(err, map[string]interface{}{
-				"plan": plan.Name,
-				"host": machine.Hostname,
+				"plan":       plan.Name,
+				"remotePath": REMOTE_DIR,
+				"host":       machine.Hostname,
 			}, "While transferring modules.tar")
 		}
 		Printf("Transferred to [ %s ]\n", machine.Hostname)
 	}
-	if err := transferAndUntarModules(localhost(), remoteModDir); err != nil {
+	if err := transferAndUntarModules(localhost()); err != nil {
 		return HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
 			"host": "127.0.0.1",
@@ -271,7 +255,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	Println("Transferred to [ 127.0.0.1 ]")
 
 	// remove unnecessary modules.tar
-	for _, osName := range osNames {
+	for _, osName := range OsNames {
 		os.Remove(osName + "_" + MODULES_TARGET)
 	}
 
@@ -286,21 +270,20 @@ func (plan *Plan) Setup(machines []*Machine) error {
 
 // For now it just removes the .henchman folder in each system
 func (plan *Plan) Cleanup(machines []*Machine) error {
-	remoteHenchmanDir := "${HOME}/.henchman/"
 	for _, machine := range machines {
-		if _, err := machine.Transport.Exec(fmt.Sprintf("rm -rf %s", remoteHenchmanDir),
+		if _, err := machine.Transport.Exec(fmt.Sprintf("rm -rf %s", REMOTE_DIR),
 			nil, false); err != nil {
 			return HenchErr(err, map[string]interface{}{
-				"remotePath": remoteHenchmanDir,
+				"remotePath": REMOTE_DIR,
 				"host":       machine.Hostname,
 			}, "While removing .henchman")
 		}
 	}
 
-	if _, err := localhost().Transport.Exec(fmt.Sprintf("rm -rf %s", remoteHenchmanDir),
+	if _, err := localhost().Transport.Exec(fmt.Sprintf("rm -rf %s", REMOTE_DIR),
 		nil, false); err != nil {
 		return HenchErr(err, map[string]interface{}{
-			"remotePath": remoteHenchmanDir,
+			"remotePath": REMOTE_DIR,
 			"host":       "127.0.0.1",
 		}, "While removing .henchman")
 	}

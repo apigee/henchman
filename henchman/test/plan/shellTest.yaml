@@ -1,0 +1,13 @@
+name: "Shell Test"
+hosts:
+  - individual
+debug: true
+tasks:
+  - name: "Task 1"
+    shell: cmd="echo hello | grep hello"
+  - name: "Task 2"
+    shell: cmd="echo hello >> tmp.txt"
+  - name: "Task 3"
+    shell: cmd="cat tmp.txt"
+  - name: "Task 4"
+    shell: cmd="rm tmp.txt"

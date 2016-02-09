@@ -123,31 +123,55 @@ func NewModule(name string, params string) (Module, error) {
 	return module, nil
 }
 
-// Checks to see if a modules is valid and if it's a standalone module
-// NOTE: the first string return value is not used anywhere in code
+// Resolve(...) checks to see if a module is valid and if it's a standalone module
 func (module Module) Resolve(osName string) (string, bool, error) {
-	standalone := true
+	fullPath, err := checkForBinary(module.Name, osName)
+	if err != nil {
+		return "", false, err
+	}
+	if fullPath != "" {
+		return fullPath, true, nil
+	}
 
+	fullPath, standalone, err := checkForScripts(module.Name)
+	if err != nil {
+		return "", false, err
+	}
+
+	return fullPath, standalone, nil
+}
+
+// checkForBinary is a helper function to module.Resolve(...).  It checks for specific os binaries in a the specified module folder.
+func checkForBinary(modName, osName string) (string, error) {
 	// checks specific osName folder
 	for _, dir := range ModuleSearchPath {
-		fullPath := path.Join(dir, osName, module.Name)
+		fullPath := path.Join(dir, modName, modName+"."+osName)
 		finfo, err := os.Stat(fullPath)
 		if err == nil && !finfo.IsDir() {
-			return fullPath, standalone, nil
+			return fullPath, nil
+		} else if err != nil && !os.IsNotExist(err) {
+			return "", HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not get info on binary %s", modName, osName), map[string]interface{}{
+				"module": modName,
+			}, "")
 		}
 	}
 
-	// checks general folder
+	return "", nil
+}
+
+// checkForScripts is a helper function to module.Resolve(...).  It checks for module scripts.  Module scripts are the name of the module itself.  E.g shell would be shell
+func checkForScripts(modName string) (string, bool, error) {
+	standalone := true
 	for _, dir := range ModuleSearchPath {
-		fullPath := path.Join(dir, "general", module.Name)
+		fullPath := path.Join(dir, modName, modName)
 		finfo, err := os.Stat(fullPath)
 		if err == nil {
 			if finfo.IsDir() {
 				tmpPath := path.Join(fullPath, "exec")
 				finfo, err = os.Stat(tmpPath)
 				if err != nil || finfo.IsDir() {
-					return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", module.Name), map[string]interface{}{
-						"module":   module.Name,
+					return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", modName), map[string]interface{}{
+						"module":   modName,
 						"solution": "Check if the non-standalone module has an exec.  Or the standalone module isn't in a folder",
 					}, "")
 				} else {
@@ -158,31 +182,13 @@ func (module Module) Resolve(osName string) (string, bool, error) {
 		}
 	}
 
-	return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved", module.Name), map[string]interface{}{
-		"module":   module.Name,
+	return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved", modName), map[string]interface{}{
+		"module":   modName,
 		"solution": "Check if module exists",
 	}, "")
 }
 
-/*
-func (module Module) Resolve(osName string) (string, error) {
-	for _, dir := range ModuleSearchPath {
-		fullPath := path.Join(dir, osName, module.Name)
-		finfo, err := os.Stat(fullPath)
-		if err != nil || finfo.IsDir() {
-			return fullPath, HenchErr(fmt.Errorf("Module %s couldn't be resolved. Not found or is a directory", module.Name), map[string]interface{}{
-				"module": module.Name,
-			}, "")
-		} else {
-			return fullPath, nil
-		}
-	}
-
-	return "", HenchErr(fmt.Errorf("Module %s couldn't be found.", module.Name), map[string]interface{}{
-		"module": module.Name,
-	}, "")
-}
-*/
+// ExecOrder() returns the execution order of specific modules
 func (module Module) ExecOrder() ([]string, error) {
 	/*
 		execOrder := map[string][]string{"default": []string{"exec_module"},
