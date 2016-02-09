@@ -77,7 +77,9 @@ func main() {
 	// if no state is present assume it's present
 	if yumParams.State == "" {
 		yumParams.State = "present"
-	} else if yumParams.State != "present" || yumParams.State != "absent" {
+	}
+
+	if yumParams.State != "present" && yumParams.State != "absent" {
 		panic("Valid states are 'present' or 'absent'")
 	}
 
