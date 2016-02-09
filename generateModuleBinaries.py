@@ -19,7 +19,7 @@ try:
     for os_name in ["linux", "darwin"]:
       binary_name = create_binary_name(go_file, os_name)
       if recompile_all or not os.path.isfile(binary_name):
-        cmd = "GOOS=%s go build -o %s %s" % (os_name, binary_name, go_file)
+        cmd = "GOOS=%s godep go build -o %s %s" % (os_name, binary_name, go_file)
         print 'Executing => "%s"' % cmd
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
