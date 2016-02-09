@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"encoding/json"
-	"github.com/flynn/go-shlex"
 )
 
 type ShellModule struct {
 	Cmd   string
 	Chdir string
 	Env   string
+	Shell string
 }
 
 var result map[string]interface{} = map[string]interface{}{}
@@ -47,22 +47,15 @@ func main() {
 		panic("Required parameter 'cmd' not found")
 	}
 
+	if shellParams.Shell == "" {
+		shellParams.Shell = "sh"
+	}
 	if err := setEnv(shellParams.Env); err != nil {
 		panic("While setting env vars, " + err.Error())
 	}
 
-	shellCmdList, err := shlex.Split(shellParams.Cmd)
-	if err != nil {
-		panic("While shlexing cmd, " + err.Error())
-	}
-
 	var cmd *exec.Cmd
-	if len(shellCmdList) > 1 {
-		cmd = exec.Command("bash", "-c", shellParams.Cmd)
-		//cmd = exec.Command(shellCmdList[0], shellCmdList[1:]...)
-	} else {
-		cmd = exec.Command(shellCmdList[0])
-	}
+	cmd = exec.Command("/bin/"+shellParams.Shell, "-c", shellParams.Cmd)
 	cmd.Dir = shellParams.Chdir
 
 	var stdout, stderr bytes.Buffer

@@ -250,8 +250,8 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		return &TaskResult{}, HenchErr(err, nil, "")
 	}
 
-	remoteModDir := "${HOME}/.henchman/"
-	remoteModPath := filepath.Join(remoteModDir, task.Module.Name)
+	REMOTE_DIR := "${HOME}/.henchman/"
+
 	// NOTE: Info or Debug level
 	Debug(map[string]interface{}{
 		"task":   task.Name,
@@ -265,24 +265,24 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 		switch execStep {
 		// Exec Order for Default
 		case "exec_module":
-			// executes module by calling the copied module remotely
-
 			// Checks if the module is a standalone or has dependecies
-			modPath := remoteModPath
-
 			osName, err := getOsName(machine)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While retrieving osName")
 			}
 
-			_, standalone, err := task.Module.Resolve(osName)
+			modPath, standalone, err := task.Module.Resolve(osName)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
 			}
 
+			// Creates the remoteModPath to use the module
+			modPathChunks := strings.Split(modPath, "/")
+			modPath = modPathChunks[len(modPathChunks)-1]
 			if !standalone {
 				modPath += "/exec"
 			}
+			remoteModPath := filepath.Join(REMOTE_DIR, modPath)
 
 			Info(map[string]interface{}{
 				"mod path": remoteModPath,
@@ -295,10 +295,12 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "In exec_module while json marshalling")
 			}
-			buf, err := machine.Transport.Exec(modPath, jsonParams, task.Sudo)
+
+			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
 			if err != nil {
 				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
 			}
+
 			//This should not be empty
 			err = setTaskResult(&taskResult, buf)
 			if err != nil {
@@ -317,9 +319,9 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 			}
 
 			if info.IsDir() {
-				err = machine.Transport.Put(srcPath, remoteModDir, "dir")
+				err = machine.Transport.Put(srcPath, REMOTE_DIR, "dir")
 			} else {
-				err = machine.Transport.Put(srcPath, remoteModDir, "file")
+				err = machine.Transport.Put(srcPath, REMOTE_DIR, "file")
 			}
 
 			if err != nil {
