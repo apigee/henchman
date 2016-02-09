@@ -8,6 +8,7 @@ general:
   branches:
     only:
       - master
+      - modules_in_go
 
 dependencies:
   pre:
