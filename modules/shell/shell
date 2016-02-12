@@ -55,7 +55,6 @@ def parse_env_vars(line):
         vars[k] = v
     return vars
 
-
 # Params for this module
 # chdir: cd into the given directory to execute the shell command
 # cmd: The command to run. Wrapped by quotes if there are spaces
