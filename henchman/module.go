@@ -171,8 +171,9 @@ func checkForScripts(modName string) (string, bool, error) {
 				finfo, err = os.Stat(tmpPath)
 				if err != nil || finfo.IsDir() {
 					return "", standalone, HenchErr(fmt.Errorf("Module %s couldn't be resolved. Could not find exec", modName), map[string]interface{}{
-						"module":   modName,
-						"solution": "Check if the non-standalone module has an exec.  Or the standalone module isn't in a folder",
+						"module":  modName,
+						"mod dir": fullPath,
+						//"solution": "Check if the non-standalone module has an exec.  Or the standalone module isn't in a folder",
 					}, "")
 				} else {
 					standalone = false
