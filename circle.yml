@@ -8,12 +8,10 @@ general:
   branches:
     only:
       - master
-      - modules_in_go
 
 dependencies:
   pre:
     - go get github.com/tools/godep
-    - go get github.com/GPMGo/gopm
   override:
     - mkdir -p "$GOPATH/src/$IMPORT_PATH"
     - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
