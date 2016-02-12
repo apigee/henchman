@@ -21,7 +21,7 @@ dependencies:
 test:
   pre:
     # Getting import errors in circleci
-    - gopm get github.com/apigee/henchman@branch:modules_in_go
+    - go get github.com/apigee/henchman
     - godep go vet -x ./...
   override:
     - godep go test -v ./...
