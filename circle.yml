@@ -13,6 +13,7 @@ general:
 dependencies:
   pre:
     - go get github.com/tools/godep
+    - go get github.com/GPMGo/gopm
   override:
     - mkdir -p "$GOPATH/src/$IMPORT_PATH"
     - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
@@ -20,7 +21,7 @@ dependencies:
 test:
   pre:
     # Getting import errors in circleci
-    #- go get github.com/apigee/henchman/tree/modules_in_go
+    - gopm get github.com/apigee/henchman/tree/modules_in_go
     - godep go vet -x ./...
   override:
     - godep go test -v ./...
