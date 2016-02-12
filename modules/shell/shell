@@ -99,7 +99,7 @@ except SkipTaskException as e:
 
 except Exception as e:
     result["status"] = "error"
-    result["msg"] = "Command exec'ed with error - {0}".format(e.message)
+    result["msg"] = "Command exec'ed with error - %s" % str(e)
 
 json_result = json.dumps(result)
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)

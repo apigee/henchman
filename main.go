@@ -107,7 +107,6 @@ func executePlan(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	fmt.Println("STARTING>>>>>>>>>>>>>>>>>>>>>")
 	// Step 1: Validate Modules path and see if it exists
 	modulesPath := c.String("modules")
 	user := c.String("user")
