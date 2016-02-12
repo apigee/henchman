@@ -1,0 +1,17 @@
+[target]
+path = github.com/apigee/henchman
+
+[deps]
+github.com/codegangsta/cli = branch:master
+github.com/flosch/pongo2 = 
+github.com/flynn/go-shlex = 
+github.com/mgutz/ansi = 
+github.com/pborman/uuid = 
+github.com/pkg/sftp = 
+golang.org/x/crypto = 
+gopkg.in/Sirupsen/logrus.v0 = 
+gopkg.in/yaml.v2 = 
+
+[res]
+include = conf|etc|public|scripts|templates
+
