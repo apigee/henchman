@@ -24,3 +24,6 @@ tasks:
    - name: "Copy Two"
      copy: src="henchman/test/templates/" dest="copies/copes/" override="false"
      debug: true
+   - name: "Copy File"
+     copy: src="henchman/test/templates/temp1" dest="copies/hello" mode=0777
+     debug: true

@@ -47,12 +47,14 @@ try:
       if not os.path.exists(dirs):
         os.makedirs(dirs)
 
-    if os.path.isdir(dest):
+
+    # doesn't do anything. using relpath wrong
+    rmtSrc = os.path.relpath(params.get("rmtSrc"))
+    if os.path.isdir(rmtSrc):
       fType = "directory"
     else:
       fType = "file"
 
-    rmtSrc = os.path.relpath(params.get("rmtSrc"))
     if override:
       # remove the existing dest
       if os.path.exists(dest):

@@ -18,6 +18,7 @@ type YumModule struct {
 }
 
 func (ym *YumModule) IsInstalled() bool {
+	// can also use 'yum list installed <package>-<version>'
 	cmd := exec.Command("rpm", "-qa", ym.Name)
 	output, err := cmd.Output()
 	if err != nil {
