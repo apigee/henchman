@@ -23,7 +23,7 @@ try:
     url = "'%s'" % url
 
     msg = ""
-    if state == "present":
+    if state == "present" || state == "":
         commands = ["rpm", "-ivh", url]
         msg = "Successfully installed package %s" % url
     elif state == "absent":
