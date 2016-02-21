@@ -32,6 +32,13 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
+		result["msg"] = result["msg"].(string) + fmt.Sprintf(" - %v", len(output))
+
+		output, err = json.Marshal(result)
+		if err != nil {
+			panic(err)
+		}
 		fmt.Print(string(output))
 	}()
 
@@ -68,7 +75,7 @@ func main() {
 		result["status"] = "changed"
 	}
 
-	result["msg"] = "exec'ed command"
+	result["msg"] = "executed command"
 	result["output"] = map[string]string{
 		"stdout": stdout.String(),
 		"stderr": stderr.String(),
