@@ -28,3 +28,4 @@ bin
 modules/*/*.darwin
 modules/*/*.linux
 *.pem
+.DS_Store
