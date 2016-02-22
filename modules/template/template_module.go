@@ -61,8 +61,11 @@ func main() {
 	}
 
 	// Creates all necessary nested directories
-	if err := os.MkdirAll(templateParams.Dest, 0755); err != nil {
-		panic(fmt.Sprintf("Error creating directories - %s", err.Error()))
+	_, err := os.Stat(templateParams.Dest)
+	if os.IsNotExist(err) {
+		if err := os.MkdirAll(templateParams.Dest, 0755); err != nil {
+			panic(fmt.Sprintf("Error creating directories - %s", err.Error()))
+		}
 	}
 
 	if override {
