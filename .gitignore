@@ -27,3 +27,4 @@ _testmain.go
 bin
 modules/*/*.darwin
 modules/*/*.linux
+*.pem
