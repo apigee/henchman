@@ -33,7 +33,7 @@ type RegMap map[string]interface{}
 type Plan struct {
 	Name      string
 	Inventory Inventory
-	Deploy    Deploy
+	Deploy    DeployInterface
 	Vars      VarsMap
 	Tasks     []*Task
 }
@@ -309,8 +309,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 
 		errorsChan := mergeErrs(machineChans)
 	*/
-	plan.Deploy.InitDeployMethod()
-	errorsChan := plan.Deploy.DeployInterface.ExecuteTasksOnMachines(machines, plan)
+	errorsChan := plan.Deploy.ExecuteTasksOnMachines(machines, plan)
 	err := <-errorsChan
 	if err != nil {
 		return err

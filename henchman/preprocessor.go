@@ -238,13 +238,13 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type PlanProxy struct {
-	Name            string       `yaml:"name"`
-	Sudo            bool         `yaml:"sudo"`
-	Debug           bool         `yaml:"debug"`
-	Deploy          Deploy       `yaml:"deploy"`
-	TaskProxies     []*TaskProxy `yaml:"tasks"`
-	VarsProxy       *VarsProxy   `yaml:"vars"`
-	InventoryGroups []string     `yaml:"hosts"`
+	Name            string                 `yaml:"name"`
+	Sudo            bool                   `yaml:"sudo"`
+	Debug           bool                   `yaml:"debug"`
+	Deploy          map[string]interface{} `yaml:"deploy"`
+	TaskProxies     []*TaskProxy           `yaml:"tasks"`
+	VarsProxy       *VarsProxy             `yaml:"vars"`
+	InventoryGroups []string               `yaml:"hosts"`
 }
 
 // Checks the a slice of TaskProxy ptrs passed in by a Plan and determines
@@ -442,6 +442,32 @@ func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	return px.VarsProxy.Vars, nil
 }
 
+func (px *PlanProxy) PreprocessDeploy() (DeployInterface, error) {
+	method, present := px.Deploy["method"]
+	if !present {
+		return nil, HenchErr(fmt.Errorf("Need to have 'method' in Deploy field"), nil, "")
+	}
+
+	switch method.(string) {
+	case "rolling":
+		numHosts := 0.0
+		numHostsProxy, present := px.Deploy["num_hosts"]
+		if present {
+			switch numHostsProxy.(type) {
+			case int:
+				numHosts = float64(numHostsProxy.(int))
+			case float64:
+				numHosts = numHostsProxy.(float64)
+			default:
+				return nil, HenchErr(ErrWrongType("num_hosts", numHostsProxy, "float64 or int"), nil, "")
+			}
+		}
+		return RollingDeploy{NumHosts: numHosts}, nil
+	}
+
+	return StandardDeploy{}, nil
+}
+
 // PreprocessPlan calls the other preprocessing compenents to create a plan struct.
 func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	px, err := newPlanProxy(buf)
@@ -452,7 +478,13 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	plan := Plan{}
 	plan.Inventory = *inv
 	plan.Name = px.Name
-	plan.Deploy = px.Deploy
+	plan.Deploy, err = px.PreprocessDeploy()
+	if err != nil {
+		return nil, HenchErr(err, map[string]interface{}{
+			"plan":             plan.Name,
+			"while_processing": "vars",
+		}, "Error processing vars")
+	}
 
 	//common vars processing
 	vars := make(VarsMap)

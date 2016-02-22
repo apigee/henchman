@@ -16,7 +16,7 @@ func (rd RollingDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan) 
 
 	// NOTE: work in progress laid out to get ideas
 	// case 1 no num hosts variable
-	if rd.NumHosts == 0 {
+	if rd.NumHosts == 0 || rd.NumHosts == 1 {
 		go func() {
 			defer close(errChan)
 			for _, machine := range machines {
@@ -27,9 +27,10 @@ func (rd RollingDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan) 
 	} else if rd.NumHosts > 1.0 {
 		go func() {
 			defer close(errChan)
-			for i := 0; i < len(machines); i += rd.NumHosts {
-				if i+rd.NumHosts < len(machines) {
-					for _, machine := range machines[i:(i + rd.NumHosts)] {
+			numHosts := int(rd.NumHosts)
+			for i := 0; i < len(machines); i += numHosts {
+				if i+numHosts < len(machines) {
+					for _, machine := range machines[i:(i + numHosts)] {
 						wg.Add(1)
 						go func(m *Machine) {
 							defer wg.Done()
