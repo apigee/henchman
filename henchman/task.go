@@ -19,18 +19,18 @@ import (
 var renderLock sync.Mutex
 
 type Task struct {
-	Id           string
-	Debug        bool
-	IgnoreErrors bool `yaml:"ignore_errors"`
-	Local        bool
-	Module       Module
-	Name         string
-	Register     string
-	Retry        int
-	Sudo         bool
-	Vars         VarsMap
-	When         string
-	WithItems    interface{} `yaml:"with_items"`
+	Id           string      `yaml:",omitempty"`
+	Name         string      `yaml:",omitempty"`
+	Module       Module      `yaml:",omitempty"`
+	When         string      `yaml:",omitempty"`
+	Register     string      `yaml:",omitempty"`
+	Retry        int         `yaml:",omitempty"`
+	Sudo         bool        `yaml:",omitempty"`
+	Debug        bool        `yaml:",omitempty"`
+	IgnoreErrors bool        `yaml:"ignore_errors,omitempty"`
+	Local        bool        `yaml:",omitempty"`
+	Vars         VarsMap     `yaml:",omitempty"`
+	WithItems    interface{} `yaml:"with_items,omitempty"`
 }
 
 type TaskResult struct {

@@ -187,29 +187,39 @@ func executePlan(c *cli.Context) {
 		henchman.Fatal(henchErr.Fields, "Error Preprocessing Plan")
 	}
 
-	// Step 3.5: Setup plan and execute
-	if err := plan.Setup(machines); err != nil {
+	err = plan.PrintPlan(machines)
+	if err != nil {
 		henchErr := henchman.HenchErr(err, map[string]interface{}{
+			"plan":  planFile,
 			"error": err.Error(),
 		}, "").(*henchman.HenchmanError)
-		henchman.Fatal(henchErr.Fields, "Error in plan setup")
+		henchman.Fatal(henchErr.Fields, "Error Printing Plan")
 	}
-
-	if err := plan.Execute(machines); err != nil {
-		henchErr := henchman.HenchErr(err, map[string]interface{}{
-			"error": err.Error(),
-		}, "").(*henchman.HenchmanError)
-		henchman.Fatal(henchErr.Fields, "Error in executing plan")
-	}
-
-	if c.Bool("cleanup") {
-		if err := plan.Cleanup(machines); err != nil {
+	/*
+		// Step 3.5: Setup plan and execute
+		if err := plan.Setup(machines); err != nil {
 			henchErr := henchman.HenchErr(err, map[string]interface{}{
 				"error": err.Error(),
 			}, "").(*henchman.HenchmanError)
-			henchman.Fatal(henchErr.Fields, "Error in plan cleanup")
+			henchman.Fatal(henchErr.Fields, "Error in plan setup")
 		}
-	}
+
+		if err := plan.Execute(machines); err != nil {
+			henchErr := henchman.HenchErr(err, map[string]interface{}{
+				"error": err.Error(),
+			}, "").(*henchman.HenchmanError)
+			henchman.Fatal(henchErr.Fields, "Error in executing plan")
+		}
+
+		if c.Bool("cleanup") {
+			if err := plan.Cleanup(machines); err != nil {
+				henchErr := henchman.HenchErr(err, map[string]interface{}{
+					"error": err.Error(),
+				}, "").(*henchman.HenchmanError)
+				henchman.Fatal(henchErr.Fields, "Error in plan cleanup")
+			}
+		}
+	*/
 }
 
 var minversion string

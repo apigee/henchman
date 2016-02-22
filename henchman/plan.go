@@ -2,13 +2,14 @@ package henchman
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"os"
 	_ "path/filepath"
 	_ "reflect"
 	"strings"
 	"sync"
-	"errors"
 
 	"github.com/mgutz/ansi"
 )
@@ -287,6 +288,80 @@ func (plan *Plan) Cleanup(machines []*Machine) error {
 			"host":       "127.0.0.1",
 		}, "While removing .henchman")
 	}
+
+	return nil
+}
+
+// PrintPlan(...) prints out the plan that's going to be run.  Basically what a processed plan file would look like
+func (t *Task) MarshalYAML() (interface{}, error) {
+	tp := Task{}
+	if t.Name != "" {
+		tp.Name = t.Name
+	}
+	tp.Module = t.Module
+	if t.When != "" {
+		tp.When = t.When
+	}
+	if t.Register != "" {
+		tp.Register = t.Register
+	}
+	if t.Retry != 0 {
+		tp.Retry = t.Retry
+	}
+	if t.Sudo != false {
+		tp.Sudo = t.Sudo
+	}
+	if t.Debug != false {
+		tp.Debug = t.Debug
+	}
+	if t.IgnoreErrors != false {
+		tp.IgnoreErrors = t.IgnoreErrors
+	}
+	if t.Local != false {
+		tp.Local = t.Local
+	}
+	if t.WithItems != nil {
+		tp.WithItems = t.WithItems
+	}
+	if len(t.Vars) != 0 {
+		tp.Vars = t.Vars
+	}
+
+	return tp, nil
+}
+
+func (m *Machine) MarshalYAML() (interface{}, error) {
+	mp := struct {
+		Hostname string
+		Vars     VarsMap `yaml:",omitempty"`
+	}{
+		Hostname: m.Hostname,
+	}
+
+	if len(m.Vars) != 0 {
+		mp.Vars = m.Vars
+	}
+	return mp, nil
+}
+func (plan *Plan) PrintPlan(machines []*Machine) error {
+	demoPlan := struct {
+		Name  string
+		Hosts []*Machine
+		Vars  VarsMap
+		Tasks []*Task
+	}{}
+
+	demoPlan.Name = plan.Name
+	demoPlan.Hosts = machines
+	demoPlan.Vars = plan.Vars
+	demoPlan.Tasks = plan.Tasks
+
+	buf, err := yaml.Marshal(demoPlan)
+	if err != nil {
+		return err
+	}
+
+	Println(string(buf))
 
 	return nil
 }
