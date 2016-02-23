@@ -21,7 +21,6 @@ tasks:
       - itemOne
       - itemTwo
       - itemThree
-
   - name: "Middle Task"
     shell: cmd="echo success"
 

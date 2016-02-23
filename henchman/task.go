@@ -166,7 +166,7 @@ func renderValue(value string, varsMap VarsMap, registerMap map[string]interface
 
 // Creates the final Vars to be executed for the task
 // Needs to produce a separate vars map because other tasks may use task.Vars
-func (task Task) SetupVars(plan *Plan, machine *Machine, vars VarsMap, registerMap RegMap) error {
+func (task *Task) SetupVars(plan *Plan, machine *Machine, vars VarsMap, registerMap RegMap) error {
 	MergeMap(plan.Vars, vars, true)
 	MergeMap(machine.Vars, vars, true)
 

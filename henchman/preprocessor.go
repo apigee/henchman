@@ -478,12 +478,17 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	plan := Plan{}
 	plan.Inventory = *inv
 	plan.Name = px.Name
-	plan.Deploy, err = px.PreprocessDeploy()
-	if err != nil {
-		return nil, HenchErr(err, map[string]interface{}{
-			"plan":             plan.Name,
-			"while_processing": "vars",
-		}, "Error processing vars")
+
+	if px.Deploy != nil {
+		plan.Deploy, err = px.PreprocessDeploy()
+		if err != nil {
+			return nil, HenchErr(err, map[string]interface{}{
+				"plan":             plan.Name,
+				"while_processing": "vars",
+			}, "Error processing vars")
+		}
+	} else {
+		plan.Deploy = StandardDeploy{}
 	}
 
 	//common vars processing

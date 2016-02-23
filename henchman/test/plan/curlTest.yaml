@@ -17,10 +17,7 @@ tasks:
   - name: "Test Bad Shell"
     shell: cmd="echo (*&@JJ)U"
     debug: true
+    ignore_errors: true
   - name: "Test Shell"
     shell: cmd="echo {{ vars.current_hostname }}"
     debug: true
-  - name: "Test Local Shell"
-    shell: cmd="echo {{ vars.current_hostname }}"
-    debug: true
-    local: true
