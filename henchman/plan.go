@@ -8,7 +8,7 @@ import (
 	_ "path/filepath"
 	_ "reflect"
 	"strings"
-	"sync"
+	_ "sync"
 
 	"github.com/mgutz/ansi"
 )
@@ -78,13 +78,24 @@ func printPlanStats() (taskError bool) {
 	return
 }
 
-func printTaskResults(taskResult *TaskResult, task *Task) {
+func printTaskResults(taskResult *TaskResult, task *Task, hostname string, retry int) {
 	resetCode := statuses["reset"]
 	colorCode := statuses[taskResult.State]
-	Printf("%s => %s\n\n", colorCode+taskResult.State, taskResult.Msg+resetCode)
+
+	if retry == 0 {
+		Printf("%s %s => %s\n",
+			SprintfAndFill(20, " ", "[ %s ]", hostname),
+			colorCode+taskResult.State,
+			taskResult.Msg+resetCode)
+	} else {
+		Printf("%s %s => %s\n",
+			SprintfAndFill(20, " ", "[ %s | RETRY %v ]", hostname, retry),
+			colorCode+taskResult.State,
+			taskResult.Msg+resetCode)
+	}
 
 	if task.Debug {
-		Println("Output\n-----" +
+		Println("------\nOutput" +
 			colorCode +
 			printRecurse(taskResult.Output, "", "\n") +
 			resetCode)
@@ -343,7 +354,7 @@ func (plan Plan) ManageTaskRun(task *Task, machine *Machine, vars VarsMap, regis
 	if err != nil {
 		return false, HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
-		}, fmt.Sprintf("Error rendering task '%s'", task.Name))
+		}, "")
 	}
 
 	// Fields for info
@@ -356,11 +367,7 @@ func (plan Plan) ManageTaskRun(task *Task, machine *Machine, vars VarsMap, regis
 	if task.Debug {
 		fields["output"] = taskResult.Output
 	}
-	Info(fields, fmt.Sprintf("Task '%s' complete", task.Name))
-	PrintfAndFill(75, "~", "TASK [ %s | %s | %s ] ",
-		machine.Hostname, task.Name, task.Module.Name)
-	printShellModule(task)
-	printTaskResults(taskResult, task)
+	Info(fields, fmt.Sprintf("Task '%s' complete on '%s'", task.Name, machine.Hostname))
 
 	updatePlanStats(taskResult.State, machine.Hostname)
 
@@ -379,17 +386,12 @@ func taskRunAndRetries(task *Task, machine *Machine, vars VarsMap, registerMap R
 	for numRuns := task.Retry + 1; numRuns > 0; numRuns-- {
 		// If this is a retry print some info
 		if numRuns <= task.Retry {
-			printTaskResults(taskResult, task)
 			Debug(map[string]interface{}{
 				"task":      task.Name,
 				"host":      machine.Hostname,
 				"mod":       task.Module.Name,
 				"iteration": task.Retry + 1 - numRuns,
 			}, fmt.Sprintf("Retrying Task '%s'", task.Name))
-			PrintfAndFill(75, "~", "TASK RETRY %v [ %s | %s | %s ] ",
-				task.Retry-numRuns+1, machine.Hostname, task.Name, task.Module.Name)
-			printShellModule(task)
-		} else {
 		}
 
 		taskResult, err = task.Run(machine, vars, registerMap)
@@ -400,6 +402,7 @@ func taskRunAndRetries(task *Task, machine *Machine, vars VarsMap, registerMap R
 				"host": machine.Hostname,
 			}, fmt.Sprintf("Error running task '%s'", task.Name))
 		}
+		printTaskResults(taskResult, task, machine.Hostname, task.Retry-numRuns+1)
 
 		if taskResult.State == "ok" ||
 			taskResult.State == "changed" ||

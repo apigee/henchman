@@ -16,6 +16,8 @@ func (sd StandardDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan)
 	go func() {
 		defer wgMain.Done()
 		for _, task := range plan.Tasks {
+			PrintfAndFill(75, "~", "\nTASK [ %s | %s ] ", task.Name, task.Module.Name)
+			printShellModule(task)
 			for _, machine := range machines {
 				wgMachines.Add(1)
 				go func(m *Machine, t *Task) {
