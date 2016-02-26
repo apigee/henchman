@@ -12,12 +12,6 @@ func (sd StandardDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan)
 
 	errChan := make(chan error, 1)
 
-	// creates a RegMap for each machine, this could be a global variable and initialized in plan
-	registerMaps := make([]RegMap, len(machines))
-	for ndx := range machines {
-		registerMaps[ndx] = make(RegMap)
-	}
-
 	wgMain.Add(1)
 	go func() {
 		defer wgMain.Done()
@@ -28,7 +22,7 @@ func (sd StandardDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan)
 				wgMachines.Add(1)
 				go func(m *Machine, t *Task, ndx int) {
 					defer wgMachines.Done()
-					sd.executeTask(registerMaps[ndx], m, t, plan, errChan)
+					sd.executeTask(plan.registerMaps[ndx], m, t, plan, errChan)
 				}(machine, task, ndx)
 			}
 			wgMachines.Wait()

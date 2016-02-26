@@ -31,11 +31,12 @@ type VarsMap map[string]interface{}
 type RegMap map[string]interface{}
 
 type Plan struct {
-	Name      string
-	Inventory Inventory
-	Deploy    DeployInterface
-	Vars      VarsMap
-	Tasks     []*Task
+	Name         string
+	Inventory    Inventory
+	Deploy       DeployInterface
+	Vars         VarsMap
+	Tasks        []*Task
+	registerMaps []RegMap
 }
 
 func localhost() *Machine {
@@ -269,6 +270,13 @@ func (plan *Plan) Setup(machines []*Machine) error {
 	// remove unnecessary modules.tar
 	for _, osName := range OsNames {
 		os.Remove(osName + "_" + MODULES_TARGET)
+	}
+
+	// NOTE: might have to account for localhost case enventually
+	Println("Setting up registerMaps for all systems")
+	plan.registerMaps = make([]RegMap, len(machines))
+	for ndx := range machines {
+		plan.registerMaps[ndx] = make(RegMap)
 	}
 
 	Info(map[string]interface{}{
