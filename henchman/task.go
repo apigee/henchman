@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,6 +54,100 @@ func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	return nil
 }
 
+// ProcessWithItems checks for the with_items files in a task.  If it's present it will generate a list of rendered tasks.
+func (task *Task) ProcessWithItems(varsMap VarsMap) ([]*Task, error) {
+	// NOTE: placing item variables into regMap since item is a keyword and
+	var newTasks []*Task
+	var itemList []interface{}
+	// {{ somelist }} case
+	if reflect.TypeOf(task.WithItems).Name() == "string" {
+		// some string parsing magic to simulate pongo2
+		newWithItems := strings.Trim(task.WithItems.(string), "{{}}")
+		newWithItems = strings.TrimSpace(newWithItems)
+		newWithItems = strings.TrimPrefix(newWithItems, "vars.")
+
+		var present bool
+		itemList, present = varsMap[newWithItems].([]interface{})
+		if !present {
+			return nil, fmt.Errorf("The with_item rendered variable '%s' is not of type []interface{}", task.WithItems)
+		}
+	} else {
+		itemList = task.WithItems.([]interface{})
+	}
+
+	newTasks = []*Task{}
+	// regMap just to hold item
+	regMap := make(RegMap)
+	for _, v := range itemList {
+		switch v.(type) {
+		case string, map[interface{}]interface{}:
+			regMap["item"] = v
+		default:
+			return nil, HenchErr(
+				fmt.Errorf("Components in with_items must be a string or a json object."),
+				map[string]interface{}{
+					"item": v,
+				}, "")
+		}
+
+		newTask, err := task.processWithItemHelper(varsMap, regMap)
+		if err != nil {
+			return nil, err
+		}
+
+		newTasks = append(newTasks, newTask)
+	}
+
+	return newTasks, nil
+}
+
+// prcessWithItemHelper(...) subs out only instances of {{ item }} in the task and leaves other {{ }} variables intact.  Meaning it doesn't use pongo2 to render yet.  This allows tasks to not be rendered until it's run
+// NOTE: should we include "when" field?
+func (task Task) processWithItemHelper(vars VarsMap, regMap RegMap) (*Task, error) {
+	var err error
+	task.Name, err = itemReplace(task.Name, vars, regMap)
+	if err != nil {
+		return &task, err
+	}
+
+	// necessary b/c maps are ptrs and race conditions in here and Run(...)
+	renderedModuleParams := make(map[string]string)
+	for k, v := range task.Module.Params {
+		renderedModuleParams[k], err = itemReplace(v, vars, regMap)
+		if err != nil {
+			return &task, err
+		}
+	}
+
+	task.Module.Params = renderedModuleParams
+	return &task, nil
+}
+
+func itemReplace(target string, vars VarsMap, regMap RegMap) (string, error) {
+	result := target
+
+	// regex to isolate all {{ item }} cases
+	r, err := regexp.Compile("{{[\\s]*(item|item.*)[\\s]*}}")
+	if err != nil {
+		return "", HenchErr(err, nil, "While creating regex for itemReplace")
+	}
+
+	// find all occurrences of {{ item }}/{{ item.* }}
+	ndxs := r.FindAllStringIndex(target, -1)
+
+	// replace each occurence with rendered value
+	for _, v := range ndxs {
+		newVal, err := renderValue(string(target[v[0]:v[1]]), vars, regMap)
+		if err != nil {
+			return "", HenchErr(err, nil, "While rendering for itemReplace")
+		}
+		result = strings.Replace(result, string(target[v[0]:v[1]]), newVal, -1)
+	}
+
+	return result, nil
+}
+
+/*
 // ProcessWithItems checks for the with_items files in a task.  If it's present it will generate a list of rendered tasks.
 func (task *Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, error) {
 	// NOTE: placing item variables into regMap since item is a keyword and
@@ -105,7 +200,7 @@ func (task *Task) ProcessWithItems(varsMap VarsMap, regMap RegMap) ([]*Task, err
 
 	return newTasks, nil
 }
-
+*/
 // wrapper for Rendering each task
 // This will return the rendered task and not manipulate the pointer to the
 // task. b/c the pointer to the task is a template and a race condition can occur.

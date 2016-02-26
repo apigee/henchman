@@ -12,18 +12,24 @@ func (sd StandardDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan)
 
 	errChan := make(chan error, 1)
 
+	// creates a RegMap for each machine, this could be a global variable and initialized in plan
+	registerMaps := make([]RegMap, len(machines))
+	for ndx := range machines {
+		registerMaps[ndx] = make(RegMap)
+	}
+
 	wgMain.Add(1)
 	go func() {
 		defer wgMain.Done()
 		for _, task := range plan.Tasks {
 			PrintfAndFill(75, "~", "\nTASK [ %s | %s ] ", task.Name, task.Module.Name)
 			printShellModule(task)
-			for _, machine := range machines {
+			for ndx, machine := range machines {
 				wgMachines.Add(1)
-				go func(m *Machine, t *Task) {
+				go func(m *Machine, t *Task, ndx int) {
 					defer wgMachines.Done()
-					sd.executeTask(m, t, plan, errChan)
-				}(machine, task)
+					sd.executeTask(registerMaps[ndx], m, t, plan, errChan)
+				}(machine, task, ndx)
 			}
 			wgMachines.Wait()
 		}
@@ -38,9 +44,8 @@ func (sd StandardDeploy) ExecuteTasksOnMachines(machines []*Machine, plan *Plan)
 }
 
 // Uses plans ManageTaskRun(...)
-func (sd StandardDeploy) executeTask(machine *Machine, task *Task, plan *Plan, errs chan error) {
+func (sd StandardDeploy) executeTask(registerMap RegMap, machine *Machine, task *Task, plan *Plan, errs chan error) {
 	var actualMachine *Machine
-	registerMap := make(RegMap)
 	if task.Local == true {
 		actualMachine = localhost()
 	} else {
@@ -53,45 +58,22 @@ func (sd StandardDeploy) executeTask(machine *Machine, task *Task, plan *Plan, e
 		return
 	}
 
-	// Checks for subtasks in the with_items field
-	subTasks, err := task.ProcessWithItems(vars, registerMap)
+	renderedTask, err := task.Render(vars, registerMap)
 	if err != nil {
 		errs <- HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
-			"task": task.Name,
+			"task": renderedTask.Name,
 			"host": actualMachine.Hostname,
-		}, fmt.Sprintf("Error generating with_items tasks '%s'", task.Name))
+		}, fmt.Sprintf("Error rendering task '%s'", renderedTask.Name))
 		return
 	}
 
-	if subTasks != nil {
-		for _, subTask := range subTasks {
-			acceptedState, err := plan.ManageTaskRun(subTask, actualMachine, vars, registerMap)
-			if !acceptedState {
-				if err != nil {
-					errs <- err
-				}
-				return
-			}
-		}
-	} else {
-		renderedTask, err := task.Render(vars, registerMap)
+	// accepted states are ok, success, ignored
+	acceptedState, err := plan.ManageTaskRun(renderedTask, actualMachine, vars, registerMap)
+	if !acceptedState {
 		if err != nil {
-			errs <- HenchErr(err, map[string]interface{}{
-				"plan": plan.Name,
-				"task": renderedTask.Name,
-				"host": actualMachine.Hostname,
-			}, fmt.Sprintf("Error rendering task '%s'", renderedTask.Name))
-			return
+			errs <- err
 		}
-
-		// accepted states are ok, success, ignored
-		acceptedState, err := plan.ManageTaskRun(renderedTask, actualMachine, vars, registerMap)
-		if !acceptedState {
-			if err != nil {
-				errs <- err
-			}
-			return
-		}
+		return
 	}
 }

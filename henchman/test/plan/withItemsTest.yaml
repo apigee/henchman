@@ -1,6 +1,6 @@
 name: "With Items test"
 hosts:
-  - individual
+  - test
 debug: true
 vars:
   somelist:
@@ -44,15 +44,16 @@ tasks:
     with_items:
       - "{{ vars.val1 }}"
       - "{{ vars.val2 }}"
+      - "{{ vars.current_hostname }}"
       - "val3"
 
-#  Verified this test case works for the default case in task.ProcessWithItems
+#   Verified this test case works for the default case in task.ProcessWithItems
 #  - name: "Bad Task {{ item }}"
 #    shell: cmd="echo {{ item }}"
 #    with_items: 
 #      - "hello"
 #      - 1.0
-#
+ 
 #  Verified this test case works
 #  - name: "Bad Task {{ item }}"
 #    shell: cmd="echo {{ item }}"

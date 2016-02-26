@@ -73,7 +73,7 @@ func (rd RollingDeploy) executeTasks(machine *Machine, plan *Plan, errs chan err
 		}
 
 		// Checks for subtasks in the with_items field
-		subTasks, err := task.ProcessWithItems(vars, registerMap)
+		subTasks, err := task.ProcessWithItems(vars)
 		if err != nil {
 			errs <- HenchErr(err, map[string]interface{}{
 				"plan": plan.Name,

@@ -303,6 +303,28 @@ func (plan *Plan) Cleanup(machines []*Machine) error {
 	return nil
 }
 
+// EvaluateWithItem looks at each task's lists WithItem field and repopulates the task list accordingly
+func (plan *Plan) EvaluateWithItem() error {
+	var newTasks []*Task
+	for _, task := range plan.Tasks {
+		if task.WithItems != nil {
+			subTasks, err := task.ProcessWithItems(plan.Vars)
+			if err != nil {
+				return HenchErr(err, map[string]interface{}{
+					"task": task.Name,
+				}, "")
+			}
+
+			newTasks = append(newTasks, subTasks...)
+		} else {
+			newTasks = append(newTasks, task)
+		}
+	}
+
+	plan.Tasks = newTasks
+	return nil
+}
+
 // Does execution of tasks
 func (plan *Plan) Execute(machines []*Machine) error {
 	Info(map[string]interface{}{

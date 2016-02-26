@@ -19,6 +19,6 @@ tasks:
     debug: true
     ignore_errors: true
     retry: 2
-  - name: "Test Shell"
+  - name: "Test Shell {{ vars.current_hostname}}"
     shell: cmd="echo {{ vars.current_hostname }}"
     debug: true
