@@ -1,2 +1,3 @@
+temp 1
 {{ vars.current_hostname }}
 {{ vars.service }}

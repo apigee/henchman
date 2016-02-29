@@ -63,7 +63,7 @@ func main() {
 
 	// sets parameters of copy module as output
 	result["output"] = map[string]interface{}{
-		"override": copyParams.Override,
+		"override": override,
 		"dest":     copyParams.Dest,
 		"owner":    copyParams.Owner,
 		"group":    copyParams.Group,
@@ -129,8 +129,9 @@ func MergeFolders(override bool) error {
 			}
 
 			element := strings.TrimPrefix(path, copyParams.RmtSrc)
+			// means it's the baseDir
 			if element == "" {
-				return fmt.Errorf("root: %s, path: %s", copyParams.RmtSrc, path)
+				return nil
 			}
 
 			destPath := filepath.Join(copyParams.Dest, element)

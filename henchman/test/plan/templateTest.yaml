@@ -1,29 +1,50 @@
 ---
 name: "Testing local == true"
+debug: true
 hosts:
    - individual 
 vars:
   service: iptables
 tasks:
+# template and copy use the same src code for modules so testing one is sufficient
+# File/folder to folder/file should have the same result of status ok for override false
    - name: "Remove old files"
-     shell: cmd="rm -rf test"
+     shell: cmd="rm -rf templateTest"
      sudo: true
    - name: "Remove old files"
-     shell: cmd="rm -rf copies"
+     shell: cmd="rm -rf copyTest"
      sudo: true
-   - name: "Task Template Folder"
-     template: src="henchman/test/templates" dest="test/templates/" ext="zip"
-     debug: true
-   - name: "Task Template Folder two"
-     template: src="henchman/test/templates" dest="test/templates/" ext="zip"
-     debug: true
+   - name: "Remove old files"
+     shell: cmd="rm -rf fldr"
      sudo: true
-   - name: "Copy One"
-     copy: src="henchman/test/templates/" dest="copies/copes/" 
-     debug: true
-   - name: "Copy Two"
-     copy: src="henchman/test/templates/" dest="copies/copes/" override="false"
-     debug: true
-   - name: "Copy File"
-     copy: src="henchman/test/templates/temp1" dest="copies/hello" mode=0777
-     debug: true
+    
+   # File/Folder doesn't exists case
+   - name: "Nested folder doesn't exist"
+     template: src="henchman/test/templates" dest="fldr/fldr1/fldr2/templateTest" owner="root" group="vagrant" mode=0777
+     sudo: true
+   - name: "Template Folder"
+     template: src="henchman/test/templates" dest="templateTest"
+   - name: "Copy Folder"
+     copy: src="henchman/test/templates" dest="copyTest"
+
+   # folder tests
+   # files temp3 and temp4 should be changed in templates3
+   - name: "Template Folder to folder override true"
+     template: src="henchman/test/templates/templates2" dest="templateTest/templates3/"
+   # files temp3 and temp4 should not be changed in templates2
+   - name: "Template Folder to folder override false"
+     template: src="henchman/test/templates/templates3" dest="templateTest/templates2/" override="false"
+   - name: "Template folder to file override true"
+     template: src="henchman/test/templates" dest="templateTest/temp1"
+   - name: "Template folder to file override false"
+     template: src="henchman/test/templates" dest="templateTest/temp2" override="false"
+
+   # file tests
+   - name: "Copy File to File override true"
+     copy: src="henchman/test/templates/templates3/temp3" dest="copyTest/templates2/temp3"
+   - name: "Copy File to File override false" 
+     copy: src="henchman/test/templates/temp1" dest="copyTest/temp2" override="false"
+   - name: "Copy File to Folder override true"
+     copy: src="henchman/test/templates/temp1" dest="copyTest/templates3"
+   - name: "Copy File to Folder override false"
+     copy: src="henchman/test/templates/temp2" dest="copyTest/templates2" override="false"
