@@ -174,7 +174,7 @@ func SetOwner() error {
 	cmd = exec.Command("/bin/chown", cmdList...)
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		fmt.Errorf("Error chown file/folder - %s", string(output))
+		return fmt.Errorf("Error chown file/folder - %s", string(output))
 	}
 
 	return nil
