@@ -9,6 +9,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPreprocessWithWithItems(t *testing.T) {
+	inv, _ := loadValidInventory()
+	buf, err := ioutil.ReadFile("test/plan/withItemsTest.yaml")
+	require.NoError(t, err)
+
+	invGroups, err := GetInventoryGroups(buf)
+	inventory := inv.GetInventoryForGroups(invGroups)
+	inventory.SetGlobalVarsFromInventoryGroups(inv.Groups)
+
+	plan, err := PreprocessPlan(buf, &inventory)
+	require.NoError(t, err)
+	require.Equal(t, 17, len(plan.Tasks))
+	assert.Equal(t, "Task itemOne", plan.Tasks[0].Name)
+	assert.Equal(t, "Task itemTwo", plan.Tasks[1].Name)
+	assert.Equal(t, "Task itemThree", plan.Tasks[2].Name)
+	assert.Equal(t, "Middle Task", plan.Tasks[3].Name)
+	assert.Equal(t, "Task itemOne", plan.Tasks[4].Name)
+	assert.Equal(t, "echo one", plan.Tasks[4].Module.Params["cmd"])
+	assert.Equal(t, "Task itemTwo", plan.Tasks[5].Name)
+	assert.Equal(t, "echo two", plan.Tasks[5].Module.Params["cmd"])
+	assert.Equal(t, "Task itemThree", plan.Tasks[6].Name)
+	assert.Equal(t, "echo three", plan.Tasks[6].Module.Params["cmd"])
+	assert.Equal(t, "Task listItemOne", plan.Tasks[7].Name)
+	assert.Equal(t, "Task listItemTwo", plan.Tasks[8].Name)
+	assert.Equal(t, "Task listItemThree", plan.Tasks[9].Name)
+	assert.Equal(t, "Task objOne", plan.Tasks[10].Name)
+	assert.Equal(t, "echo oOne", plan.Tasks[10].Module.Params["cmd"])
+	assert.Equal(t, "Task objTwo", plan.Tasks[11].Name)
+	assert.Equal(t, "echo oTwo", plan.Tasks[11].Module.Params["cmd"])
+	assert.Equal(t, "Task objThree", plan.Tasks[12].Name)
+	assert.Equal(t, "echo oThree", plan.Tasks[12].Module.Params["cmd"])
+	assert.Equal(t, "Val render task {{ vars.val1 }}", plan.Tasks[13].Name)
+	assert.Equal(t, "Val render task {{ vars.val2 }}", plan.Tasks[14].Name)
+	assert.Equal(t, "Val render task {{ vars.current_hostname }}", plan.Tasks[15].Name)
+	assert.Equal(t, "Val render task val3", plan.Tasks[16].Name)
+}
+
+/*
 func TestPreprocessWithDeploy(t *testing.T) {
 	inv, _ := loadValidInventory()
 	buf, err := ioutil.ReadFile("test/plan/rollingCurlTest.yaml")
@@ -20,9 +58,10 @@ func TestPreprocessWithDeploy(t *testing.T) {
 	plan, err := PreprocessPlan(buf, &inventory)
 
 	require.NoError(t, err)
-	assert.Equal(t, "rolling", plan.Deploy.Method, "wrong deploy method")
-	assert.Equal(t, 1.0, plan.Deploy.NumHosts, "wrong num of hosts for deploy")
+	assert.Implements(t, plan.Deploy, new(RollingDeploy), "rollingDeploy")
+	assert.Equal(t, 1.0, (plan.Deploy.(RollingDeploy)).NumHosts, "wrong num of hosts for deploy")
 }
+*/
 
 func TestPreprocessInventoryAtHostLevel(t *testing.T) {
 	inv, _ := loadValidInventory()

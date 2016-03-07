@@ -468,6 +468,27 @@ func (px *PlanProxy) PreprocessDeploy() (DeployInterface, error) {
 	return StandardDeploy{}, nil
 }
 
+// evaluateWithItem looks at each task's WithItem field and repopulates the task list accoridingly
+func evaluateWithItem(tasks []*Task, vars VarsMap) ([]*Task, error) {
+	var newTasks []*Task
+	for _, task := range tasks {
+		if task.WithItems != nil {
+			subTasks, err := task.ProcessWithItems(vars)
+			if err != nil {
+				return nil, HenchErr(err, map[string]interface{}{
+					"task": task.Name,
+				}, "")
+			}
+
+			newTasks = append(newTasks, subTasks...)
+		} else {
+			newTasks = append(newTasks, task)
+		}
+	}
+
+	return newTasks, nil
+}
+
 // PreprocessPlan calls the other preprocessing compenents to create a plan struct.
 func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 	px, err := newPlanProxy(buf)
@@ -515,6 +536,11 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 		}, "Error processing tasks")
 	}
 
+	tasks, err = evaluateWithItem(tasks, plan.Vars)
+	if err != nil {
+		return &plan, err
+	}
+
 	// set task local parameter if inventory consists only of localhost
 	if _, present := plan.Inventory.Groups["localhost"]; present {
 		if len(plan.Inventory.Groups) == 1 {
@@ -523,10 +549,8 @@ func PreprocessPlan(buf []byte, inv *Inventory) (*Plan, error) {
 			}
 		}
 	}
+
 	plan.Tasks = tasks
-	if err := plan.EvaluateWithItem(); err != nil {
-		return &plan, err
-	}
 
 	return &plan, nil
 }

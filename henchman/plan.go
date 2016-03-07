@@ -311,28 +311,6 @@ func (plan *Plan) Cleanup(machines []*Machine) error {
 	return nil
 }
 
-// EvaluateWithItem looks at each task's lists WithItem field and repopulates the task list accordingly
-func (plan *Plan) EvaluateWithItem() error {
-	var newTasks []*Task
-	for _, task := range plan.Tasks {
-		if task.WithItems != nil {
-			subTasks, err := task.ProcessWithItems(plan.Vars)
-			if err != nil {
-				return HenchErr(err, map[string]interface{}{
-					"task": task.Name,
-				}, "")
-			}
-
-			newTasks = append(newTasks, subTasks...)
-		} else {
-			newTasks = append(newTasks, task)
-		}
-	}
-
-	plan.Tasks = newTasks
-	return nil
-}
-
 // Does execution of tasks
 func (plan *Plan) Execute(machines []*Machine) error {
 	Info(map[string]interface{}{
@@ -371,6 +349,7 @@ func (plan *Plan) Execute(machines []*Machine) error {
 }
 
 // Manages all the print outs and updating of planStats for running a task
+// Also returns if error or failure is present
 // FIXME: shouldn't be making this a plan function just b/c we need plan.Name...
 func (plan Plan) ManageTaskRun(task *Task, machine *Machine, vars VarsMap, registerMap RegMap) (bool, error) {
 	Info(map[string]interface{}{
@@ -382,7 +361,7 @@ func (plan Plan) ManageTaskRun(task *Task, machine *Machine, vars VarsMap, regis
 	// handles the running and retrying of tasks
 	taskResult, err := taskRunAndRetries(task, machine, vars, registerMap)
 	if err != nil {
-		return false, HenchErr(err, map[string]interface{}{
+		return true, HenchErr(err, map[string]interface{}{
 			"plan": plan.Name,
 		}, "")
 	}
@@ -403,10 +382,10 @@ func (plan Plan) ManageTaskRun(task *Task, machine *Machine, vars VarsMap, regis
 
 	// NOTE: if IgnoreErrors is true then state will be set to ignored in task.Run(...)
 	if taskResult.State == "error" || taskResult.State == "failure" {
-		return false, nil
+		return true, nil
 	}
 
-	return true, nil
+	return false, nil
 }
 
 // Runs the task and the retries
