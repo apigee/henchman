@@ -442,6 +442,8 @@ func preprocessVarsHelper(fName interface{}) (VarsMap, error) {
 	return px.VarsProxy.Vars, nil
 }
 
+// TODO: check for policy info here.  We should put the policy info into config.go
+// TODO: validation for percentages.  Can stick with 0.x or go with xx%.  This will require num_hosts to be parsed as a string though.
 func (px *PlanProxy) PreprocessDeploy() (DeployInterface, error) {
 	method, present := px.Deploy["method"]
 	if !present {
@@ -453,6 +455,7 @@ func (px *PlanProxy) PreprocessDeploy() (DeployInterface, error) {
 		numHosts := 0.0
 		numHostsProxy, present := px.Deploy["num_hosts"]
 		if present {
+			// checks for percentage case
 			switch numHostsProxy.(type) {
 			case int:
 				numHosts = float64(numHostsProxy.(int))
