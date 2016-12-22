@@ -2,13 +2,13 @@ package henchman
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
 	"os"
 	_ "path/filepath"
 	_ "reflect"
 	"strings"
 	"sync"
-	"errors"
 
 	"github.com/mgutz/ansi"
 )
@@ -237,12 +237,22 @@ func (plan *Plan) Setup(machines []*Machine) error {
 		if machine.Hostname == "localhost" {
 			continue
 		}
-		if err := transferAndUntarModules(machine); err != nil {
-			return HenchErr(err, map[string]interface{}{
-				"plan":       plan.Name,
-				"remotePath": REMOTE_DIR,
-				"host":       machine.Hostname,
-			}, "While transferring modules.tar")
+
+		// tries 3 times to untar modules before calling it quits
+		for errCtr := 0; errCtr < 4; errCtr++ {
+			if err := transferAndUntarModules(machine); err != nil {
+				if errCtr < 3 {
+					Printf("Received err while transferring modules.tar.  Retrying %d/3 :: %s\n", errCtr+1, err.Error())
+				} else {
+					return HenchErr(err, map[string]interface{}{
+						"plan":       plan.Name,
+						"remotePath": REMOTE_DIR,
+						"host":       machine.Hostname,
+					}, "While transferring modules.tar")
+				}
+			} else {
+				break
+			}
 		}
 		Printf("Transferred to [ %s ]\n", machine.Hostname)
 	}
