@@ -20,9 +20,11 @@ test:
   pre:
     # Getting import errors in circleci
     - go get github.com/apigee/henchman
-    - ls
+    - pwd
+    - cd "$GOPATH/src/$IMPORT_PATH/"
+    - pwd
     - godep restore
-    - godep go vet -x ./...
+    - godep go vet -x ./henchman
   override:
     - godep go test -v ./...
     - godep go test ./henchman -covermode=count -coverprofile=coverage.out -coverpkg=./...
