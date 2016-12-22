@@ -20,6 +20,8 @@ test:
   pre:
     # Getting import errors in circleci
     - go get github.com/apigee/henchman
+    - ls
+    - godep restore
     - godep go vet -x ./...
   override:
     - godep go test -v ./...
