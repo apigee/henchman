@@ -41,8 +41,15 @@ type TaskResult struct {
 
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultStr := buf.String()
+	fmt.Printf("DEBUG: taskresult - %s - length - %d\n", resultStr, len(resultStr))
+
+	// NOTE: patch removal so resultStr will not have extra stuff infront of it
+	if strings.Index(resultStr, "{") != 0 {
+		fmt.Printf("DEBUG: doing a patch removal")
+		resultStr = resultStr[strings.Index(resultStr, "{"):len(resultStr)]
+	}
 	resultInBytes := []byte(resultStr)
-	//fmt.Printf("DEBUG: taskresult - %s - length - %d\n", resultStr, len(resultStr))
+
 	err := json.Unmarshal(resultInBytes, &taskResult)
 	if err != nil {
 		return HenchErr(err, map[string]interface{}{
@@ -296,9 +303,18 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 				return &TaskResult{}, HenchErr(err, nil, "In exec_module while json marshalling")
 			}
 
-			buf, err := machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
-			if err != nil {
-				return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
+			var buf *bytes.Buffer
+			for errCtr := 0; errCtr < 4; errCtr++ {
+				buf, err = machine.Transport.Exec(remoteModPath, jsonParams, task.Sudo)
+				if err != nil {
+					if errCtr < 3 {
+						Printf("Received err executing cmd on %s .  Retrying %d/3 :: %s\n", machine.Hostname, errCtr+1, err.Error())
+					} else {
+						return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
+					}
+				} else {
+					break
+				}
 			}
 
 			//This should not be empty
