@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/flosch/pongo2"
 	"github.com/pborman/uuid"
@@ -309,6 +310,7 @@ func (task *Task) Run(machine *Machine, vars VarsMap, registerMap RegMap) (*Task
 				if err != nil {
 					if errCtr < 3 {
 						Printf("Received err executing cmd on %s .  Retrying %d/3 :: %s\n", machine.Hostname, errCtr+1, err.Error())
+						time.Sleep((errCtr + 1) * time.Sleep)
 					} else {
 						return &TaskResult{}, HenchErr(err, nil, "While in exec_module")
 					}

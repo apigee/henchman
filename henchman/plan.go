@@ -9,6 +9,7 @@ import (
 	_ "reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mgutz/ansi"
 )
@@ -243,6 +244,7 @@ func (plan *Plan) Setup(machines []*Machine) error {
 			if err := transferAndUntarModules(machine); err != nil {
 				if errCtr < 3 {
 					Printf("Received err while transferring modules.tar.  Retrying %d/3 :: %s\n", errCtr+1, err.Error())
+					time.Sleep((errCtr + 1) * time.Second)
 				} else {
 					return HenchErr(err, map[string]interface{}{
 						"plan":       plan.Name,
