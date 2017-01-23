@@ -132,7 +132,8 @@ func transferAndUntarModules(machine *Machine) error {
 	// remove tar file
 	cmd = fmt.Sprintf("/bin/rm %s", REMOTE_DIR+modulesTar)
 	if _, err := machine.Transport.Exec(cmd, nil, false); err != nil {
-		return HenchErr(err, nil, "While removing tar in remote path")
+		fmt.Sprintf("Error occurred while removing tar in remote path.  Proceeding forward :: %s", err.Error())
+		// return HenchErr(err, nil, "While removing tar in remote path")
 	}
 
 	return nil
