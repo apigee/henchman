@@ -228,6 +228,12 @@ func (inv *Inventory) GetMachines(tc TransportConfig) ([]*Machine, error) {
 				return nil, err
 			}
 			machine.Transport = ssht
+		} else if machine.Hostname != "localhost" || machine.Hostname != "127.0.0.1" {
+			loct, err := NewLocal(&tcCurr)
+			if err != nil {
+				return nil, err
+			}
+			machine.Transport = loct
 		} else {
 			machine.Transport = nil
 		}
