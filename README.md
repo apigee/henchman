@@ -18,6 +18,7 @@ Henchman executes a plan (a collection of tasks) on a given set of machines.  Cu
 * `godep restore`
 * `godep go build -o bin/henchman`
   * If you are developing use `godep go build -race -o bin/henchman`
+* Build modules `find modules -name '*.go' | awk -F/ '{print "-o bin/modules/"$2"/"$2" "$0}' | xargs -l1 go build`
 
 ## Contributing
 Just clone or fork from [https://github.com/apigee/henchman](https://github.com/apigee/henchman) and off you go! Fixing issues marked `easy` in the issue tracker is a great way to get started. Or you can help by creating more modules.  Look at the modules section for more details.
