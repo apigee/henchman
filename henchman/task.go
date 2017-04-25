@@ -42,7 +42,9 @@ type TaskResult struct {
 
 func setTaskResult(taskResult *TaskResult, buf *bytes.Buffer) error {
 	resultStr := buf.String()
-	fmt.Printf("DEBUG: taskresult - %s - length - %d\n", resultStr, len(resultStr))
+	if DebugFlag {
+		fmt.Printf("DEBUG: taskresult - %s - length - %d\n", resultStr, len(resultStr))
+	}
 
 	// NOTE: patch removal so resultStr will not have extra stuff infront of it
 	if strings.Index(resultStr, "{") != 0 {
