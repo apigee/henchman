@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"reflect"
 )
 
 var ModuleSearchPath = []string{
@@ -26,11 +27,24 @@ func getRemainingToken(str []byte, sep byte) ([]byte, error) {
 	return remainingToken, err
 }
 
+func parseModuleArgsInterfaceMap(args map[interface{}]interface{}) (map[string]string, error) {
+	params := make(map[string]string)
+	for k, v := range args {
+		kstr, kerr := k.(string)
+		vstr, verr := v.(string)
+		if kerr && verr {
+			params[kstr] = vstr
+		}
+	}
+	
+	return params, nil
+}
+
 // Split args from the cli that are of the form,
 // "a=x b=y c=z" as a map of form { "a": "b", "b": "y", "c": "z" }
 // These plan arguments override the variables that may be defined
 // as part of the plan file.
-func parseModuleArgs(args string) (map[string]string, error) {
+func parseModuleArgsString(args string) (map[string]string, error) {
 	extraArgs := make(map[string]string)
 	scanner := bufio.NewScanner(strings.NewReader(args))
 
@@ -110,17 +124,31 @@ func extraArgsHasText(extraArgs map[string]string, text string) bool {
 	return false
 }
 
-func NewModule(name string, params string) (Module, error) {
+func NewModule(args ...interface{}) (Module, error) {
+	name := args[0].(string)
 	module := Module{}
 	module.Name = name
-	paramTable, err := parseModuleArgs(params)
+	paramTable, err := parseModuleArgs(name, args[1])
 	if err != nil {
-		return module, HenchErr(err, map[string]interface{}{
-			"module": name,
-		}, "While parsing args")
+		return module, err
 	}
 	module.Params = paramTable
 	return module, nil
+}
+
+func parseModuleArgs(args ...interface{}) (map[string]string, error) {
+	name := args[0]
+	paramsType := reflect.TypeOf(args[1]).String() 
+	switch paramsType {
+		case "string":
+			return parseModuleArgsString(args[1].(string))
+		case "map[interface {}]interface {}":
+			return parseModuleArgsInterfaceMap(args[1].(map[interface{}]interface{}))
+		default:
+			return nil, HenchErr(fmt.Errorf("Invalide module params object: %s", paramsType), map[string]interface{}{
+				"module": name,
+			}, "While parsing args")
+	}
 }
 
 // Resolve(...) checks to see if a module is valid and if it's a standalone module

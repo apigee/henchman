@@ -210,13 +210,6 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			}
 		default:
 			// We have a module
-			params, found := val.(string)
-			if !found {
-				return HenchErr(ErrWrongType(field, val, "string"), map[string]interface{}{
-					"task":     tp.Name,
-					"solution": "Make sure the field is of proper type",
-				}, "")
-			}
 			if numModule > 0 {
 				return HenchErr(fmt.Errorf("'%v' is an extra Module.", field), map[string]interface{}{
 					"task":     tp.Name,
@@ -224,7 +217,7 @@ func (tp *TaskProxy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				}, "")
 			}
 
-			tp.Module, err = NewModule(field, params)
+			tp.Module, err = NewModule(field, val)
 			if err != nil {
 				return HenchErr(err, map[string]interface{}{
 					"task": tp.Name,
